@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//查询用户KYC待审核列表
+//Query user KYC pending review list
 func (nft *NftExchangeControllerV2) QueryPendingKYCList() {
 	fmt.Println("QueryPendingKYCList()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

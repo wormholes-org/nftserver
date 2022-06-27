@@ -2,12 +2,15 @@ package sync
 
 import (
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"github.com/nftexchange/nftserver/models"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -23,7 +26,10 @@ const (
 	ScanBlockTime     = time.Second * 1
 	ScanSnftBlockTime = time.Second * 5
 	WaitIpfsFailTime  = time.Second * 1
+	SaveIpfsToLocalTime = time.Minute * 30
+	ScanIpfsFlagTime = time.Second * 10
 	ZeroAddr          = "0x0000000000000000000000000000000000000000"
+	DefaultSnft 	  = "0x80000000000000000000000000000000000000"
 )
 
 func SyncBlockTxs(sqldsn string, block uint64, blockTxs []*contracts.NftTx) error {
@@ -201,8 +207,9 @@ func InitSyncBlockTs(sqldsn string) error {
 			}
 		}
 	}()
-	//go SyncWorkerNft(sqldsn)
-	//go EventContract(models.Sqldsndb)
+	if models.Backupipfs {
+		go BackupIpfsSnft(sqldsn)
+	}
 	return nil
 }
 
@@ -284,7 +291,7 @@ func GetSnftInfoFromIPFS(hash string) (*models.SnftInfo, error) {
 func GetSnftInfoFromIPFSWithShell(hash string) (*models.SnftInfo, error) {
 	url := models.NftIpfsServerIP + ":" + models.NftstIpfsServerPort
 	s := shell.NewShell(url)
-	s.SetTimeout(5 * time.Second)
+	s.SetTimeout(100 * time.Second)
 	rc, err := s.Cat(hash)
 	if err != nil {
 		log.Println("GetSnftInfoFromIPFSWithShell() err=", err)
@@ -339,6 +346,18 @@ func AddDirIpfs(dir string) (string, error) {
 		return "", err
 	}
 	return cid, err
+}
+
+func SaveIpfsToLocal(ipfsHash string) (error) {
+	url := models.BackupIpfsUrl
+	s := shell.NewShell(url)
+	s.SetTimeout(SaveIpfsToLocalTime)
+	err := s.Pin(ipfsHash)
+	if err != nil {
+		log.Println("SaveIpfsToLocal() err=", err)
+		return err
+	}
+	return err
 }
 
 type SnftInfoData struct {
@@ -434,6 +453,7 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 				for  {
 					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
 					if err != nil {
+						timecount = timecount * 2
 						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=",timecount, " err =", err, "ipfs hash=",  metaHash)
 						errflag := strings.Index(err.Error(), "context deadline exceeded")
 						if errflag != -1 {
@@ -458,7 +478,6 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 							time.Sleep(WaitIpfsFailTime * timecount)
 							continue
 						}
-						timecount = timecount * 2
 					}
 					break
 				}
@@ -535,7 +554,132 @@ func SyncWorkerNft(sqldsn string) error {
 		} else {
 			time.Sleep(ScanSnftBlockTime)
 		}
+	}
+	return nil
+}
 
+func SaveIpfsMeta(sqldsn string) error {
+	nd, err := models.NewNftDb(sqldsn)
+	if err != nil {
+		log.Printf("SaveIpfsMeta() connect database err = %s\n", err)
+		return err
+	}
+	defer nd.Close()
+	snft := ""
+	params := models.SysParams{}
+	dbErr := nd.GetDB().Select("Savedsnft").Last(&params)
+	if dbErr.Error != nil {
+		fmt.Println("SaveIpfsMeta() opendb err=", dbErr.Error)
+		return dbErr.Error
+	}
+	if params.Savedsnft == "" || len(params.Savedsnft) != 40 {
+		snft = DefaultSnft
+	} else {
+		snft = params.Savedsnft
+	}
+	for  {
+		nftData := models.Nfts{}
+		result := nd.GetDB().Model(&models.Nfts{}).Select([]string{"meta"}).Where("snft = ?", snft).First(&nftData)
+		if result.Error != nil {
+			log.Println("SaveIpfsMeta() no snft save to ipfs err=", dbErr.Error)
+			return  result.Error
+		}
+		log.Println("SaveIpfsMeta() backup snft meta snft=", snft)
+		index := strings.LastIndex(nftData.Meta, "/")
+		if index == -1 {
+			log.Printf("ScanWorkerNft() LastIndex error.\n")
+			h, _ := big.NewInt(0).SetString(snft[2:] + "00", 16)
+			h = h.Add(h,big.NewInt(256))
+			snft = common.BigToAddress(h).Hex()
+			snft = snft[:len(snft)-2]
+			continue
+			return errors.New("ScanWorkerNft(): MetaUrl error.")
+		}
+		timecount := time.Duration(1)
+		for  {
+			fmt.Println("SaveIpfsMeta() backup to ipfs main hash=", nftData.Meta[:index])
+			err := SaveIpfsToLocal(nftData.Meta[:index])
+			if err != nil {
+				time.Sleep(WaitIpfsFailTime * timecount )
+				timecount = timecount * 2
+				continue
+			}
+			break
+		}
+		for i := 0; i < 256; i++ {
+				metaHash := nftData.Meta[:index] + "/" + hex.EncodeToString([]byte{byte(i)})
+				fmt.Println("SaveIpfsMeta() backup to ipfs chip hash=", metaHash)
+				var snftinfo *models.SnftInfo
+				timecount := time.Duration(1)
+				for {
+					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
+					if err != nil {
+						timecount = timecount * 2
+						log.Println("SaveIpfsMeta() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
+						time.Sleep(WaitIpfsFailTime * timecount)
+						continue
+					}
+					break
+				}
+				metaHash = snftinfo.SourceUrl
+				for  {
+					err := SaveIpfsToLocal(metaHash)
+					if err != nil {
+						time.Sleep(WaitIpfsFailTime * timecount )
+						timecount = timecount * 2
+						continue
+					}
+					break
+				}
+				metaHash = snftinfo.CollectionsImgUrl
+				for  {
+					err := SaveIpfsToLocal(metaHash)
+					if err != nil {
+						time.Sleep(WaitIpfsFailTime * timecount )
+						timecount = timecount * 2
+						continue
+					}
+					break
+				}
+			}
+		h, _ := big.NewInt(0).SetString(snft[2:] + "00", 16)
+		h = h.Add(h,big.NewInt(256))
+		snft = common.BigToAddress(h).Hex()
+		snft = snft[:len(snft)-2]
+		err := nd.GetDB().Transaction(func(tx *gorm.DB) error {
+			var params models.SysParams
+			dbErr := nd.GetDB().Select([]string{"savedsnft", "id"}).Last(&params)
+			if dbErr.Error != nil {
+				log.Println("SaveIpfsMeta() get savedsnft  err=", dbErr.Error)
+				return dbErr.Error
+			}
+			params.Savedsnft = snft
+			dbErr = nd.GetDB().Model(&models.SysParams{}).Where("id = ?", params.ID).Updates(params)
+			if dbErr.Error != nil {
+				log.Println("SaveIpfsMeta() update savedsnft err=", dbErr.Error)
+				return dbErr.Error
+			}
+			return nil
+		})
+		if err != nil {
+			log.Println("SaveIpfsMeta() update savedsnft err=", dbErr.Error)
+			return err
+		}
+	}
+	return err
+}
+
+func BackupIpfsSnft(sqldsn string) error {
+	for {
+		if !models.Backupipfs {
+			time.Sleep(ScanIpfsFlagTime)
+			continue
+		}
+		err := SaveIpfsMeta(sqldsn)
+		if err != nil {
+			fmt.Println("BackupIpfsSnft() no snft to SaveIpfsMeta")
+			time.Sleep(ScanIpfsFlagTime)
+		}
 	}
 	return nil
 }

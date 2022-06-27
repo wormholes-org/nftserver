@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//取消售卖(下架)
+//Cancel the sale (off the shelf)
 func (nft *NftExchangeControllerV2) CancelSell() {
 	fmt.Println("CancelSell()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -115,7 +115,7 @@ func (nft *NftExchangeControllerV2) GroupCancelSell() {
 					httpResponseData.Msg = err.Error()
 					httpResponseData.Data = []interface{}{}
 				} else {
-					err := nd.CancellSell(data["user_addr"], data["nft_contract_addr"], data["nft_token_id"], data["sig"])
+					err := nd.GroupCancelSell(data["cancel_param"])
 					if err != nil {
 						httpResponseData.Code = "500"
 						httpResponseData.Msg = err.Error()

@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 func (nft *NftExchangeControllerV2) verifyInputData_Upload(data map[string]string) error {
 	regString, _ := regexp.Compile(PattenString)
 	regNumber, _ := regexp.Compile(PattenNumber)
@@ -47,7 +46,7 @@ func (nft *NftExchangeControllerV2) verifySign_Upload(user, contract, tokenid, s
 		fmt.Println("verifySign_Upload() Decode() err=", err)
 		return err
 	}
-	pub, err :=crypto.SigToPub(msghash, hexsig)
+	pub, err := crypto.SigToPub(msghash, hexsig)
 	if err != nil {
 		fmt.Println("verifySign_Upload() TransactionSender() err=", err)
 		return err
@@ -77,7 +76,7 @@ func (nft *NftExchangeControllerV2) UpLoadFile() {
 	keyname := nft.GetString("keyname", "")
 	fmt.Println("keyname=", keyname)
 	if err := nft.verifySign_Upload(user, contract, tokenid, sig); err == nil {
-		f, h, err := nft.GetFile("myfile")  //获取上传的文件
+		f, h, err := nft.GetFile("myfile") //获取上传的文件
 		if err != nil {
 			httpResponseData.Code = "500"
 			httpResponseData.Msg = err.Error()
@@ -99,7 +98,7 @@ func (nft *NftExchangeControllerV2) UpLoadFile() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户签名错误"
+		httpResponseData.Msg = "Incorrect user signature entered"
 		httpResponseData.Data = []interface{}{}
 	}
 

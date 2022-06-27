@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//获取市场数据
+//Get market data
 func (nft *NftExchangeControllerV2) QueryMarketInfo() {
 	fmt.Println("QueryMarketInfo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -38,7 +38,7 @@ func (nft *NftExchangeControllerV2) QueryMarketInfo() {
 	fmt.Println("QueryMarketInfo()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//获取nft总量数据
+//Get total nft data
 func (nft *NftExchangeControllerV2) GetNftMarketInfo() {
 	fmt.Println("QueryMarketInfo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

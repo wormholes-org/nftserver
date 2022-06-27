@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 )
 
-//用户登录(不存在时创建):post
+//User login (created if does not exist): post
 func (nft *NftExchangeControllerV1) UserLogin() {
 	var httpResponseData controllers.HttpResponseData
 	nd := new(models.NftDb)
@@ -33,7 +33,7 @@ func (nft *NftExchangeControllerV1) UserLogin() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

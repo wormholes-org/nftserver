@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//获取用户交易历史
+//Get user transaction history
 func (nft *NftExchangeControllerV2) QueryUserTradingHistory() {
 	fmt.Println("QueryUserTradingHistory()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -72,7 +72,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryUserTradingHistory(data
 			return ERRINPUTINVALID
 		}
 	}
-	if data["start_index"] !=  "" {
+	if data["start_index"] != "" {
 		match := regNumber.MatchString(data["start_index"])
 		if !match {
 			return ERRINPUTINVALID

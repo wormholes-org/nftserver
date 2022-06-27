@@ -7,8 +7,8 @@ import (
 )
 
 type SubscribeRec struct {
-	Useraddr    string 	`json:"useraddr" gorm:"type:char(42) NOT NULL;comment:'用户地址'"`
-	Email		string	`json:"Email" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'订阅邮箱地址'"`
+	Useraddr    string 	`json:"useraddr" gorm:"type:char(42) NOT NULL;comment:'User address'"`
+	Email		string	`json:"Email" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'Subscription email address'"`
 }
 
 type Subscribes struct {

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//查询NFT待审核列表
+//Query the NFT pending review list
 func (nft *NftExchangeControllerV2) QueryPendingVerificationList() {
 	fmt.Println("QueryPendingVerificationList()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

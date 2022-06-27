@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"gorm.io/gorm"
 	"sync"
 )
@@ -118,7 +119,7 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		fmt.Println("Unmarshal homepage:", homePageReq)
 		for _, v := range homePageReq.NftLoop {
 			nftData := Nfts{}
 			result := nft.db.Model(&Nfts{}).Select([]string{"contract", "tokenid", "collectcreator", "Collections", "desc", "name",
@@ -132,7 +133,13 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 			}
 			homePageResp.NftLoop = append(homePageResp.NftLoop, nftData)
 		}
+		fmt.Println("homePageResp NftLoop:", len(homePageResp.NftLoop))
 		if len(homePageResp.NftLoop) > 0 {
+			HomePageCatchs.NftLoop = homePageResp.NftLoop
+		} else {
+			homePageResp.NftLoop = []Nfts{
+				Nfts{gorm.Model{}, NftRecord{Tokenid: "", Contract: ""}},
+			}
 			HomePageCatchs.NftLoop = homePageResp.NftLoop
 		}
 
@@ -150,6 +157,11 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 		}
 		if len(homePageResp.Collections) > 0 {
 			HomePageCatchs.Collects = homePageResp.Collections
+		} else {
+			homePageResp.Collections = []Collects{
+				Collects{gorm.Model{}, CollectRec{Createaddr: "", Name: ""}},
+			}
+			HomePageCatchs.Collects = homePageResp.Collections
 		}
 
 		for _, v := range homePageReq.NftList {
@@ -166,6 +178,11 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 			homePageResp.NftList = append(homePageResp.NftList, nftData)
 		}
 		if len(homePageResp.NftList) > 0 {
+			HomePageCatchs.NftList = homePageResp.NftList
+		} else {
+			homePageResp.NftList = []Nfts{
+				Nfts{gorm.Model{}, NftRecord{Tokenid: "", Contract: ""}},
+			}
 			HomePageCatchs.NftList = homePageResp.NftList
 		}
 		HomePageCatchs.HomePageFlashFlag = false

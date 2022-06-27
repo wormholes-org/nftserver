@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//地址查询admin
+//Address queryadmin
 func (nft *NftExchangeControllerV2) QueryAdminsByAddr() {
 	fmt.Println("QueryAdminsByAddr()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

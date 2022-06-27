@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//获取用户集合列表
+//Get a list of user collections
 func (nft *NftExchangeControllerV2) QueryCollectionInfo() {
 	fmt.Println("QueryCollectionInfo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -65,7 +65,7 @@ func (nft *NftExchangeControllerV2) QueryCollectionInfo() {
 func (nft *NftExchangeControllerV2) verifyInputData_QueryCollectionInfo(data map[string]string) error {
 	regString, _ := regexp.Compile(PattenString)
 
-	if data["creator_addr"] !=  "" {
+	if data["creator_addr"] != "" {
 		match := regString.MatchString(data["creator_addr"])
 		if !match {
 			return ERRINPUTINVALID

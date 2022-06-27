@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//取消售卖(下架)
+//Cancel the sale (off the shelf)
 func (nft *NftExchangeControllerV2) CancelBuyNft() {
 	fmt.Println("CancelBuyNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

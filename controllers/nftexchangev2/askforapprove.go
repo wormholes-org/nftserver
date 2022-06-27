@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//获取交易所授权
+//Obtain the authorization of the exchange
 func (nft *NftExchangeControllerV2) AskForApprove() {
 	fmt.Println("AskForApprove()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -71,4 +71,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_AskForApprove(data map[strin
 
 	return nil
 }
-

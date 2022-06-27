@@ -1,23 +1,23 @@
-测试步骤说明：
-1、先执行TestGenUserKeys()函数。
-    生成所需要的用户私钥
-2、执行TestInitUserAddr()函数
-    生成用户账户，给每一个账户充钱
-3、执行TestApproveValue()、TestSetApprove()
-    授权
-4、执行TestDeposit()函数
-    充值weth
-5、执行TestMlogin()函数
-    测试多线程签到
-5、执行TestNewCollections()函数
-    测试多线程创建合集
-6、执行TestUpload()函数
-    测试多线程上传NFT。
-7、执行TestSellToBatchAddr()函数
-    测试多线程出售、购买
-8、执行TestSellToOtherAddr()函数
-    测试多线程出售、购买
-9、执行TestSellBidding()函数
-    测试多线程出价、成交    
-10、执行TestSellBiddingToOtherAddr()函数
-    测试多线程出价、成交
+Test Step Instructions：
+1、First execute the TestGenUserKeys() function。
+    Generate the required user private key
+2、Execute the TestInitUserAddr() function
+    Generate user accounts and recharge each account
+3、Execute TestApproveValue(), TestSetApprove()
+    Authorize
+4、Execute the TestDeposit() function
+    recharge weth
+5、Execute the TestMlogin() function
+    Test multi-threaded check-in
+5、Execute the TestNewCollections() function
+    Test multi-threaded creation of collections
+6、Execute the TestUpload() function
+    Test multi-threaded uploading of NFTs.
+7、Execute the TestSellToBatchAddr() function
+    Test multi-threaded selling, buying
+8、Execute the TestSellToOtherAddr() function
+    Test multi-threaded selling, buying
+9. Execute the TestSellBidding() function
+   Test multi-threaded bidding and transaction
+10. Execute the TestSellBiddingToOtherAddr() function
+    Test multi-threaded bidding and transaction

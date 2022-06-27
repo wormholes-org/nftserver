@@ -6,8 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/nftexchange/nftserver/common/contracts"
-	"github.com/nftexchange/nftserver/ethhelper"
-	"github.com/nftexchange/nftserver/ethhelper/database"
 	"gorm.io/gorm"
 	"log"
 	"math/big"
@@ -141,6 +139,44 @@ func GetDbSnftBlockNumber(sqldsn string) (uint64, error){
 		return 0, dbErr.Error
 	}
 	return params.Scansnftnumber, nil
+}
+
+func GetDbSavedSnft(sqldsn string) (string, error){
+	nd, err := NewNftDb(sqldsn)
+	if err != nil {
+		fmt.Printf("GetDbSavedSnft() connect database err = %s\n", err)
+		return "", err
+	}
+	defer nd.Close()
+	var params SysParams
+	dbErr := nd.db.Select("Savedsnft").Last(&params)
+	if dbErr.Error != nil {
+		fmt.Println("GetDbSavedSnft() opendb err=", dbErr.Error)
+		return "", dbErr.Error
+	}
+	return params.Savedsnft, nil
+}
+
+func SetDbSavedSnft(sqldsn, snft string) (error){
+	nd, err := NewNftDb(sqldsn)
+	if err != nil {
+		fmt.Printf("SetDbSavedSnft() connect database err = %s\n", err)
+		return err
+	}
+	defer nd.Close()
+	var params SysParams
+	dbErr := nd.GetDB().Select([]string{"savedsnft", "id"}).Last(&params)
+	if dbErr.Error != nil {
+		log.Println("SetDbSavedSnft() params err=", dbErr.Error)
+		return dbErr.Error
+	}
+	dbErr = nd.GetDB().Model(&SysParams{}).Where("id = ?", params.ID).Update("savedsnft", snft )
+	if dbErr.Error != nil {
+		log.Println("SetDbSavedSnft() update savedsnft err=", dbErr.Error)
+		return dbErr.Error
+	}
+	fmt.Println("SetDbSavedSnft() update savedsnft")
+	return nil
 }
 
 func MintProc(tx *gorm.DB, to, royalty, contractAddr, tokenId, txhash, ts string) error  {
@@ -353,95 +389,95 @@ func TransProc(tx *gorm.DB, from, to, price, contractAddr, tokenId, txhash, ts s
 	}
 }
 
-func SyncBlockTxs(sqldsn string, block uint64, blockTxs []*database.NftTx) error {
-	nd, err := NewNftDb(sqldsn)
-	if err != nil {
-		fmt.Printf("SyncBlockTxs() connect database err = %s\n", err)
-		return err
-	}
-	defer nd.Close()
-	for _, nftTx := range blockTxs {
-		if nftTx.From == "" {
-			err = MintProc(nd.db, nftTx.To, "", nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
-			if err != nil {
-				break
-			}
-		}
-		if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" &&
-			nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
-			fmt.Println("SyncBlockTxs() nftTx.Value=", nftTx.Value)
-			var price string
-			if len(nftTx.Value) >= 9 {
-				price = nftTx.Value[:len(nftTx.Value)-9]
-			} else {
-				continue
-				//price = "0"
-			}
-			fmt.Println("SyncBlockTxs() price=", price)
-			err = TransProc(nd.db, nftTx.From, nftTx.To, price, nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
-			if err != nil {
-				break
-			}
-		}
-	}
-	if err == nil {
-		var params SysParams
-		dbErr := nd.db.Last(&params)
-		if dbErr.Error != nil {
-			fmt.Println("SyncBlockTxs() params err=", dbErr.Error)
-			return dbErr.Error
-		}
-		dbErr = nd.db.Model(&SysParams{}).Where("id = ?", params.ID).Update("scannumber", block + 1)
-		if dbErr.Error != nil {
-			fmt.Println("SyncBlockTxs() update params err=", dbErr.Error)
-			return dbErr.Error
-		}
-		fmt.Println("SyncBlockTxs() update block=", block)
-	}
-	return err
-	/*return nd.db.Transaction(func(tx *gorm.DB) error {
-		var err error
-		for _, nftTx := range blockTxs {
-			if nftTx.From == "" {
- 				err = MintProc(tx, nftTx.To, "", nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
-				if err != nil {
-					break
-				}
-			}
-			if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" &&
-				nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
-				fmt.Println("SyncBlockTxs() nftTx.Value=", nftTx.Value)
-				var price string
-				if len(nftTx.Value) >= 9 {
-					price = nftTx.Value[:len(nftTx.Value)-9]
-				} else {
-					continue
-					//price = "0"
-				}
-				fmt.Println("SyncBlockTxs() price=", price)
-				err = TransProc(tx, nftTx.From, nftTx.To, price, nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
-				if err != nil {
-					break
-				}
-			}
-		}
-		if err == nil {
-			var params SysParams
-			dbErr := tx.Last(&params)
-			if dbErr.Error != nil {
-				fmt.Println("SyncBlockTxs() params err=", dbErr.Error)
-				return dbErr.Error
-			}
-			dbErr = nd.db.Model(&SysParams{}).Where("id = ?", params.ID).Update("scannumber", block + 1)
-			if dbErr.Error != nil {
-				fmt.Println("SyncBlockTxs() update params err=", dbErr.Error)
-				return dbErr.Error
-			}
-			fmt.Println("SyncBlockTxs() update block=", block)
-		}
-		return err
-	})*/
-}
+//func SyncBlockTxs(sqldsn string, block uint64, blockTxs []*database.NftTx) error {
+//	nd, err := NewNftDb(sqldsn)
+//	if err != nil {
+//		fmt.Printf("SyncBlockTxs() connect database err = %s\n", err)
+//		return err
+//	}
+//	defer nd.Close()
+//	for _, nftTx := range blockTxs {
+//		if nftTx.From == "" {
+//			err = MintProc(nd.db, nftTx.To, "", nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
+//			if err != nil {
+//				break
+//			}
+//		}
+//		if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" &&
+//			nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
+//			fmt.Println("SyncBlockTxs() nftTx.Value=", nftTx.Value)
+//			var price string
+//			if len(nftTx.Value) >= 9 {
+//				price = nftTx.Value[:len(nftTx.Value)-9]
+//			} else {
+//				continue
+//				//price = "0"
+//			}
+//			fmt.Println("SyncBlockTxs() price=", price)
+//			err = TransProc(nd.db, nftTx.From, nftTx.To, price, nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
+//			if err != nil {
+//				break
+//			}
+//		}
+//	}
+//	if err == nil {
+//		var params SysParams
+//		dbErr := nd.db.Last(&params)
+//		if dbErr.Error != nil {
+//			fmt.Println("SyncBlockTxs() params err=", dbErr.Error)
+//			return dbErr.Error
+//		}
+//		dbErr = nd.db.Model(&SysParams{}).Where("id = ?", params.ID).Update("scannumber", block + 1)
+//		if dbErr.Error != nil {
+//			fmt.Println("SyncBlockTxs() update params err=", dbErr.Error)
+//			return dbErr.Error
+//		}
+//		fmt.Println("SyncBlockTxs() update block=", block)
+//	}
+//	return err
+//	/*return nd.db.Transaction(func(tx *gorm.DB) error {
+//		var err error
+//		for _, nftTx := range blockTxs {
+//			if nftTx.From == "" {
+// 				err = MintProc(tx, nftTx.To, "", nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
+//				if err != nil {
+//					break
+//				}
+//			}
+//			if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" &&
+//				nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
+//				fmt.Println("SyncBlockTxs() nftTx.Value=", nftTx.Value)
+//				var price string
+//				if len(nftTx.Value) >= 9 {
+//					price = nftTx.Value[:len(nftTx.Value)-9]
+//				} else {
+//					continue
+//					//price = "0"
+//				}
+//				fmt.Println("SyncBlockTxs() price=", price)
+//				err = TransProc(tx, nftTx.From, nftTx.To, price, nftTx.Contract, nftTx.TokenId, nftTx.TxHash, nftTx.Ts)
+//				if err != nil {
+//					break
+//				}
+//			}
+//		}
+//		if err == nil {
+//			var params SysParams
+//			dbErr := tx.Last(&params)
+//			if dbErr.Error != nil {
+//				fmt.Println("SyncBlockTxs() params err=", dbErr.Error)
+//				return dbErr.Error
+//			}
+//			dbErr = nd.db.Model(&SysParams{}).Where("id = ?", params.ID).Update("scannumber", block + 1)
+//			if dbErr.Error != nil {
+//				fmt.Println("SyncBlockTxs() update params err=", dbErr.Error)
+//				return dbErr.Error
+//			}
+//			fmt.Println("SyncBlockTxs() update block=", block)
+//		}
+//		return err
+//	})*/
+//}
 
 func AmountValid(Price uint64, addr string) (bool, string, error) {
 	//auth, err := ethhelper.AllowanceOfWeth(addr)
@@ -497,7 +533,7 @@ func WormsAmountValid(Price uint64, addr string) (bool, string, error) {
 	return true, "",  nil
 }
 
-func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
+/*func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
 	ct, err := ethhelper.IsErc721(contract)
 	if err != nil {
 		fmt.Println("OwnAndAprove() err=", err)
@@ -528,7 +564,7 @@ func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
 		}
 		return isOwner && approve, nil
 	}
-}
+}*/
 
 func ScanBiddings(sqldsn string, scanAddr map[string]bool) error {
 	nd, err := NewNftDb(sqldsn)
@@ -555,7 +591,7 @@ func ScanBiddings(sqldsn string, scanAddr map[string]bool) error {
 	return err
 }
 
-func GetBlockTxs(block uint64) ([]*database.NftTx, []*ethhelper.WethTransfer, []*ethhelper.WethTransfer) {
+/*func GetBlockTxs(block uint64) ([]*database.NftTx, []*ethhelper.WethTransfer, []*ethhelper.WethTransfer) {
 	buyResultCh := make(chan []*database.NftTx)
 	wethTransferCh := make(chan *ethhelper.WethTransfer)
 	wethApproveCh := make(chan *ethhelper.WethTransfer)
@@ -582,76 +618,76 @@ loop:
 	fmt.Println("GetBlockTx() end wethTransfers count=", len(wethTransfers))
 	fmt.Println("GetBlockTx() end wethApproves count=", len(wethApproves))
 	return BlockTxs, wethTransfers, wethApproves
-}
+}*/
 
 
-func SyncProc(sqldsn string, syncCh chan uint64) chan struct{}{
-	var procEnd = make(chan struct{}, 1)
-	go func() {
-		for {
-			select {
-				case blockE := <- syncCh:
-					fmt.Println("SyncProc() start end blockE=", blockE)
-					blockS, err := GetDbBlockNumber(sqldsn)
-					if err != nil {
-						fmt.Println("SyncProc() GetDbBlockNumber() err=", err)
-						procEnd <- struct{}{}
-						continue
-					}
-					mAddr := make(map[string]bool)
-				loop:
-					for blockS <= blockE {
-						fmt.Println("SyncProc() call SyncNftFromChain() blockNum=", blockS)
-						txs, wethts, _ := GetBlockTxs(blockS)
-						fmt.Println("SyncProc() call SyncNftFromChain() OK")
-						fmt.Println(time.Now().String()[:22],"SyncProc() call SyncBlockTxs() Start blockNum=", blockS)
-						err := SyncBlockTxs(sqldsn, blockS, txs)
-						if err != nil {
-							fmt.Println("SyncProc() call SyncBlockTxs() err=", err)
-							break loop
-						}
-						fmt.Println(time.Now().String()[:22],"SyncProc() call SyncBlockTxs() End blockNum=", blockS)
-						for _, wetht := range wethts {
-							mAddr[wetht.From] = true
-						}
-						blockS ++
-					}
-					if len(mAddr) != 0 {
-						ScanBiddings(sqldsn, mAddr)
-					}
-					fmt.Println("SyncProc() sync blockE=", blockE)
-					procEnd <- struct{}{}
-			}
-		}
-	}()
-	return procEnd
-}
+//func SyncProc(sqldsn string, syncCh chan uint64) chan struct{}{
+//	var procEnd = make(chan struct{}, 1)
+//	go func() {
+//		for {
+//			select {
+//				case blockE := <- syncCh:
+//					fmt.Println("SyncProc() start end blockE=", blockE)
+//					blockS, err := GetDbBlockNumber(sqldsn)
+//					if err != nil {
+//						fmt.Println("SyncProc() GetDbBlockNumber() err=", err)
+//						procEnd <- struct{}{}
+//						continue
+//					}
+//					mAddr := make(map[string]bool)
+//				loop:
+//					for blockS <= blockE {
+//						fmt.Println("SyncProc() call SyncNftFromChain() blockNum=", blockS)
+//						txs, wethts, _ := GetBlockTxs(blockS)
+//						fmt.Println("SyncProc() call SyncNftFromChain() OK")
+//						fmt.Println(time.Now().String()[:22],"SyncProc() call SyncBlockTxs() Start blockNum=", blockS)
+//						err := SyncBlockTxs(sqldsn, blockS, txs)
+//						if err != nil {
+//							fmt.Println("SyncProc() call SyncBlockTxs() err=", err)
+//							break loop
+//						}
+//						fmt.Println(time.Now().String()[:22],"SyncProc() call SyncBlockTxs() End blockNum=", blockS)
+//						for _, wetht := range wethts {
+//							mAddr[wetht.From] = true
+//						}
+//						blockS ++
+//					}
+//					if len(mAddr) != 0 {
+//						ScanBiddings(sqldsn, mAddr)
+//					}
+//					fmt.Println("SyncProc() sync blockE=", blockE)
+//					procEnd <- struct{}{}
+//			}
+//		}
+//	}()
+//	return procEnd
+//}
 
-func InitSyncBlockTs(sqldsn string) error {
-	blockS, err := GetDbBlockNumber(sqldsn)
-	if err != nil {
-		fmt.Println("SyncProc() get scan block num err=", err)
-		return err
-	}
-	fmt.Println("SyncProc() end blockNum=", blockS)
-
-	mAddr := make(map[string]bool)
-	for endBlock := contracts.GetCurrentBlockNumber(); blockS <= endBlock; endBlock = contracts.GetCurrentBlockNumber() {
-		fmt.Println("SyncProc() call SyncNftFromChain() blockNum=", blockS)
-		fmt.Println("SyncProc() CurrentblockNumber=", endBlock)
-		txs, wethts, _ := GetBlockTxs(blockS)
-		fmt.Println("SyncProc() call SyncNftFromChain() OK")
-		err := SyncBlockTxs(sqldsn, blockS, txs)
-		if err != nil {
-			return err
-		}
-		for _, wetht := range wethts {
-			mAddr[wetht.From] = true
-		}
-		blockS ++
-	}
-	if len(mAddr) != 0 {
-		ScanBiddings(sqldsn, mAddr)
-	}
-	return nil
-}
+//func InitSyncBlockTs(sqldsn string) error {
+//	blockS, err := GetDbBlockNumber(sqldsn)
+//	if err != nil {
+//		fmt.Println("SyncProc() get scan block num err=", err)
+//		return err
+//	}
+//	fmt.Println("SyncProc() end blockNum=", blockS)
+//
+//	mAddr := make(map[string]bool)
+//	for endBlock := contracts.GetCurrentBlockNumber(); blockS <= endBlock; endBlock = contracts.GetCurrentBlockNumber() {
+//		fmt.Println("SyncProc() call SyncNftFromChain() blockNum=", blockS)
+//		fmt.Println("SyncProc() CurrentblockNumber=", endBlock)
+//		txs, wethts, _ := GetBlockTxs(blockS)
+//		fmt.Println("SyncProc() call SyncNftFromChain() OK")
+//		err := SyncBlockTxs(sqldsn, blockS, txs)
+//		if err != nil {
+//			return err
+//		}
+//		for _, wetht := range wethts {
+//			mAddr[wetht.From] = true
+//		}
+//		blockS ++
+//	}
+//	if len(mAddr) != 0 {
+//		ScanBiddings(sqldsn, mAddr)
+//	}
+//	return nil
+//}

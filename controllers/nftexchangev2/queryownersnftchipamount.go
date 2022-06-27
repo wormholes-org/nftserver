@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//查询单个账户持有SNFT碎片总数
+//Query the total number of SNFT fragments held by a single account
 func (nft *NftExchangeControllerV2) QueryOwnerSnftChipAmount() {
 	fmt.Println("QueryOwnerSnftChipAmount()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

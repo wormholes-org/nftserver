@@ -15,7 +15,7 @@ import (
 	"github.com/nftexchange/nftserver/common/contracts/nft1155"
 	"github.com/nftexchange/nftserver/common/contracts/trade"
 	"github.com/nftexchange/nftserver/common/contracts/weth9"
-	"github.com/nftexchange/nftserver/ethhelper"
+	//"github.com/nftexchange/nftserver/ethhelper"
 	"golang.org/x/crypto/sha3"
 	"log"
 	"math/big"
@@ -762,7 +762,7 @@ func IsErcNFT1155(contract string) (bool, error) {
 	return b, nil
 }
 
-func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
+/*func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
 	b, err := IsErcNFT1155(contract)
 	if err != nil {
 		log.Println("OwnAndAprove() err=", err)
@@ -793,7 +793,7 @@ func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
 		}
 		return isOwner && approve, nil
 	}
-}
+}*/
 
 func Sign(data []byte, prv *ecdsa.PrivateKey) (string, error) {
 	//hash := crypto.Keccak256(data)

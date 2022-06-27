@@ -65,14 +65,14 @@ func TestIsApproveOwn(t *testing.T) {
 	Weth9Addr = "0xf4bb2e28688e89fcce3c0580d37d36a7672e8a9f"
 	TradeAddr = "0xD8D5D49182d7Abf3cFc1694F8Ed17742886dDE82"
 	Nft1155Addr = "0xA1e67a33e090Afe696D7317e05c506d7687Bb2E5"
-	_, err := IsApprovedNFT1155("0xc9a9caa0147adc101138920ac7905ca6b62e9a2a", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5")
-	_, err = IsOwnerOfNFT1155("0x5e83e4c3bc80769b4d67fc4cb577b352c7b658bf", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5", "5201739360460")
-	_, err = IsErcNFT1155("0xa1e67a33e090afe696d7317e05c506d7687bb2e5")
-	b, err := OwnAndAprove("0xc9a9caa0147adc101138920ac7905ca6b62e9a2a", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5", "5201739360460")
-	if err != nil {
-		fmt.Println("OwnAndAprove() err=", err)
-	}
-	fmt.Println("OwnAndAprove() =", b)
+	//_, err := IsApprovedNFT1155("0xc9a9caa0147adc101138920ac7905ca6b62e9a2a", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5")
+	//_, err := IsOwnerOfNFT1155("0x5e83e4c3bc80769b4d67fc4cb577b352c7b658bf", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5", "5201739360460")
+	//_, err = IsErcNFT1155("0xa1e67a33e090afe696d7317e05c506d7687bb2e5")
+	//b, err := OwnAndAprove("0xc9a9caa0147adc101138920ac7905ca6b62e9a2a", "0xa1e67a33e090afe696d7317e05c506d7687bb2e5", "5201739360460")
+	//if err != nil {
+	//	fmt.Println("OwnAndAprove() err=", err)
+	//}
+	//fmt.Println("OwnAndAprove() =", b)
 }
 
 func TestExchangerMint(t *testing.T) {

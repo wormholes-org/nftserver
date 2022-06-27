@@ -19,11 +19,11 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 	if admin_addr == "" {
 		return ErrDataFormat
 	}
-	IsAdminAddr, err := IsAdminAddr(admin_addr)
-	if err != nil || !IsAdminAddr {
-		fmt.Println("BuyResultInterface() admin_addr is not admin.")
-		return ErrNftUpAddrNotAdmin
-	}
+	//IsAdminAddr, err := IsAdminAddr(admin_addr)
+	//if err != nil || !IsAdminAddr {
+	//	fmt.Println("BuyResultInterface() admin_addr is not admin.")
+	//	return ErrNftUpAddrNotAdmin
+	//}
 
 	fmt.Println(time.Now().String()[:25],"BuyResultInterface() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId,

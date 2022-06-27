@@ -54,7 +54,7 @@ type ToSnftPeriodCollect struct {
 	Img          string `json:"img"`
 	Tokenid      string `json:"tokenid"`
 	Snft         string `json:"snft"`
-	//Period       string `json:"period" gorm:"type:char(42) ;comment:'期号'"`
+	//Period       string `json:"period" gorm:"type:char(42) ;comment:'stage'"`
 	Local     string `json:"local"`
 	Exchanger string `json:"exchanger"`
 	Extend    string `json:"extend"`

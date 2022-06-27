@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//修改用户信息
+//Modify user information
 func (nft *NftExchangeControllerV2) ModifyUserInfo() {
 	fmt.Println("ModifyUserInfo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -55,8 +55,9 @@ func (nft *NftExchangeControllerV2) ModifyUserInfo() {
 					httpResponseData.Data = []interface{}{}
 				} else {
 					// modify the information of user if
-					err:= nd.ModifyUserInfo(data["user_addr"], data["user_name"],
-						data["portrait"], data["background"], data["user_mail"], data["user_info"], data["sig"])
+					err := nd.ModifyUserInfo(data["user_addr"], data["user_name"],
+						data["portrait"], data["background"], data["user_mail"], data["user_info"],
+						data["user_link"], data["sig"])
 					if err != nil {
 						httpResponseData.Code = "500"
 						httpResponseData.Msg = err.Error()
@@ -130,4 +131,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_ModifyUserInfo(data map[stri
 
 	return nil
 }
-

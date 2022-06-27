@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//查询单个SNFT碎片信息
+//Querying information about a single SNFT fragment
 func (nft *NftExchangeControllerV2) QueryStageCollection() {
 	fmt.Println("QueryStageCollection()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -69,4 +69,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryStageCollection(data ma
 	}
 	return nil
 }
-

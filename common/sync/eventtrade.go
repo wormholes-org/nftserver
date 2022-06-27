@@ -12,8 +12,6 @@ import (
 	"github.com/nftexchange/nftserver/common/contracts/trade"
 	"github.com/nftexchange/nftserver/models"
 	"log"
-	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -265,7 +263,7 @@ func EventAuction(sqldsn string) {
 	}
 }
 
-func EventQueue(sqldsn string) {
+/*func EventQueue(sqldsn string) {
 	var syncCh chan uint64
 	var procEnd chan struct{}
 	for {
@@ -371,14 +369,14 @@ func EventQueue(sqldsn string) {
 			}
 		}
 	}
-}
+}*/
 
 func EventContract(sqldsn string) {
 	EventCh = make(chan interface{}, 100)
-	go EventQueue(sqldsn)
-	go EventSale(sqldsn)
-	go EventRoyalty(sqldsn)
-	go EventAuction(sqldsn)
+	//go EventQueue(sqldsn)
+	//go EventSale(sqldsn)
+	//go EventRoyalty(sqldsn)
+	//go EventAuction(sqldsn)
 	//go EventBlockTxs(sqldsn)
 	select {}
 }

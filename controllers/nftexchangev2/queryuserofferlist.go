@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//获取用户出价列表
+//Get a list of user bids
 func (nft *NftExchangeControllerV2) QueryUserOfferList() {
 	fmt.Println("QueryUserOfferList()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -72,7 +72,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryUserOfferList(data map[
 			return ERRINPUTINVALID
 		}
 	}
-	if data["start_index"] !=  "" {
+	if data["start_index"] != "" {
 		match := regNumber.MatchString(data["start_index"])
 		if !match {
 			return ERRINPUTINVALID

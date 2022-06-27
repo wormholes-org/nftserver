@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//查询首页数据
+//Query the homepage data
 func (nft *NftExchangeControllerV2) QueryHomePage() {
 	var spendT = time.Now()
 	fmt.Println("QueryHomePage()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", spendT)
@@ -39,6 +39,6 @@ func (nft *NftExchangeControllerV2) QueryHomePage() {
 
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
-	fmt.Println("QueryHomePage() Spend time",time.Now().Sub(spendT), "time.now=", time.Now())
-	fmt.Println("QueryHomePage() <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<",time.Now())
+	fmt.Println("QueryHomePage() Spend time", time.Now().Sub(spendT), "time.now=", time.Now())
+	fmt.Println("QueryHomePage() <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }

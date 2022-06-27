@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 )
 
-//购买nft作品:post
+//Buy nft works: post
 func (nft *NftExchangeControllerV1) BuyNft() {
 	var httpResponseData controllers.HttpResponseData
 	nd := new(models.NftDb)
@@ -22,7 +22,7 @@ func (nft *NftExchangeControllerV1) BuyNft() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
-		err = nd.BuyNft(data["user_addr"],data["trade_sig"],data["sig"],data["nft_contract_addr"],data["nft_token_id"])
+		err = nd.BuyNft(data["user_addr"], data["trade_sig"], data["sig"], data["nft_contract_addr"], data["nft_token_id"])
 		if err == nil {
 			httpResponseData.Code = "200"
 			httpResponseData.Data = []interface{}{}
@@ -33,7 +33,7 @@ func (nft *NftExchangeControllerV1) BuyNft() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

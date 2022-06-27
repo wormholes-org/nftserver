@@ -53,7 +53,7 @@ func (nft *NftExchangeControllerV2) QueryNftList() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -122,4 +122,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryNftList(data controller
 
 	return nil
 }
-

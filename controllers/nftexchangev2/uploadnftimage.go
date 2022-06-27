@@ -65,7 +65,7 @@ func (nft *NftExchangeControllerV2) SaveToIpfs(fromfile string) (string, error) 
 	return mhash, nil
 }
 
-//上传nft作品:post
+//Upload nft works:post
 func (nft *NftExchangeControllerV2) UploadNftImage() {
 	fmt.Println("UploadNftImage()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	spendT := time.Now()

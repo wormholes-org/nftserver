@@ -76,6 +76,12 @@ func (nft NftDb) ModifyCollections(useraddr, name, img, contract_type, contract_
 	collectRec = Collects{}
 	if img != "" {
 		collectRec.Img = img
+		imagerr := SaveCollectionsImage(ImageDir, useraddr, name, img)
+		if imagerr != nil {
+			fmt.Println("ModifyCollections() SaveCollectionsImage() err=", imagerr)
+			return ErrCollectionImage
+		}
+
 	}
 	if contract_type != "" {
 		collectRec.Contracttype = contract_type
@@ -155,11 +161,7 @@ func (nft NftDb) DelCollection(useraddr, contract, name string) error {
 	collect := Collects{}
 	err := nft.db.Model(&Collects{}).Where("name =? and contract=? and createaddr=?", name, contract, useraddr).First(&collect)
 	if err.Error != nil {
-		if err.Error != gorm.ErrRecordNotFound {
-			fmt.Println("DelCollection() delete subscribe record err=", err.Error)
-			return err.Error
-		}
-		fmt.Println("DelCollection() RecordNotFound")
+		fmt.Println("DelCollection() RecordNotFound ,err=", err)
 		return errors.New("collection RecordNotFound")
 	}
 	nfts := Nfts{}
@@ -211,6 +213,67 @@ func (nft NftDb) DelCollection(useraddr, contract, name string) error {
 	} else {
 		fmt.Println("DelCollection() nft mintstate under the collection cannot be deleted")
 		return errors.New("nfts mintstate under the collection  cannot be deleted")
+	}
+
+}
+
+func (nft NftDb) SetCollection(useraddr, contract, name string) error {
+
+	collect := Collects{}
+	err := nft.db.Model(&Collects{}).Where("name =? and contract=? and createaddr=?", name, contract, useraddr).First(&collect)
+	if err.Error != nil {
+		fmt.Println("SetCollection() collection RecordNotFound")
+		return errors.New("collection RecordNotFound")
+	}
+	nfts := Nfts{}
+	err = nft.db.Model(&Nfts{}).Where("collectcreator =? and collections=? and mintstate <> ? ", useraddr, name, "NoMinted").Find(&nfts)
+	if err.Error != nil {
+		if err.Error != gorm.ErrRecordNotFound {
+			fmt.Println("DelCollection() delete subscribe record err=", err.Error)
+			return err.Error
+		}
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&Collects{}).Where("name =? and contract=? and createaddr=?", name, contract, useraddr).Delete(&Collects{})
+			if err.Error != nil {
+				fmt.Println("DelCollection() delete subscribe record err=", err.Error)
+				return err.Error
+			}
+			var total int64
+			//err = tx.Model(&Nfts{}).Count(&total).Where("collectcreator =? and collections=? and mintstate =? ", useraddr, name, "NoMinted").Find(&Nfts{})
+			//if err.Error != nil {
+			//	fmt.Println("DelCollection() count nft err= ", err.Error)
+			//	return err.Error
+			//}
+			err = tx.Model(&Nfts{}).Where("collectcreator =? and collections=? and mintstate =? ", useraddr, name, "NoMinted").Count(&total).Delete(&Nfts{})
+			if err.Error != nil {
+				fmt.Println("DelCollection() delete collection under nfts err= ", err.Error)
+				return err.Error
+			}
+			sysInfo := SysInfos{}
+			err = nft.db.Model(&SysInfos{}).Last(&sysInfo)
+			if err.Error != nil {
+				if err.Error != gorm.ErrRecordNotFound {
+					log.Println("DelCollection() SysInfos err=", err)
+					return ErrCollectionNotExist
+				}
+				err = nft.db.Model(&SysInfos{}).Create(&sysInfo)
+				if err.Error != nil {
+					log.Println("DelCollection() SysInfos create err=", err)
+					return ErrCollectionNotExist
+				}
+			}
+			fmt.Println("total=", total)
+			err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("nfttotal", sysInfo.Nfttotal-uint64(total))
+			if err.Error != nil {
+				fmt.Println("DelCollection() add  SysInfos nfttotal err=", err.Error)
+				return err.Error
+			}
+			NftCatch.SetFlushFlag()
+			return nil
+		})
+	} else {
+		fmt.Println("SetCollection() nft mintstate under the collection cannot be modify")
+		return errors.New("nfts mintstate under the collection  cannot be modify")
 	}
 
 }

@@ -1,11 +1,15 @@
 package models
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
+	"io/ioutil"
 	"log"
+	"path"
 
 	//"github.com/nftexchange/nftserver/ethhelper"
 	"gorm.io/gorm"
@@ -133,7 +137,7 @@ func (nft NftDb) UploadNft(
 			fmt.Println("UploadNft() save image err=", imagerr)
 			return ErrNftImage
 		}
-		fmt.Printf("UploadNft() SaveNftImage Spend time=%s filesize=%d time.now=%s\n", time.Now().Sub(spendT),len(asset_sample), time.Now())
+		fmt.Printf("UploadNft() SaveNftImage Spend time=%s filesize=%d time.now=%s\n", time.Now().Sub(spendT), len(asset_sample), time.Now())
 		nftmeta := contracts.NftMeta{}
 		nftmeta.Meta = meta
 		nftmeta.TokenId = NewTokenid
@@ -167,7 +171,7 @@ func (nft NftDb) UploadNft(
 		/*if collectRec.Contract == strings.ToLower(NFT1155Addr) {
 			nfttab.Mintstate = NoMinted.String()
 		} else {
-			//调用查询函数
+
 			nfttab.Mintstate = Minted.String()
 		}*/
 		nfttab.Createdate = time.Now().Unix()
@@ -245,12 +249,12 @@ func (nft NftDb) UploadNft(
 		fmt.Printf("UploadNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		return err
 	} else {
-		var nfttab Nfts
+		/*var nfttab Nfts
 		dberr := nft.db.Where("contract = ? AND tokenid = ? ", nft_contract_addr, nft_token_id).First(&nfttab)
 		if dberr.Error == nil {
 			fmt.Println("UploadNft() err=nft already exist.")
 			return ErrNftAlreadyExist
-		}
+		}*/
 		/*ownAddr, royalty, err := func(contract, tokenId string) (string, string, error) {
 			return "ownAddr", "200", nil
 		}(nft_contract_addr, nft_token_id)
@@ -295,65 +299,67 @@ func (nft NftDb) UploadNft(
 				return nil
 			})
 		}*/
-		IsAdminAddr, err := IsAdminAddr(user_addr)
-		if err != nil {
-			fmt.Println("UploadNft() upload address is not admin.")
-			return ErrNftUpAddrNotAdmin
-		}
-		if IsAdminAddr {
-			var nfttab Nfts
-			nfttab.Tokenid = nft_token_id
-			nfttab.Contract = nft_contract_addr //nft_contract_addr
-			nfttab.Createaddr = creator_addr
-			nfttab.Ownaddr = owner_addr
-			nfttab.Name = name
-			nfttab.Desc = desc
-			nfttab.Meta = meta
-			nfttab.Categories = categories
-			nfttab.Collectcreator = creator_addr
-			nfttab.Collections = collections
-			nfttab.Signdata = sig
-			nfttab.Url = source_url
-			//nfttab.Image = asset_sample
-			nfttab.Md5 = md5
-			nfttab.Selltype = SellTypeNotSale.String()
-			nfttab.Verified = Passed.String()
-			nfttab.Mintstate = Minted.String()
-			/*nfttab.Royalty, _ = strconv.Atoi(royalty)
-			nfttab.Royalty = nfttab.Royalty / 100*/
-			nfttab.Createdate = time.Now().Unix()
-			nfttab.Royalty, _ = strconv.Atoi(royalty)
-			//nfttab.Royalty /= 100
-			nfttab.Count, _ = strconv.Atoi(count)
-			nfttab.Hide = hide
-			return nft.db.Transaction(func(tx *gorm.DB) error {
-				err := tx.Model(&Nfts{}).Create(&nfttab)
-				if err.Error != nil {
-					fmt.Println("UploadNft() admin create nft err=", err.Error)
-					return err.Error
-				}
-				if collections != "" {
-					/*var collectListRec CollectLists
-					collectListRec.Collectsid = collectRec.ID
-					collectListRec.Nftid = nfttab.ID
-					err = tx.Model(&CollectLists{}).Create(&collectListRec)
-					if err.Error != nil {
-						fmt.Println("UploadNft() create CollectLists err=", err.Error)
-						return err.Error
-					}*/
-					err = tx.Model(&Collects{}).Where("name = ? AND createaddr =?",
-						collections, creator_addr).Update("totalCount", collectRec.Totalcount+1)
-					if err.Error != nil {
-						fmt.Println("UploadNft() add collectins totalcount err= ", err.Error)
-						return err.Error
-					}
-				}
-				return nil
-			})
-		} else {
-			fmt.Println("UploadNft() upload address is not admin.")
-			return ErrNftUpAddrNotAdmin
-		}
+		//IsAdminAddr, err := IsAdminAddr(user_addr)
+		//if err != nil {
+		//	fmt.Println("UploadNft() upload address is not admin.")
+		//	return ErrNftUpAddrNotAdmin
+		//}
+		//if IsAdminAddr {
+		//	var nfttab Nfts
+		//	nfttab.Tokenid = nft_token_id
+		//	nfttab.Contract = nft_contract_addr //nft_contract_addr
+		//	nfttab.Createaddr = creator_addr
+		//	nfttab.Ownaddr = owner_addr
+		//	nfttab.Name = name
+		//	nfttab.Desc = desc
+		//	nfttab.Meta = meta
+		//	nfttab.Categories = categories
+		//	nfttab.Collectcreator = creator_addr
+		//	nfttab.Collections = collections
+		//	nfttab.Signdata = sig
+		//	nfttab.Url = source_url
+		//	//nfttab.Image = asset_sample
+		//	nfttab.Md5 = md5
+		//	nfttab.Selltype = SellTypeNotSale.String()
+		//	nfttab.Verified = Passed.String()
+		//	nfttab.Mintstate = Minted.String()
+		//	/*nfttab.Royalty, _ = strconv.Atoi(royalty)
+		//	nfttab.Royalty = nfttab.Royalty / 100*/
+		//	nfttab.Createdate = time.Now().Unix()
+		//	nfttab.Royalty, _ = strconv.Atoi(royalty)
+		//	//nfttab.Royalty /= 100
+		//	nfttab.Count, _ = strconv.Atoi(count)
+		//	nfttab.Hide = hide
+		//	return nft.db.Transaction(func(tx *gorm.DB) error {
+		//		err := tx.Model(&Nfts{}).Create(&nfttab)
+		//		if err.Error != nil {
+		//			fmt.Println("UploadNft() admin create nft err=", err.Error)
+		//			return err.Error
+		//		}
+		//		if collections != "" {
+		//			/*var collectListRec CollectLists
+		//			collectListRec.Collectsid = collectRec.ID
+		//			collectListRec.Nftid = nfttab.ID
+		//			err = tx.Model(&CollectLists{}).Create(&collectListRec)
+		//			if err.Error != nil {
+		//				fmt.Println("UploadNft() create CollectLists err=", err.Error)
+		//				return err.Error
+		//			}*/
+		//			err = tx.Model(&Collects{}).Where("name = ? AND createaddr =?",
+		//				collections, creator_addr).Update("totalCount", collectRec.Totalcount+1)
+		//			if err.Error != nil {
+		//				fmt.Println("UploadNft() add collectins totalcount err= ", err.Error)
+		//				return err.Error
+		//			}
+		//		}
+		//		return nil
+		//	})
+		//} else {
+		//	fmt.Println("UploadNft() upload address is not admin.")
+		//	return ErrNftUpAddrNotAdmin
+		//}
+		fmt.Println("UploadNft() upload address is not admin.")
+		return errors.New("UploadNft unsport admin upload.")
 	}
 	return nil
 }
@@ -404,7 +410,285 @@ func (nft NftDb) DelNft(useraddr, contract, tokenid string) error {
 			fmt.Println("DelNft() add  SysInfos nfttotal err=", err.Error)
 			return err.Error
 		}
-
+		NftCatch.SetFlushFlag()
 		return nil
 	})
+}
+
+func (nft NftDb) SetNft(
+	user_addr string,
+	md5 string,
+	name string,
+	desc string,
+	SourceUrl string,
+	imageName string,
+	nft_token_id string,
+	categories string,
+	collections string,
+	asset_sample string,
+	hide string,
+	royalty string,
+	count string,
+	attributes,
+	sig string) (NftImage, error) {
+	user_addr = strings.ToLower(user_addr)
+	spendT := time.Now()
+	fmt.Println("SetNft() user_addr=", user_addr, "      time=", time.Now().String())
+	UserSync.Lock(user_addr)
+	defer UserSync.UnLock(user_addr)
+	fmt.Printf("SetNft() UserSync.Lock Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+	spendT = time.Now()
+	fmt.Println("SetNft() begin ->> time = ", time.Now().String()[:22])
+	fmt.Println("SetNft() user_addr = ", user_addr)
+	fmt.Println("SetNft() md5 = ", md5)
+	fmt.Println("SetNft() name = ", name)
+	fmt.Println("SetNft() desc = ", desc)
+	fmt.Println("SetNft() SourceUrl = ", SourceUrl)
+	fmt.Println("SetNft() imageName = ", imageName)
+	fmt.Println("SetNft() nft_token_id = ", nft_token_id)
+	fmt.Println("SetNft() categories = ", categories)
+	fmt.Println("SetNft() collections = ", collections)
+	//fmt.Println("UploadNftImage() asset_sample = ", asset_sample)
+	fmt.Println("SetNft() hide = ", hide)
+	fmt.Println("SetNft() royalty = ", royalty)
+	//fmt.Println("UploadNftImage() sig = ", sig)
+	setnfts := Nfts{}
+	err := nft.db.Model(&Nfts{}).Where("tokenid = ? ", nft_token_id).First(&setnfts)
+	if err.Error != nil {
+		log.Println("SetNft() err = Nft not exist.")
+		return NftImage{}, ErrNftNotExist
+	}
+	if setnfts.Mintstate != NoMinted.String() {
+		log.Println("SetNft() err = Nft sell type not exist.")
+		return NftImage{}, ErrNftNotExist
+	}
+
+	if IsIntDataValid(count) != true {
+		return NftImage{}, ErrDataFormat
+	}
+	if IsIntDataValid(royalty) != true {
+		return NftImage{}, ErrDataFormat
+	}
+	if !nft.UserKYCAduit(user_addr) {
+		return NftImage{}, ErrUserNotVerify
+	}
+	r, _ := strconv.Atoi(royalty)
+	fmt.Println("SetNft() royalty=", r, "SysRoyaltylimit=", SysRoyaltylimit, "RoyaltyLimit", RoyaltyLimit)
+	if r > SysRoyaltylimit || r > RoyaltyLimit {
+		return NftImage{}, ErrRoyalty
+	}
+	if count == "" {
+		count = "1"
+	}
+	if c, _ := strconv.Atoi(count); c < 1 {
+		fmt.Println("SetNft() contract count < 1.")
+		return NftImage{}, ErrContractCountLtZero
+	}
+	if nft.IsValidCategory(categories) {
+		return NftImage{}, ErrNoCategory
+	}
+
+	var collectRec Collects
+	if collections != "" {
+		err = nft.db.Model(&Collects{}).Where("createaddr = ? AND name =?",
+			user_addr, collections).First(&collectRec)
+		if err.Error != nil {
+			log.Println("SetNft() err=Collection not exist.")
+			return NftImage{}, ErrCollectionNotExist
+		}
+
+	} else {
+		return NftImage{}, ErrCollectionNotExist
+	}
+	collectImageUrl, serr := SaveToIpfs(collectRec.Img)
+	if serr != nil {
+		log.Println("SetNft() save collection image err=", serr)
+		return NftImage{}, errors.New("SetNft() save collection image error.")
+	}
+	fmt.Printf("SetNft() preprocess Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+	if SourceUrl != "" {
+		spendT = time.Now()
+		imagerr := SaveNftImage(ImageDir, collectRec.Contract, nft_token_id, asset_sample)
+		if imagerr != nil {
+			fmt.Println("UploadNftImage() save image err=", imagerr)
+			return NftImage{}, ErrNftImage
+		}
+		var nftMeta nftInfo
+		nftMeta.CreatorAddr = user_addr
+		nftMeta.Contract = collectRec.Contract
+		nftMeta.Name = name
+		nftMeta.Desc = desc
+		nftMeta.Category = categories
+		nftMeta.Royalty = royalty
+		nftMeta.SourceImageName = imageName
+		nftMeta.FileType = path.Ext(imageName)[1:]
+		nftMeta.SourceUrl = "/ipfs/" + SourceUrl
+		nftMeta.Md5 = md5
+		nftMeta.CollectionsName = collectRec.Name
+		nftMeta.CollectionsCreator = collectRec.Createaddr
+		nftMeta.CollectionsExchanger = collectRec.Contract
+		nftMeta.CollectionsCategory = collectRec.Categories
+		nftMeta.CollectionsImgUrl = collectImageUrl
+		nftMeta.Attributes = attributes
+		metaStr, err := json.Marshal(&nftMeta)
+		meta, serr := SaveToIpfs(string(metaStr))
+		if serr != nil {
+			log.Println("SetNft() save nftmeta info err=", serr)
+			return NftImage{}, errors.New("UploadNftImage() save nftmeta info error.")
+		}
+		meta = "/ipfs/" + meta
+		fmt.Printf("SetNft() SaveNftImage Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		nftmeta := contracts.NftMeta{}
+		nftmeta.Meta = meta
+		nftmeta.TokenId = nft_token_id
+		nftmetaJson, _ := json.Marshal(nftmeta)
+
+		setnfts.Name = name
+		setnfts.Desc = desc
+		setnfts.Meta = meta
+		setnfts.Nftmeta = string(nftmetaJson)
+		setnfts.Categories = categories
+		setnfts.Collectcreator = collectRec.Createaddr
+		setnfts.Collections = collections
+		setnfts.Signdata = sig
+		setnfts.Url = "/ipfs/" + SourceUrl
+		//nfttab.Image = asset_sample
+		setnfts.Md5 = md5
+
+		if NFTUploadAuditRequired {
+			setnfts.Verified = NoVerify.String()
+		} else {
+			setnfts.Verified = Passed.String()
+			setnfts.Verifiedtime = time.Now().Unix()
+		}
+		setnfts.Royalty, _ = strconv.Atoi(royalty)
+		setnfts.Count, _ = strconv.Atoi(count)
+		setnfts.Hide = hide
+		nftimage := NftImage{}
+		nftimage.NftMeta = hex.EncodeToString(nftmetaJson)
+		nftimage.Meta = meta
+
+		spendT = time.Now()
+
+		err = nft.db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&Nfts{}).Where("tokenid=?", nft_token_id).Updates(&setnfts)
+			if err.Error != nil {
+				fmt.Println("SetNft() err=", err.Error)
+				return err.Error
+			}
+
+			HomePageCatchs.NftCountLock()
+			HomePageCatchs.NftCountFlag = true
+			HomePageCatchs.NftCountUnLock()
+			return nil
+		})
+		NftCatch.SetFlushFlag()
+		fmt.Printf("SetNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		return nftimage, err
+	} else {
+		spendT = time.Now()
+		getMeta, gerr := GetNftInfoFromIPFSWithShell(setnfts.Meta)
+		if gerr != nil {
+			fmt.Println("SetNft() get meta err =", gerr)
+			return NftImage{}, gerr
+		}
+
+		var nftMeta nftInfo
+		nftMeta.CreatorAddr = user_addr
+		nftMeta.Contract = collectRec.Contract
+		nftMeta.Name = name
+		nftMeta.Desc = desc
+		nftMeta.Category = categories
+		nftMeta.Royalty = royalty
+		nftMeta.SourceImageName = getMeta.SourceImageName
+		nftMeta.FileType = getMeta.FileType
+		nftMeta.SourceUrl = getMeta.SourceUrl
+		nftMeta.Md5 = getMeta.Md5
+		nftMeta.CollectionsName = collectRec.Name
+		nftMeta.CollectionsCreator = collectRec.Createaddr
+		nftMeta.CollectionsExchanger = collectRec.Contract
+		nftMeta.CollectionsCategory = collectRec.Categories
+		nftMeta.CollectionsImgUrl = collectImageUrl
+		nftMeta.Attributes = attributes
+		metaStr, err := json.Marshal(&nftMeta)
+		if err != nil {
+			fmt.Println("SetNft() marshal nftmeta =", err)
+			return NftImage{}, err
+		}
+		meta, serr := SaveToIpfs(string(metaStr))
+		if serr != nil {
+			log.Println("SetNft() save nftmeta info err=", serr)
+			return NftImage{}, errors.New("UploadNftImage() save nftmeta info error.")
+		}
+		meta = "/ipfs/" + meta
+		fmt.Printf("SetNft() SaveNftImage Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		nftmeta := contracts.NftMeta{}
+		nftmeta.Meta = meta
+		nftmeta.TokenId = nft_token_id
+		nftmetaJson, _ := json.Marshal(nftmeta)
+
+		setnfts.Name = name
+		setnfts.Desc = desc
+		setnfts.Meta = meta
+		setnfts.Nftmeta = string(nftmetaJson)
+		setnfts.Categories = categories
+		setnfts.Collectcreator = collectRec.Createaddr
+		setnfts.Collections = collections
+		setnfts.Signdata = sig
+		setnfts.Md5 = md5
+
+		if NFTUploadAuditRequired {
+			setnfts.Verified = NoVerify.String()
+		} else {
+			setnfts.Verified = Passed.String()
+			setnfts.Verifiedtime = time.Now().Unix()
+		}
+		setnfts.Royalty, _ = strconv.Atoi(royalty)
+		setnfts.Count, _ = strconv.Atoi(count)
+		setnfts.Hide = hide
+		nftimage := NftImage{}
+		nftimage.NftMeta = hex.EncodeToString(nftmetaJson)
+		nftimage.Meta = meta
+
+		spendT = time.Now()
+		err = nft.db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&Nfts{}).Where("tokenid=?", nft_token_id).Updates(&setnfts)
+			if err.Error != nil {
+				fmt.Println("SetNft() err=", err.Error)
+				return err.Error
+			}
+
+			HomePageCatchs.NftCountLock()
+			HomePageCatchs.NftCountFlag = true
+			HomePageCatchs.NftCountUnLock()
+			return nil
+		})
+		NftCatch.SetFlushFlag()
+		fmt.Printf("SetNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		return nftimage, nil
+	}
+}
+
+func GetNftInfoFromIPFSWithShell(hash string) (*nftInfo, error) {
+	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
+	//url = "http://192.168.1.235:5001"
+	s := shell.NewShell(url)
+	s.SetTimeout(100 * time.Second)
+	rc, err := s.Cat(hash)
+	if err != nil {
+		log.Println("GetnftInfoFromIPFSWithShell() err=", err)
+		return nil, err
+	}
+	var snft nftInfo
+	b, err := ioutil.ReadAll(rc)
+	if err != nil {
+		log.Println("GetnftInfoFromIPFSWithShell() ReadAll() err=", err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(b), &snft)
+	if err != nil {
+		log.Println("GetnftInfoFromIPFSWithShell() Unmarshal, err=", err)
+		return nil, err
+	}
+	return &snft, nil
 }

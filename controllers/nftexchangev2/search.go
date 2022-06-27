@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//查询用户所有信息:post
+//Query all user information:post
 func (nft *NftExchangeControllerV2) Search() {
 	fmt.Println("Search()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -47,7 +47,7 @@ func (nft *NftExchangeControllerV2) Search() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

@@ -20,9 +20,9 @@ func (nft NftDb) BuyResult(from, to, contractAddr, tokenId, trade_sig, price, si
 		fmt.Println("BuyResult() price err")
 		return ErrPrice
 	}
-	fmt.Println(time.Now().String()[:25],"BuyResult() Begin", "from=", from, "to=", to, "price=", price,
+	fmt.Println(time.Now().String()[:25], "BuyResult() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
-		"royalty=", royalty/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", royalty /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	fmt.Println("BuyResult()++q++++++++++++++++++")
 	if royalty != "" {
 		fmt.Println("BuyResult() royalty!=Null mint royalty=", royalty)
@@ -70,7 +70,7 @@ func (nft NftDb) BuyResult(from, to, contractAddr, tokenId, trade_sig, price, si
 	}
 	fmt.Println("BuyResult()-------------------")
 	if from != "" && to != "" {
-		fmt.Println("BuyResult() from != Null && to != Null" )
+		fmt.Println("BuyResult() from != Null && to != Null")
 		var nftRec Nfts
 		err := nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&nftRec)
 		if err.Error != nil {
@@ -78,7 +78,7 @@ func (nft NftDb) BuyResult(from, to, contractAddr, tokenId, trade_sig, price, si
 			return ErrNftNotExist
 		}
 		if price == "" {
-			fmt.Println("BuyResult() price == null" )
+			fmt.Println("BuyResult() price == null")
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				var auctionRec Auction
 				err = tx.Set("gorm:query_option", "FOR UPDATE").Where("contract = ? AND tokenid = ? AND ownaddr =?",
@@ -107,11 +107,11 @@ func (nft NftDb) BuyResult(from, to, contractAddr, tokenId, trade_sig, price, si
 					fmt.Println("BuyResult() create trans record err=", err.Error)
 					return err.Error
 				}
-				fmt.Println("BuyResult() price == null OK" )
+				fmt.Println("BuyResult() price == null OK")
 				return nil
 			})
-		}else{
-			fmt.Println("BuyResult() price != null" )
+		} else {
+			fmt.Println("BuyResult() price != null")
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				var auctionRec Auction
 				err = tx.Where("contract = ? AND tokenid = ? AND ownaddr =?",
@@ -192,7 +192,7 @@ func (nft NftDb) BuyResult(from, to, contractAddr, tokenId, trade_sig, price, si
 					fmt.Println("BuyResult() delete bid record err=", err.Error)
 					return err.Error
 				}
-				fmt.Println("BuyResult() from != Null && to != Null --> price != Null OK" )
+				fmt.Println("BuyResult() from != Null && to != Null --> price != Null OK")
 				return nil
 			})
 		}
@@ -211,9 +211,9 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 		fmt.Println("BuyResultWithAmount() price err")
 		return ErrPrice
 	}
-	fmt.Println(time.Now().String()[:25],"BuyResultWithAmount() Begin", "from=", from, "to=", to, "price=", price,
+	fmt.Println(time.Now().String()[:25], "BuyResultWithAmount() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
-		"royalty=", royalty/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", royalty /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	trans := Trans{}
 	err := nft.db.Select("id").Where("contract = ? AND tokenid = ? AND txhash = ? AND (selltype = ? or selltype = ? or selltype = ?)",
 		contractAddr, tokenId, txhash, SellTypeFixPrice.String(), SellTypeBidPrice.String(), SellTypeHighestBid.String()).First(&trans)
@@ -227,7 +227,7 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 	}
 	fmt.Println("BuyResultWithAmount()-------------------")
 	if from != "" && to != "" && price != "" {
-		fmt.Println("BuyResultWithAmount() from != Null && to != Null" )
+		fmt.Println("BuyResultWithAmount() from != Null && to != Null")
 		var nftRec Nfts
 		err := nft.db.Where("contract = ? AND tokenid = ? AND ownaddr = ?",
 			contractAddr, tokenId, from).First(&nftRec)
@@ -239,7 +239,7 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 			fmt.Println("BuyResultWithAmount() nft find err=", err.Error)
 			return ErrNftNotExist
 		}
-		fmt.Println("BuyResultWithAmount() price != null" )
+		fmt.Println("BuyResultWithAmount() price != null")
 		aucFlag := false
 		var auctionRec Auction
 		count, _ := strconv.Atoi(amount)
@@ -249,7 +249,7 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 		}
 		err = nft.db.Where("contract = ? AND tokenid = ? AND ownaddr =? AND count = ?",
 			contractAddr, tokenId, from, count).First(&auctionRec)
-		if err.Error != nil  {
+		if err.Error != nil {
 			if err.Error != gorm.ErrRecordNotFound {
 				fmt.Println("BuyResultWithAmount() auction not find err=", err.Error)
 				return err.Error
@@ -427,7 +427,7 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 					return err.Error
 				}
 			}
-			fmt.Println("BuyResultWithAmount() from != Null && to != Null --> price != Null OK" )
+			fmt.Println("BuyResultWithAmount() from != Null && to != Null --> price != Null OK")
 			return nil
 		})
 	}
@@ -454,7 +454,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 	//	fmt.Println("BuyResultWithWAmount() price err")
 	//	return ErrPrice
 	//}
-	fmt.Println(time.Now().String()[:25],"BuyResultWithWAmount() Begin", "from=", from, "to=", to, "price=", nftTx.Price,
+	fmt.Println(time.Now().String()[:25], "BuyResultWithWAmount() Begin", "from=", from, "to=", to, "price=", nftTx.Price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
 		/*, "sig=", sig, "trade_sig=", trade_sig*/)
 	trans := Trans{}
@@ -469,8 +469,8 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		return err.Error
 	}
 	fmt.Println("BuyResultWithWAmount()-------------------")
-	if from != "" && to != ""/* && nftTx.Price != ""*/ {
-		fmt.Println("BuyResultWithWAmount() from != Null && to != Null" )
+	if from != "" && to != "" /* && nftTx.Price != ""*/ {
+		fmt.Println("BuyResultWithWAmount() from != Null && to != Null")
 		var nftRec Nfts
 		err := nft.db.Where("nftaddr = ? AND ownaddr = ?",
 			nftaddr, from).First(&nftRec)
@@ -492,7 +492,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		}
 		err = nft.db.Where("tokenid = ? AND ownaddr =?",
 			nftRec.Tokenid, from).First(&auctionRec)
-		if err.Error != nil  {
+		if err.Error != nil {
 			if err.Error != gorm.ErrRecordNotFound {
 				fmt.Println("BuyResultWithWAmount() auction not find err=", err.Error)
 				return err.Error
@@ -623,7 +623,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 					return err.Error
 				}
 			}
-			fmt.Println("BuyResultWithWAmount() from != Null && to != Null --> price != Null OK" )
+			fmt.Println("BuyResultWithWAmount() from != Null && to != Null --> price != Null OK")
 			return nil
 		})
 	}
@@ -641,9 +641,9 @@ func (nft NftDb) BuyResultAsset(from, to, contractAddr, tokenId, amount, price, 
 		fmt.Println("BuyResultAsset() price err")
 		return ErrPrice
 	}
-	fmt.Println(time.Now().String()[:25],"BuyResultWithAmount() Begin", "from=", from, "to=", to, "price=", price,
+	fmt.Println(time.Now().String()[:25], "BuyResultWithAmount() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
-		"royalty=", royalty/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", royalty /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	trans := Trans{}
 	err := nft.db.Select("id").Where("contract = ? AND tokenid = ? AND txhash = ? AND selltype = ?",
 		contractAddr, tokenId, txhash, SellTypeAsset.String()).First(&trans)
@@ -656,8 +656,8 @@ func (nft NftDb) BuyResultAsset(from, to, contractAddr, tokenId, amount, price, 
 		return err.Error
 	}
 	fmt.Println("BuyResultAsset()-------------------")
-	if from != "" && to != "" && price == ""{
-		fmt.Println("BuyResultAsset() from != Null && to != Null" )
+	if from != "" && to != "" && price == "" {
+		fmt.Println("BuyResultAsset() from != Null && to != Null")
 		var nftRec Nfts
 		err := nft.db.Where("contract = ? AND tokenid = ? AND ownaddr = ?",
 			contractAddr, tokenId, from).First(&nftRec)
@@ -669,7 +669,7 @@ func (nft NftDb) BuyResultAsset(from, to, contractAddr, tokenId, amount, price, 
 			fmt.Println("BuyResultAsset() nft find err=", err.Error)
 			return ErrNftNotExist
 		}
-		fmt.Println("BuyResultAsset() price == null" )
+		fmt.Println("BuyResultAsset() price == null")
 		return nft.db.Transaction(func(tx *gorm.DB) error {
 			var auctionRec Auction
 			err = tx.Where("contract = ? AND tokenid = ? AND ownaddr =?",
@@ -697,7 +697,7 @@ func (nft NftDb) BuyResultAsset(from, to, contractAddr, tokenId, amount, price, 
 				fmt.Println("BuyResultAsset() create trans record err=", err.Error)
 				return err.Error
 			}
-			fmt.Println("BuyResultAsset() price == null OK" )
+			fmt.Println("BuyResultAsset() price == null OK")
 			return nil
 		})
 	}
@@ -710,12 +710,12 @@ func (nft NftDb) BuyResultRoyalty(from, to, contractAddr, tokenId, price, royalt
 	to = strings.ToLower(to)
 	contractAddr = strings.ToLower(contractAddr)
 	transTime, _ := strconv.ParseInt(txtime, 10, 64)
-	fmt.Println(time.Now().String()[:25],"BuyResultRoyalty() Begin", "from=", from, "to=", to, "price=", price,
+	fmt.Println(time.Now().String()[:25], "BuyResultRoyalty() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
-		"royalty=", royalty/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", royalty /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	trans := Trans{}
 	err := nft.db.Select("id").Where("contract = ? AND tokenid = ? AND txhash = ? AND selltype = ?",
-			contractAddr, tokenId, txhash, SellTypeMintNft.String()).First(&trans)
+		contractAddr, tokenId, txhash, SellTypeMintNft.String()).First(&trans)
 	if err.Error == nil {
 		fmt.Println("BuyResultRoyalty() err =", ErrTransExist)
 		return nil
@@ -727,7 +727,7 @@ func (nft NftDb) BuyResultRoyalty(from, to, contractAddr, tokenId, price, royalt
 	if royalty != "" {
 		var nftRec Nfts
 		err := nft.db.Where("contract = ? AND tokenid = ? AND createaddr = ?",
-				contractAddr, tokenId, to).First(&nftRec)
+			contractAddr, tokenId, to).First(&nftRec)
 		if err.Error != nil {
 			if err.Error != gorm.ErrRecordNotFound {
 				fmt.Println("BuyResultRoyalty() royalty err =", ErrNftNotExist)
@@ -772,19 +772,19 @@ func (nft NftDb) BuyResultRoyalty(from, to, contractAddr, tokenId, price, royalt
 }
 
 type NftMintInfo struct {
-	md5 string
-	name string
-	desc string
-	meta string
+	md5        string
+	name       string
+	desc       string
+	meta       string
 	source_url string
 	//nft_contract_addr string "0xfffffffffffffffffff"
-	nft_token_id string
-	categories string
-	collections string
+	nft_token_id   string
+	categories     string
+	collections    string
 	Collectcreator string
-	asset_sample string
-	hide string
-	count string
+	asset_sample   string
+	hide           string
+	count          string
 }
 
 func GetNftMintInfo(creatorAddr, toAddr, blockNum, creatorNonce string) (*NftMintInfo, error) {
@@ -792,43 +792,43 @@ func GetNftMintInfo(creatorAddr, toAddr, blockNum, creatorNonce string) (*NftMin
 }
 
 type NftSysMintInfo struct {
-	Createaddr     string `json:"user_addr" gorm:"type:char(42) ;comment:'创建nft地址'"`
-	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft拥有者地址'"`
-	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft名称'"`
-	Desc           string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'nft描述'"`
-	Meta           string `json:"meta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'元信息'"`
-	Url            string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nft原始数据保持地址'"`
-	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) ;comment:'合约地址'"`
-	Count          int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft可卖数量'"`
-	Nftaddr        string `json:"nft_address" gorm:"type:char(42) ;comment:'wormholes链唯一标识nft标志'"`
-	Categories     string `json:"categories" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft分类'"`
-	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) ;comment:'合集创建者地址'"`
-	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'NFT合集名'"`
-	Image          string `json:"asset_sample" gorm:"type:longtext ;comment:'缩略图二进制数据'"`
+	Createaddr     string `json:"user_addr" gorm:"type:char(42) ;comment:'create nft address'"`
+	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft owner address'"`
+	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft name'"`
+	Desc           string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'nft description'"`
+	Meta           string `json:"meta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'meta information'"`
+	Url            string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nft raw data hold address'"`
+	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) ;comment:'contract address'"`
+	Count          int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft sellable quantity'"`
+	Nftaddr        string `json:"nft_address" gorm:"type:char(42) ;comment:'chain of wormholes uniquely identifies the nft flag'"`
+	Categories     string `json:"categories" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft classification'"`
+	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) ;comment:'collection creator address'"`
+	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'NFT collection name'"`
+	Image          string `json:"asset_sample" gorm:"type:longtext ;comment:'thumbnail binary data'"`
 	Royalty        string `json:"royalty"`
 	BlockNumber    string `json:"block_number"`
 }
 
 type SnftInfo struct {
-	CreatorAddr          string  `json:"creator_addr"`
-	Ownaddr              string  `json:"ownaddr"`
-	Contract             string  `json:"nft_contract_addr"`
-	Nftaddr              string  `json:"nft_address"`
-	Name                 string  `json:"name"`
-	Desc                 string  `json:"desc"`
-	Meta           		 string  `json:"meta"`
-	Category             string  `json:"category"`
-	Royalty              float64 `json:"royalty"`
+	CreatorAddr string  `json:"creator_addr"`
+	Ownaddr     string  `json:"ownaddr"`
+	Contract    string  `json:"nft_contract_addr"`
+	Nftaddr     string  `json:"nft_address"`
+	Name        string  `json:"name"`
+	Desc        string  `json:"desc"`
+	Meta        string  `json:"meta"`
+	Category    string  `json:"category"`
+	Royalty     float64 `json:"royalty"`
 	//Royalty              string `json:"royalty"`
-	SourceUrl            string  `json:"source_url"`
-	Md5                  string  `json:"md5"`
+	SourceUrl string `json:"source_url"`
+	Md5       string `json:"md5"`
 	//Collections          string  `json:"collections"`
-	CollectionsName      string  `json:"collections_name"`
-	CollectionsCreator   string  `json:"collections_creator"`
-	CollectionsExchanger string  `json:"collections_exchanger"`
-	CollectionsCategory  string  `json:"collections_category"`
-	CollectionsImgUrl    string  `json:"collections_img_url"`
-	CollectionsDesc      string  `json:"collections_desc"`
+	CollectionsName      string `json:"collections_name"`
+	CollectionsCreator   string `json:"collections_creator"`
+	CollectionsExchanger string `json:"collections_exchanger"`
+	CollectionsCategory  string `json:"collections_category"`
+	CollectionsImgUrl    string `json:"collections_img_url"`
+	CollectionsDesc      string `json:"collections_desc"`
 }
 
 func GetNftSysMintInfo(blockNum string) ([]NftSysMintInfo, error) {
@@ -845,9 +845,9 @@ func (nft NftDb) BuyResultWRoyalty(mintTx *contracts.NftTx) error {
 	txhash := strings.ToLower(mintTx.TxHash)
 	nftaddr := strings.ToLower(mintTx.NftAddr)
 
-	fmt.Println(time.Now().String()[:25],"BuyResultWRoyalty() Begin", "from=", from, "to=", to, "price=", mintTx.Price,
+	fmt.Println(time.Now().String()[:25], "BuyResultWRoyalty() Begin", "from=", from, "to=", to, "price=", mintTx.Price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", mintTx.TxHash,
-		"royalty=", mintTx.Ratio/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", mintTx.Ratio /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	trans := Trans{}
 	err := nft.db.Select("id").Where("contract = ? AND tokenid = ? AND txhash = ? AND selltype = ?",
 		contractAddr, tokenId, txhash, SellTypeMintNft.String()).First(&trans)
@@ -868,38 +868,38 @@ func (nft NftDb) BuyResultWRoyalty(mintTx *contracts.NftTx) error {
 				return err.Error
 			}
 		} else {
-				nfttab := Nfts{}
-				nfttab.Nftaddr = nftaddr
-				nfttab.Mintstate = Minted.String()
-				trans := Trans{}
-				trans.Contract = contractAddr
-				trans.Fromaddr = ""
-				trans.Toaddr = to
-				trans.Tokenid = tokenId
-				trans.Nftaddr = nftaddr
-				trans.Transtime = transTime
-				if !mintTx.Status {
-					return nil
-				}
-				trans.Selltype = SellTypeMintNft.String()
-				trans.Txhash = txhash
-				trans.Count = nftRec.Count
-				return nft.db.Transaction(func(tx *gorm.DB) error {
-					err := tx.Model(&trans).Create(&trans)
-					if err.Error != nil {
-						fmt.Println("BuyResultWRoyalty() royalty create trans err=", err.Error)
-						return err.Error
-					}
-					err = tx.Model(&Nfts{}).Where("contract = ? AND tokenid = ? AND ownaddr = ?",
-						contractAddr, tokenId, to).Updates(&nfttab)
-					if err.Error != nil {
-						fmt.Println("BuyResultWRoyalty() royalty create nfts record err=", err.Error)
-						return err.Error
-					}
-					fmt.Println("BuyResultWRoyalty() royalty!=Null Ok")
-					return nil
-				})
+			nfttab := Nfts{}
+			nfttab.Nftaddr = nftaddr
+			nfttab.Mintstate = Minted.String()
+			trans := Trans{}
+			trans.Contract = contractAddr
+			trans.Fromaddr = ""
+			trans.Toaddr = to
+			trans.Tokenid = tokenId
+			trans.Nftaddr = nftaddr
+			trans.Transtime = transTime
+			if !mintTx.Status {
+				return nil
 			}
+			trans.Selltype = SellTypeMintNft.String()
+			trans.Txhash = txhash
+			trans.Count = nftRec.Count
+			return nft.db.Transaction(func(tx *gorm.DB) error {
+				err := tx.Model(&trans).Create(&trans)
+				if err.Error != nil {
+					fmt.Println("BuyResultWRoyalty() royalty create trans err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("contract = ? AND tokenid = ? AND ownaddr = ?",
+					contractAddr, tokenId, to).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWRoyalty() royalty create nfts record err=", err.Error)
+					return err.Error
+				}
+				fmt.Println("BuyResultWRoyalty() royalty!=Null Ok")
+				return nil
+			})
+		}
 	}
 	return nil
 }
@@ -916,7 +916,7 @@ func (nft NftDb) BuyResultWTransfer(mintTx *contracts.NftTx) error {
 		return nil
 	}
 
-	fmt.Println(time.Now().String()[:25],"BuyResultWTransfer() Begin", "to=", to, "price=", mintTx.Price, "txhash=", mintTx.TxHash)
+	fmt.Println(time.Now().String()[:25], "BuyResultWTransfer() Begin", "to=", to, "price=", mintTx.Price, "txhash=", mintTx.TxHash)
 	/*trans := Trans{}
 	err := nft.db.Select("id").Where("txhash = ? AND selltype = ?", txhash, SellTypeTransfer.String()).First(&trans)
 	if err.Error == nil {
@@ -981,14 +981,14 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 	}
 	nftRec := Nfts{}
 	err := nft.db.Select([]string{"collectcreator", "Collections"}).Where("nftaddr = ?", nftaddress).First(&nftRec)
-	if err.Error != nil && err.Error != gorm.ErrRecordNotFound{
+	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 		log.Println("BuyResultExchange() dbase error.")
 		return err.Error
 	}
 	collectRec := Collects{}
 	err = nft.db.Where("createaddr = ? AND  name=?",
 		nftRec.Collectcreator, nftRec.Collections).First(&collectRec)
-	if err.Error != nil && err.Error != gorm.ErrRecordNotFound{
+	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 		log.Println("BuyResultExchange() database err=", err.Error)
 		return ErrCollectionNotExist
 	}
@@ -1016,7 +1016,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			}
 			if sysInfo.Snfttotal > 256 {
 				sysInfo.Snfttotal -= 256
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal)
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 				if err.Error != nil {
 					log.Println("BuyResultExchange() 38 exchange sub SysInfos snfttotal err=", err.Error)
 					return err.Error
@@ -1038,7 +1038,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			}
 			if sysInfo.Snfttotal > 16 {
 				sysInfo.Snfttotal -= 16
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal)
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 				if err.Error != nil {
 					log.Println("BuyResultExchange() 39 exchange sub SysInfos snfttotal err=", err.Error)
 					return err.Error
@@ -1070,7 +1070,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			}
 			if sysInfo.Snfttotal > 0 {
 				sysInfo.Snfttotal -= 1
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal)
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 				if err.Error != nil {
 					log.Println("BuyResultExchange() 40 exchange sub  SysInfos snfttotal err=", err.Error)
 					return err.Error
@@ -1101,7 +1101,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				}
 				if sysInfo.Snfttotal > 0 {
 					sysInfo.Snfttotal -= 1
-					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal)
+					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 					if err.Error != nil {
 						log.Println("BuyResultExchange() add  SysInfos snfttotal err=", err.Error)
 						return err.Error

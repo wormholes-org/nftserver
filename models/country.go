@@ -7,10 +7,10 @@ import (
 )
 
 type CountryRec struct {
-	Regionen string `json:"regionen" gorm:"type:char(50) CHARACTER SET utf8mb4;comment:'国家、地区英文'"`
-	Regioncn string `json:"regioncn" gorm:"type:char(50) CHARACTER SET utf8mb4;comment:'国家、地区中文'"`
-	Domain   string `json:"domain" gorm:"type:char(10) CHARACTER SET utf8mb4;comment:'国际域名'"`
-	Telecode string `json:"telecode" gorm:"type:char(10) CHARACTER SET utf8mb4 NOT NULL;comment:'电话编码'"`
+	Regionen string `json:"regionen" gorm:"type:char(50) CHARACTER SET utf8mb4;comment:'country/region English'"`
+	Regioncn string `json:"regioncn" gorm:"type:char(50) CHARACTER SET utf8mb4;comment:'country/region Chinese'"`
+	Domain   string `json:"domain" gorm:"type:char(10) CHARACTER SET utf8mb4;comment:'international domain name'"`
+	Telecode string `json:"telecode" gorm:"type:char(10) CHARACTER SET utf8mb4 NOT NULL;comment:'phone code'"`
 }
 
 type Countrys struct {

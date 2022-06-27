@@ -8,8 +8,8 @@ require (
 )
 
 replace (
-	github.com/nftexchange/nftserver/ethhelper v0.0.0 => ../ethhelper
-	github.com/nftexchange/nftserver/ethhelper/common v0.0.0 => ../ethhelper/common
+	//github.com/nftexchange/nftserver/ethhelper v0.0.0 => ../ethhelper
+	//github.com/nftexchange/nftserver/ethhelper/common v0.0.0 => ../ethhelper/common
 	github.com/nftexchange/nftserver/ethhelper/database v0.0.0 => ../ethhelper/database
 	github.com/nftexchange/nftserver/common v0.0.0 => ../common
 	github.com/nftexchange/nftserver/common/contracts v0.0.0 => ../common/contracts

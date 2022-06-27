@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 )
 
-//查询用户所有信息:post
+//Query all user information: post
 func (nft *NftExchangeControllerV1) QueryUserInfo() {
 	//defer nft.Ctx.Request.Body.Close()
 	var httpResponseData controllers.HttpResponseData
@@ -37,7 +37,7 @@ func (nft *NftExchangeControllerV1) QueryUserInfo() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

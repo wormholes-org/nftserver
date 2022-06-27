@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//查询单个SNFT碎片信息
+//Querying information about a single SNFT fragment
 func (nft *NftExchangeControllerV2) QueryOwnerSnftCollections() {
 	fmt.Println("QueryOwnerSnftCollections()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryOwnerSnftCollections(da
 	regString, _ := regexp.Compile(PattenString)
 	regNumber, _ := regexp.Compile(PattenNumber)
 
-	if data["start_index"] !=  "" {
+	if data["start_index"] != "" {
 		match := regNumber.MatchString(data["start_index"])
 		if !match {
 			return ERRINPUTINVALID
@@ -91,4 +91,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryOwnerSnftCollections(da
 	}
 	return nil
 }
-

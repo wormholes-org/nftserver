@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//上传nft作品:post
+//Upload nft works: post
 func (nft *NftExchangeControllerV2) BatchUploadNft() {
 	fmt.Println("BatchUploadNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -35,7 +35,6 @@ func (nft *NftExchangeControllerV2) BatchUploadNft() {
 			httpResponseData.Data = []interface{}{}
 		} else {
 
-			//调用nftipfs,将图片上传到ipfs文件服务器
 			//cid, err := nft.AddFileToIpfs(data["asset_sample"])
 			//if err != nil {
 			//	httpResponseData.Code = "400"
@@ -57,27 +56,27 @@ func (nft *NftExchangeControllerV2) BatchUploadNft() {
 			//		httpResponseData.Msg = err.Error()
 			//		httpResponseData.Data = []interface{}{}
 			//	} else {
-					err = nd.UploadNft(data["user_addr"], data["creator_addr"], data["owner_addr"],
-						data["md5"], data["name"], data["desc"],
-						data["meta"], data["source_url"],
-						data["nft_contract_addr"], data["nft_token_id"],
-						data["categories"], data["collections"],
-						data["asset_sample"], data["hide"], data["royalty"], data["count"],data["sig"])
-					if err == nil {
-						httpResponseData.Code = "200"
-						httpResponseData.Data = []interface{}{}
-					} else {
-						httpResponseData.Code = "500"
-						httpResponseData.Msg = err.Error()
-						httpResponseData.Data = []interface{}{}
-					}
-				//}
+			err = nd.UploadNft(data["user_addr"], data["creator_addr"], data["owner_addr"],
+				data["md5"], data["name"], data["desc"],
+				data["meta"], data["source_url"],
+				data["nft_contract_addr"], data["nft_token_id"],
+				data["categories"], data["collections"],
+				data["asset_sample"], data["hide"], data["royalty"], data["count"], data["sig"])
+			if err == nil {
+				httpResponseData.Code = "200"
+				httpResponseData.Data = []interface{}{}
+			} else {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			}
+			//}
 			//}
 			//}
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

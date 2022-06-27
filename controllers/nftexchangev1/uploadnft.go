@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-//上传nft作品:post
+//Upload nft works: post
 func (nft *NftExchangeControllerV1) UploadNft() {
 
 	var httpResponseData controllers.HttpResponseData
@@ -28,7 +28,7 @@ func (nft *NftExchangeControllerV1) UploadNft() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
-		//调用nftipfs,将图片上传到ipfs文件服务器
+		//Call nftipfs to upload the image to the ipfs file server
 		cid, err := nft.AddFileToIpfs(data["asset_sample"])
 		if err != nil {
 			httpResponseData.Code = "400"
@@ -41,7 +41,7 @@ func (nft *NftExchangeControllerV1) UploadNft() {
 				data["meta"], data["source_url"],
 				data["nft_contract_addr"], data["nft_token_id"],
 				data["categories"], data["collections"],
-				data["asset_sample"], data["hide"], data["royalty"], data["count"],data["sig"])
+				data["asset_sample"], data["hide"], data["royalty"], data["count"], data["sig"])
 			if err == nil {
 				httpResponseData.Code = "200"
 				httpResponseData.Data = []interface{}{}
@@ -53,7 +53,7 @@ func (nft *NftExchangeControllerV1) UploadNft() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -77,15 +77,15 @@ func (nft *NftExchangeControllerV1) AddFileToIpfs(content string) (string, error
 		if ok {
 			return cid, nil
 		} else {
-			return "", errors.New("nftipfs server 返回数据格式错误！")
+			return "", errors.New("nftipfs server return data format error！")
 		}
 	}
 }
 
-//发送POST请求
-//url:请求地址		data:POST请求提交的数据		contentType:请求体格式，如：application/json
-//content:请求返回的内容
-func (nft *NftExchangeControllerV1)SendPost(url string, data interface{}, contentType string) (respData controllers.HttpResponseData,  err error) {
+//Send POST request
+//url: request address data: data submitted by POST request contentType: request body format, such as: application/json
+//content: The content returned by the request
+func (nft *NftExchangeControllerV1) SendPost(url string, data interface{}, contentType string) (respData controllers.HttpResponseData, err error) {
 	jsonStr, _ := json.Marshal(data)
 	fmt.Println("SendPost,url=", url, "jsonStr=", string(jsonStr))
 	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonStr))
@@ -109,7 +109,6 @@ func (nft *NftExchangeControllerV1)SendPost(url string, data interface{}, conten
 	json.Unmarshal(result, &respData)
 	return
 }
-
 
 func (nft *NftExchangeControllerV1) IpfsTest() {
 	content := "test content"

@@ -10,9 +10,9 @@ import (
 )
 
 type Adminrec struct {
-	Adminaddr string `json:"adminaddr" gorm:"type:char(42) NOT NULL;comment:'管理员地址'"`
-	Admintype string `json:"admintype" gorm:"type:char(42) NOT NULL;comment:'管理员类型，nft、kyc、admin'"`
-	AdminAuth string `json:"adminauth" gorm:"type:char(42) NOT NULL;comment:'管理员权限'"`
+	Adminaddr string `json:"adminaddr" gorm:"type:char(42) NOT NULL;comment:'administrator address'"`
+	Admintype string `json:"admintype" gorm:"type:char(42) NOT NULL;comment:'administrator type,nft,kyc,admin'"`
+	AdminAuth string `json:"adminauth" gorm:"type:char(42) NOT NULL;comment:'admin rights'"`
 }
 
 type Admins struct {

@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-
 func (nft *NftExchangeControllerV2) GetCountrys() {
 	fmt.Println("GetCountrys()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -146,7 +145,7 @@ func (nft *NftExchangeControllerV2) SetCountrys() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

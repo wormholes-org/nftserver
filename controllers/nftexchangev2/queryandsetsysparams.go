@@ -43,7 +43,7 @@ func (nft *NftExchangeControllerV2) GetSysParams() {
 	fmt.Println("GetSysParams()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//根据params返回系统参数
+//Return system parameters according to params
 func (nft *NftExchangeControllerV2) GetSysParamByParams() {
 	fmt.Println("GetSysParamByParams()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	//defer nft.Ctx.Request.Body.Close()
@@ -79,7 +79,7 @@ func (nft *NftExchangeControllerV2) GetSysParamByParams() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -181,7 +181,7 @@ func (nft *NftExchangeControllerV2) SetSysParams() {
 				} else {
 					err = json.Unmarshal(bytes, &sysParams)
 					if err != nil {
-						nft.Ctx.ResponseWriter.Write([]byte("更新数据失败！"))
+						nft.Ctx.ResponseWriter.Write([]byte("Failed to update data！"))
 					} else {
 						inputDatarr := nd.SetSysParams(sysParams)
 						if inputDatarr == nil {
@@ -198,7 +198,7 @@ func (nft *NftExchangeControllerV2) SetSysParams() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -255,7 +255,7 @@ func (nft *NftExchangeControllerV2) SetAnnouncementParams() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -273,7 +273,6 @@ func (nft *NftExchangeControllerV2) SetExchangeSig() {
 	}
 	defer nd.Close()
 
-	defer nd.Close()
 	var data map[string]string
 	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
 	defer nft.Ctx.Request.Body.Close()
@@ -303,7 +302,7 @@ func (nft *NftExchangeControllerV2) SetExchangeSig() {
 				} else {
 					exchange, err := json.Marshal(data)
 					if err != nil {
-						nft.Ctx.ResponseWriter.Write([]byte("更新数据失败！"))
+						nft.Ctx.ResponseWriter.Write([]byte("Failed to update data！"))
 					} else {
 						inputDatarr := nd.SetExchageSig(string(exchange))
 						if inputDatarr == nil {
@@ -320,7 +319,7 @@ func (nft *NftExchangeControllerV2) SetExchangeSig() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -333,12 +332,11 @@ func (nft *NftExchangeControllerV2) GetExchangeSig() {
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
-		fmt.Printf("GetSysParams() connect database err = %s\n", err)
+		fmt.Printf("GetExchangeSig() connect database err = %s\n", err)
 		return
 	}
 	defer nd.Close()
 
-	defer nft.Ctx.Request.Body.Close()
 	input, err := nd.GetExchageSig()
 	if err != nil {
 		if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {

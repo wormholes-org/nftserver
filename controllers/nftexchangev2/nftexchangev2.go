@@ -14,20 +14,19 @@ import (
 )
 
 const (
-	PattenString = "^[0-9a-zA-Z_]+$"
-	PattenNumber = "^[0-9]+$"
-	PattenHex = "^[0-9a-fA-F]+$"
-	PattenOperator = "^[<>=]+$"
-	PattenEmail = "^[A-Za-z0-9]+([-_.][A-Za-z0-9]+)*@([A-Za-z0-9]+[-.])+[A-Za-z0-9]{2,4}$"
-	PattenAddr = "^0x[0-9a-fA-F]{40}$"
+	PattenString      = "^[0-9a-zA-Z_]+$"
+	PattenNumber      = "^[0-9]+$"
+	PattenHex         = "^[0-9a-fA-F]+$"
+	PattenOperator    = "^[<>=]+$"
+	PattenEmail       = "^[A-Za-z0-9]+([-_.][A-Za-z0-9]+)*@([A-Za-z0-9]+[-.])+[A-Za-z0-9]{2,4}$"
+	PattenAddr        = "^0x[0-9a-fA-F]{40}$"
 	PattenImageBase64 = "^data:image/[a-zA-Z0-9]+;base64,[a-zA-Z0-9/+]+=?=?$"
 )
 
 var (
 	ERRINPUTINVALID = errors.New("input data invalid")
-	ERRTOKEN = errors.New("token invalid, please relogin!")
+	ERRTOKEN        = errors.New("token invalid, please relogin!")
 )
-
 
 type NftExchangeControllerV2 struct {
 	beego.Controller
@@ -45,8 +44,6 @@ type NftExchangeControllerV2 struct {
 //	}
 //}
 
-
-//owner修改价格
 //func (nft *NftExchangeControllerV2) ModifyNFT() {
 //	fmt.Println("ModifyNFT()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 //	var httpResponseData HttpResponseData
@@ -126,8 +123,8 @@ func RefreshToken(tokenString string) (string, error) {
 		claims.User,
 		jwt.StandardClaims{
 			ExpiresAt: expireAt,
-			IssuedAt: time.Now().Unix(),
-			Issuer: "Wormholes Exchanger",
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "Wormholes Exchanger",
 		},
 	}
 
@@ -166,8 +163,8 @@ func GenerateToken(userAddr string) (string, error) {
 		controllers.User{UserAddr: userAddr},
 		jwt.StandardClaims{
 			ExpiresAt: expireAt,
-			IssuedAt: time.Now().Unix(),
-			Issuer: "Wormholes Exchanger",
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "Wormholes Exchanger",
 		},
 	}
 
@@ -199,7 +196,7 @@ func CheckToken(ctx *context.Context) {
 func GenerateString() string {
 	var strLength = 4
 	var randStr string
-	characterSet := []string {
+	characterSet := []string{
 		"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 		"a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
 		"k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
@@ -209,7 +206,7 @@ func GenerateString() string {
 		"u", "v", "w", "x", "y", "z",
 	}
 
-	for i:=0; i<strLength; i++ {
+	for i := 0; i < strLength; i++ {
 		key, err := rand.Int(rand.Reader, big.NewInt(62))
 		if err != nil {
 			return ""
@@ -219,8 +216,3 @@ func GenerateString() string {
 
 	return randStr
 }
-
-
-
-
-

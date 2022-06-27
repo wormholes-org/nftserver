@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//获取用户关注列表
+//Get user watchlist
 func (nft *NftExchangeControllerV2) QueryUserFavoriteList() {
 	fmt.Println("QueryUserFavoriteList()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -72,7 +72,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryUserFavoriteList(data m
 			return ERRINPUTINVALID
 		}
 	}
-	if data["start_index"] !=  "" {
+	if data["start_index"] != "" {
 		match := regNumber.MatchString(data["start_index"])
 		if !match {
 			return ERRINPUTINVALID

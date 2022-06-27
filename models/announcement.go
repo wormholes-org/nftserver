@@ -8,8 +8,8 @@ import (
 )
 
 type AnnounceRec struct {
-	Title		string		`json:"title" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'主题'"`
-	Content		string		`json:"content" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'内容'"`
+	Title   string `json:"title" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'title'"`
+	Content string `json:"content" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'content'"`
 }
 
 type Announcements struct {
@@ -32,7 +32,7 @@ func (nft NftDb) QueryAnnouncement() ([]Announcements, error) {
 }
 
 type Announces struct {
-	ID        uint	`json:"id"`
+	ID uint `json:"id"`
 	AnnounceRec
 }
 
@@ -47,7 +47,7 @@ func (nft NftDb) QueryAnnouncements(start_index, count string) (int, []Announces
 	err := nft.db.Model(Announcements{}).Count(&recCount)
 	if err.Error != nil {
 		if err.Error != gorm.ErrRecordNotFound {
-			return 0, nil , nil
+			return 0, nil, nil
 		}
 		fmt.Println("QuerySingleAnnouncement() recCount err=", err)
 		return 0, nil, err.Error
@@ -93,7 +93,7 @@ func (nft NftDb) SetAnnouncement(title, content string) error {
 	return nil
 }
 
-func (nft NftDb) DelAnnounce(delAnnouncelist string) (error)  {
+func (nft NftDb) DelAnnounce(delAnnouncelist string) error {
 	var dellst []int
 	err := json.Unmarshal([]byte(delAnnouncelist), &dellst)
 	if err != nil {

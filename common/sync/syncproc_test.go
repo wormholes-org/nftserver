@@ -1,11 +1,17 @@
 package sync
 
 import (
+	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"github.com/nftexchange/nftserver/models"
+	"log"
+	"math/big"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestGetNftSysMintInfo(t *testing.T) {
@@ -51,4 +57,42 @@ func TestAddDirIpfs(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(hash)
+}
+
+func TestPinIpfs(t *testing.T) {
+	//models.NftIpfsServerIP = "https://www.wormholestest.com"
+	models.NftIpfsServerIP = "192.168.1.237"
+	models.NftstIpfsServerPort = "5001"
+	url := models.NftIpfsServerIP + ":" + models.NftstIpfsServerPort
+	s := shell.NewShell(url)
+	s.SetTimeout(20 * time.Second)
+	pins, err := s.Pins()
+	if err != nil {
+		log.Println("AddDirIpfs() err=", err)
+		return
+	}
+	err = s.Pin("QmNbNvhW1StGPQaXhXMQcfT6W7HqEXDY6MfZijuRLf7Roa")
+	if err != nil {
+		log.Println("AddDirIpfs() err=", err)
+		return
+	}
+	fmt.Println(pins)
+}
+
+func TestName(t *testing.T) {
+	/*if snft == "" {
+		snft = DefaultSnft
+	}*/
+	tt := hex.EncodeToString([]byte{0})
+	fmt.Println(tt)
+	tt = hex.EncodeToString([]byte{0xff})
+	fmt.Println(tt)
+	snft := "0x8000000000000000000000000000000000000000"
+	//addr := common.HexToAddress(snft)
+	h := big.NewInt(0)
+	h, err := big.NewInt(0).SetString(snft[2:], 16)
+	fmt.Println(err)
+	h = h.Add(h,big.NewInt(256))
+	snft = common.BigToAddress(h).Hex()
+	fmt.Println("BackupIpfsSnft() call SyncNftFromChain() blockNum=")
 }

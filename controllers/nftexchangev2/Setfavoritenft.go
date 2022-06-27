@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//查询关注的nft:post
+//Query followed nft:post
 func (nft *NftExchangeControllerV2) SetFavoriteNft() {
 	fmt.Println("SetFavoriteNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -62,7 +62,7 @@ func (nft *NftExchangeControllerV2) SetFavoriteNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -104,5 +104,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_SetFavoriteNft(data map[stri
 
 	return nil
 }
-
-

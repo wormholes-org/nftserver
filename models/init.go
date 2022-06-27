@@ -32,6 +32,10 @@ func init() {
 	EthersNode, _ = beego.AppConfig.String("EthersNode")
 	NftIpfsServerIP, _ = beego.AppConfig.String("nftIpfsServerIP")
 	NftstIpfsServerPort, _ = beego.AppConfig.String("nftIpfsServerPort")
+	BackupIpfsUrl, _ = beego.AppConfig.String("backupipfsurl")
+	if BackupIpfsUrl == "" {
+		BackupIpfsUrl = "127.0.0.1:5001"
+	}
 	BrowseNode, _ = beego.AppConfig.String("BrowseNode")
 	EthersWsNode, _ = beego.AppConfig.String("EthersWsNode")
 	ImageDir, _ = beego.AppConfig.String("ImageDir")
@@ -44,5 +48,6 @@ func init() {
 	Authorize, _ = beego.AppConfig.String("Authorize")
 	DebugPort, _ = beego.AppConfig.String("DebugPort")
 	DebugAllowNft, _ = beego.AppConfig.String("AllowNft")
+	DefaultCaptcha, _ = beego.AppConfig.String("captachaurl")
 	AnnouncementRequired = true
 }

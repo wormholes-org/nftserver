@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-//创建period:post
+//Create period:post
 func (nft *NftExchangeControllerV2) CreatsSnftphase() {
 	fmt.Println("CreatsSnftphase()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -64,7 +64,7 @@ func (nft *NftExchangeControllerV2) CreatsSnftphase() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -72,7 +72,7 @@ func (nft *NftExchangeControllerV2) CreatsSnftphase() {
 	fmt.Println("CreatsSnftphase()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//修改period
+//Modify period
 func (nft *NftExchangeControllerV2) SetSnftPeriod() {
 	fmt.Println("SetSnftPeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -111,7 +111,7 @@ func (nft *NftExchangeControllerV2) SetSnftPeriod() {
 				} else {
 					err = json.Unmarshal(bytes, &period)
 					if err != nil {
-						nft.Ctx.ResponseWriter.Write([]byte("更新数据失败！"))
+						nft.Ctx.ResponseWriter.Write([]byte("Failed to update data！"))
 					} else {
 						err = nd.SetSnftPeriod(period)
 						if err == nil {
@@ -129,7 +129,7 @@ func (nft *NftExchangeControllerV2) SetSnftPeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -169,7 +169,7 @@ func (nft *NftExchangeControllerV2) GetSnftPeriod() {
 	fmt.Println("GetSnftPeriod()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//获取所有投票期
+//Get all voting periods
 func (nft *NftExchangeControllerV2) GetAllVotePeriod() {
 	fmt.Println("GetAllVotePeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -201,7 +201,7 @@ func (nft *NftExchangeControllerV2) GetAllVotePeriod() {
 	fmt.Println("GetAllVotePeriod()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//获取三条投票期
+//Get three voting periods
 func (nft *NftExchangeControllerV2) GetAccedVotePeriod() {
 	fmt.Println("GetAccedVotePeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -232,7 +232,7 @@ func (nft *NftExchangeControllerV2) GetAccedVotePeriod() {
 	fmt.Println("GetAccedVotePeriod()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//删除period
+//delete period
 func (nft *NftExchangeControllerV2) DelSnftPeriod() {
 	fmt.Println("DelSnftPeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -273,7 +273,7 @@ func (nft *NftExchangeControllerV2) DelSnftPeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -396,7 +396,7 @@ func (nft *NftExchangeControllerV2) SetVotePeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -455,7 +455,7 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

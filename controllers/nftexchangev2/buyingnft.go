@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//购买nft作品,由交易所发起交易:post
+//To buy nft works, the transaction is initiated by the exchange: post
 func (nft *NftExchangeControllerV2) BuyingNft() {
 	fmt.Println("BuyingNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -28,7 +28,6 @@ func (nft *NftExchangeControllerV2) BuyingNft() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
-		// 验证数据合法性
 		token := nft.Ctx.Request.Header.Get("Token")
 		inputDataErr := nft.verifyInputData_BuyingNft(data, token)
 		if inputDataErr != nil {
@@ -66,7 +65,7 @@ func (nft *NftExchangeControllerV2) BuyingNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -76,7 +75,7 @@ func (nft *NftExchangeControllerV2) BuyingNft() {
 	fmt.Println("BuyingNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//群发购买nft
+//Bulk buy nft
 func (nft *NftExchangeControllerV2) GroupBuyingNft() {
 	fmt.Println("GroupBuyingNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -92,7 +91,6 @@ func (nft *NftExchangeControllerV2) GroupBuyingNft() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
-		// 验证数据合法性
 		token := nft.Ctx.Request.Header.Get("Token")
 		inputDataErr := nft.verifyInputData_BuyingNft(data, token)
 		if inputDataErr != nil {
@@ -128,7 +126,7 @@ func (nft *NftExchangeControllerV2) GroupBuyingNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-//创建集合:post
 func (nft *NftExchangeControllerV2) CreateCollection() {
 	fmt.Println("CreateCollection()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -66,7 +65,7 @@ func (nft *NftExchangeControllerV2) CreateCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -74,9 +73,8 @@ func (nft *NftExchangeControllerV2) CreateCollection() {
 	fmt.Println("CreateCollection()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-//删除Collect
 func (nft *NftExchangeControllerV2) DelCollect() {
-	fmt.Println("DelNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	fmt.Println("DelCollect()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
@@ -119,12 +117,12 @@ func (nft *NftExchangeControllerV2) DelCollect() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
-	fmt.Println("DelNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+	fmt.Println("DelCollect()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
 func (nft *NftExchangeControllerV2) verifyInputData_CreateCollection(data map[string]string, token string) error {

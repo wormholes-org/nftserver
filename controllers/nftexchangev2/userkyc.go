@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//审核用户KYC
+//Audit user KYC
 func (nft *NftExchangeControllerV2) UserKYC() {
 	fmt.Println("UserKYC()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

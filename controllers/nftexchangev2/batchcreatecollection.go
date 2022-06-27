@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//创建集合:post
+//Create collection: post
 func (nft *NftExchangeControllerV2) BatchCreateCollection() {
 	fmt.Println("BatchCreateCollection()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -49,23 +49,23 @@ func (nft *NftExchangeControllerV2) BatchCreateCollection() {
 			//		httpResponseData.Msg = err.Error()
 			//		httpResponseData.Data = []interface{}{}
 			//	} else {
-					err = nd.NewCollections(data["user_addr"], data["name"],
-						data["img"], data["contract_type"], data["contract_addr"],
-						data["desc"], data["categories"], data["sig"])
-					if err == nil {
-						httpResponseData.Code = "200"
-						httpResponseData.Data = []interface{}{}
-					} else {
-						httpResponseData.Code = "500"
-						httpResponseData.Msg = err.Error()
-						httpResponseData.Data = []interface{}{}
-					}
-				//}
+			err = nd.NewCollections(data["user_addr"], data["name"],
+				data["img"], data["contract_type"], data["contract_addr"],
+				data["desc"], data["categories"], data["sig"])
+			if err == nil {
+				httpResponseData.Code = "200"
+				httpResponseData.Data = []interface{}{}
+			} else {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			}
+			//}
 			//}
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -144,4 +144,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_BatchCreateCollection(data m
 
 	return nil
 }
-

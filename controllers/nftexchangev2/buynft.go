@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//购买nft作品:post
+//Buy nft works: post
 func (nft *NftExchangeControllerV2) BuyNft() {
 	fmt.Println("BuyNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -28,7 +28,6 @@ func (nft *NftExchangeControllerV2) BuyNft() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
-		// 验证数据合法性
 		token := nft.Ctx.Request.Header.Get("Token")
 		inputDataErr := nft.verifyInputData_BuyNft(data, token)
 		if inputDataErr != nil {
@@ -70,7 +69,7 @@ func (nft *NftExchangeControllerV2) BuyNft() {
 
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -150,4 +149,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_BuyNft(data map[string]strin
 
 	return nil
 }
-

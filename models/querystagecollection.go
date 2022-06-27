@@ -6,11 +6,11 @@ import (
 )
 
 type SnftCollectInfo struct {
-	Createaddr   string `json:"collection_creator_addr" gorm:"type:char(42) NOT NULL;comment:'创建者者地址'"`
-	Name         string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 DEFAULT NULL;comment:'集合名称'"`
-	Img          string `json:"img" gorm:"type:longtext ;comment:'logo图片'"`
-	Desc         string	`json:"desc" gorm:"type:longtext NOT NULL;comment:'集合描述'"`
-	Chipcount    int64  `json:"chipcount" gorm:"type:bigint ;comment:'切片数'"`
+	Createaddr string `json:"collection_creator_addr" gorm:"type:char(42) NOT NULL;comment:'creator's address'"`
+	Name       string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 DEFAULT NULL;comment:'collection name'"`
+	Img        string `json:"img" gorm:"type:longtext ;comment:'logo image'"`
+	Desc       string `json:"desc" gorm:"type:longtext NOT NULL;comment:'Collection description'"`
+	Chipcount  int64  `json:"chipcount" gorm:"type:bigint ;comment:'Number of slices'"`
 }
 
 func (nft NftDb) QueryStageCollection(stage string) ([]SnftCollectInfo, error) {
@@ -25,4 +25,3 @@ func (nft NftDb) QueryStageCollection(stage string) ([]SnftCollectInfo, error) {
 	}
 	return stageCollection, nil
 }
-

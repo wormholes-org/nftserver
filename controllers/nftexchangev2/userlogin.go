@@ -11,14 +11,15 @@ import (
 	"strconv"
 	"time"
 )
+
 type ResponseLogin struct {
-	Hash string `json:"hash"`
-	Secret string `json:"secret"`
-	TimeStamp int64 `json:"time_stamp"`
-	Token string `json:"token"`
+	Hash      string `json:"hash"`
+	Secret    string `json:"secret"`
+	TimeStamp int64  `json:"time_stamp"`
+	Token     string `json:"token"`
 }
 
-//用户登录(不存在时创建):post
+//User login (created if does not exist): post
 func (nft *NftExchangeControllerV2) UserLogin() {
 	fmt.Println("UserLogin()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -108,7 +109,7 @@ func (nft *NftExchangeControllerV2) UserLogin() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 
 	responseData, _ := json.Marshal(httpResponseData)
@@ -140,4 +141,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_UserLogin(data map[string]st
 
 	return nil
 }
-

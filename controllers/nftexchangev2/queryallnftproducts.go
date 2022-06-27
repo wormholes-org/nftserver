@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//查询所有nft作品:get
+//Query all nft works:get
 func (nft *NftExchangeControllerV2) QueryAllNftProducts() {
 	fmt.Println("QueryAllNftProducts()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

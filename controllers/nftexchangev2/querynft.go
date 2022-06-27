@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-//查询单个NFT信息
+//Query single NFT information
 func (nft *NftExchangeControllerV2) QueryNft() {
 	fmt.Println("QueryNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

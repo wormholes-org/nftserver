@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//查询用户所有信息:post
+//Query all user information:post
 func (nft *NftExchangeControllerV2) QueryUserInfo() {
 	fmt.Println("QueryUserInfo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	//defer nft.Ctx.Request.Body.Close()
@@ -55,7 +55,7 @@ func (nft *NftExchangeControllerV2) QueryUserInfo() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

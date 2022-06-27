@@ -122,6 +122,7 @@ func (nft NftDb) MakeOffer(userAddr,
 					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
 					return err.Error
 				}
+				NftCatch.SetFlushFlag()
 				fmt.Println("MakeOffer() RecordNotFound OK")
 				return nil
 			})

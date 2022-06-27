@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-//sig解析
+//sig Parse
 func (nft *NftExchangeControllerV2) Recover() {
 	fmt.Println("Recover()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	//defer nft.Ctx.Request.Body.Close()

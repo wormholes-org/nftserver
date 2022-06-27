@@ -7,7 +7,7 @@ import (
 	"github.com/nftexchange/nftserver/models"
 )
 
-//查询所有nft作品:get
+//Query all nft works: get
 func (nft *NftExchangeControllerV1) QueryAllNftProducts() {
 	var httpResponseData controllers.HttpResponseData
 	nd := new(models.NftDb)

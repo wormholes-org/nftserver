@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//用户申请KYC:post
+//User apply for KYC:post
 func (nft *NftExchangeControllerV2) UserRequireKYC() {
 	fmt.Println("UserRequireKYC()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) UserRequireKYC() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -106,4 +106,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_UserRequireKYC(data map[stri
 
 	return nil
 }
-

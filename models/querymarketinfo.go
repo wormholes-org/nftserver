@@ -6,40 +6,40 @@ import (
 )
 
 type Info struct {
-	Tindex       string `json:"tindex"`       //时间间隔，小时、天、月
-	Nfttrans     int    `json:"nfttrans"`     //交易信息列表(交易笔数)
-	Nftsumprice  uint64 `json:"nftsumprice"`  //交易所NFT成交额
-	Nftearings   int    `json:"nftearings"`   //NFT历史收益
-	Nftavprice   uint64 `json:"nftavprice"`   //交易所NFT成交均价
-	Nfthighprice int    `json:"nfthighprice"` //NFT历史价格(最高成交价)
-	Nftlowprice  int    `json:"nftlowprice"`  //NFT历史价格(最低成交价)
-	//Nftgases	 	uint64		`json:"nftgases"`           //Gas消耗统计
+	Tindex       string `json:"tindex"`       //Time interval, hours, days, months
+	Nfttrans     int    `json:"nfttrans"`     //Transaction Information List (Number of Transactions)
+	Nftsumprice  uint64 `json:"nftsumprice"`  //Exchange NFT turnover
+	Nftearings   int    `json:"nftearings"`   //NFT historical returns
+	Nftavprice   uint64 `json:"nftavprice"`   //Average price of NFT transactions on exchanges
+	Nfthighprice int    `json:"nfthighprice"` //NFT historical price (highest transaction price)
+	Nftlowprice  int    `json:"nftlowprice"`  //NFT historical price (lowest transaction price)
+	//Nftgases	 	uint64		`json:"nftgases"`           //Gas consumption statistics
 }
 
 type MarketInfo struct {
-	Nftliked      map[string]int `json:"nftliked"`      //NFT被关注数量
-	Collectowners map[string]int `json:"collectowners"` //合集拥有者地址分布
-	Nftamount     int            `json:"nftamount"`     //交易所NFT总数量
-	//Nftamountex	 	int  			`json:"nftamountex"`        //本交易所的NFT数量
-	Nftowners   map[string]int `json:"nftowners"`   //交易所NFT的账户分布
-	Nfttransamt uint64         `json:"nfttransamt"` //交易所NFT总成交额
-	Dayinfo     [24]Info       `json:"dayinfo"`     //交易所当日数据
-	Monthinfo   [31]Info       `json:"monthinfo"`   //交易所当月数据
-	Yearinfo    [12]Info       `json:"yearinfo"`    //交易所当年数据
+	Nftliked      map[string]int `json:"nftliked"`      //The number of NFT followers
+	Collectowners map[string]int `json:"collectowners"` //Collection owner address distribution
+	Nftamount     int            `json:"nftamount"`     //Total number of NFTs on exchanges
+	//Nftamountex	 	int  			`json:"nftamountex"`        //Number of NFTs on this exchange
+	Nftowners   map[string]int `json:"nftowners"`   //Account distribution of exchange NFTs
+	Nfttransamt uint64         `json:"nfttransamt"` //Exchange total NFT turnover
+	Dayinfo     [24]Info       `json:"dayinfo"`     //Exchange data of the day
+	Monthinfo   [31]Info       `json:"monthinfo"`   //Exchange data for the current month
+	Yearinfo    [12]Info       `json:"yearinfo"`    //Exchange data for the year
 }
 
 type NFTMarketInfo struct {
-	Dayinfo   [24]MInfo `json:"dayinfo"`   //交易所当日数据
-	Monthinfo [31]MInfo `json:"monthinfo"` //交易所当月数据
-	Yearinfo  [12]MInfo `json:"yearinfo"`  //交易所当年数据
+	Dayinfo   [24]MInfo `json:"dayinfo"`   //Exchange data of the day
+	Monthinfo [31]MInfo `json:"monthinfo"` //Exchange data for the current month
+	Yearinfo  [12]MInfo `json:"yearinfo"`  //Exchange data for the year
 }
 
 type MInfo struct {
-	Tindex   string `json:"tindex"`   //时间间隔，小时、天、月
-	Nfttrans int    `json:"nfttrans"` //交易信息列表(交易笔数)
+	Tindex   string `json:"tindex"`   //Time interval, hours, days, months
+	Nfttrans int    `json:"nfttrans"` //Transaction Information List (Number of Transactions)
 }
 
-//获取市场数据
+//Get market data
 func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	mInfo := MarketInfo{}
 	mInfo.Nftowners = make(map[string]int)

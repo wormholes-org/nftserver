@@ -12,48 +12,46 @@ import (
 )
 
 type WnftRecord struct {
-	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft拥有者地址'"`
-	Md5            string `json:"md5" gorm:"type:longtext ;comment:'图片md5值'"`
-	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft名称'"`
-	Desc           string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'nft描述'"`
-	Meta           string `json:"meta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'元信息'"`
-	Nftmeta        string `json:"nftmeta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'元信息、tokenid'"`
-	Url            string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nfc原始数据保持地址'"`
-	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) ;comment:'合约地址'"`
-	Tokenid        string `json:"nft_token_id" gorm:"type:char(42) ;comment:'唯一标识nft标志'"`
-	Nftaddr        string `json:"nft_address" gorm:"type:char(42) DEFAULT NULL;comment:'wormholes链唯一标识nft标志'"`
-	Snftstage      string `json:"snftstage" gorm:"type:char(42) DEFAULT NULL;comment:'wormholes链snft期号'"`
-	Snftcollection string `json:"snftcollection" gorm:"type:char(42) DEFAULT NULL;comment:'wormholes链snft合集'"`
-	Snft           string `json:"snft" gorm:"type:char(42) ;comment:'wormholes链snft'"`
-	Count          int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft可卖数量'"`
-	Approve        string `json:"approve" gorm:"type:longtext ;comment:'授权'"`
-	Categories     string `json:"categories" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft分类'"`
-	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) ;comment:'合集创建者地址'"`
-	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'NFT合集名'"`
-	Image          string `json:"asset_sample" gorm:"type:longtext ;comment:'缩略图二进制数据'"`
+	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft owner address'"`
+	Md5            string `json:"md5" gorm:"type:longtext ;comment:'Picture md5 value'"`
+	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft name'"`
+	Desc           string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'nft description'"`
+	Meta           string `json:"meta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'meta information'"`
+	Nftmeta        string `json:"nftmeta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'meta information,tokenid'"`
+	Url            string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nfc raw data hold address'"`
+	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) ;comment:'contract address'"`
+	Tokenid        string `json:"nft_token_id" gorm:"type:char(42) ;comment:'Uniquely identifies the nft flag'"`
+	Nftaddr        string `json:"nft_address" gorm:"type:char(42) DEFAULT NULL;comment:'Chain of wormholes uniquely identifies the nft'"`
+	Snftstage      string `json:"snftstage" gorm:"type:char(42) DEFAULT NULL;comment:'wormholes chain snft period'"`
+	Snftcollection string `json:"snftcollection" gorm:"type:char(42) DEFAULT NULL;comment:'Wormholes chain snft collection'"`
+	Snft           string `json:"snft" gorm:"type:char(42) ;comment:'wormholes chain snft'"`
+	Count          int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft sellable quantity'"`
+	Approve        string `json:"approve" gorm:"type:longtext ;comment:'Authorize'"`
+	Categories     string `json:"categories" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:''"`
+	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) ;comment:''"`
+	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft classification'"`
+	Image          string `json:"asset_sample" gorm:"type:longtext ;comment:'Collection creator address'"`
 	//Imageid			string 		`json:"imageid" gorm:"type:char(42) ;comment:'图片存储索引'"`
-	Hide         string `json:"hide" gorm:"type:char(20) ;comment:'是否让其他人看到'"`
-	Signdata     string `json:"sig" gorm:"type:longtext ;comment:'签名数据，创建时产生'"`
-	Createaddr   string `json:"user_addr" gorm:"type:char(42) ;comment:'创建nft地址'"`
-	Verifyaddr   string `json:"vrf_addr" gorm:"type:char(42) ;comment:'验证人地址'"`
-	Currency     string `json:"currency" gorm:"type:varchar(10) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'交易币种'"`
-	Price        uint64 `json:"price" gorm:"type:bigint unsigned DEFAULT NULL;comment:'创建时定的价格'"`
-	Royalty      int    `json:"royalty" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'版税'"`
-	Paychan      string `json:"paychan" gorm:"type:char(20) DEFAULT NULL;COMMENT:'交易通道'"`
-	TransCur     string `json:"trans_cur" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'交易币种'"`
-	Transprice   uint64 `json:"transprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'交易成交价格'"`
-	Transtime    int64  `json:"last_trans_time" gorm:"type:bigint DEFAULT NULL;comment:'最后交易时间'"`
-	Createdate   int64  `json:"createdate" gorm:"type:bigint DEFAULT NULL;comment:'nft创建时间'"`
-	Favorited    int    `json:"favorited" gorm:"type:int unsigned zerofill DEFAULT 0;comment:'被关注计数'"`
-	Transcnt     int    `json:"transcnt" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'交易次数，每交易一次加一'"`
-	Transamt     uint64 `json:"transamt" gorm:"type:bigint DEFAULT NULL;comment:'交易总金额'"`
-	Verified     string `json:"verified" gorm:"type:char(20) DEFAULT NULL;comment:'nft作品是否通过审核'"`
-	Verifieddesc string `json:"Verifieddesc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'审核描述：未通过审核描述'"`
-	Verifiedtime int64  `json:"vrf_time" gorm:"type:bigint DEFAULT NULL;comment:'审核时间'"`
-	Selltype     string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft交易类型'"`
-	//Sellprice		uint64		`json:"sellingprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'正在销售价格'"`
-	Mintstate string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'铸币状态'"`
-	//Extend    string `json:"extend" gorm:"type:longtext ;comment:'扩展字段'"`
+	Hide         string `json:"hide" gorm:"type:char(20) ;comment:'Whether to let others see'"`
+	Signdata     string `json:"sig" gorm:"type:longtext ;comment:'Signature data, generated when created'"`
+	Createaddr   string `json:"user_addr" gorm:"type:char(42) ;comment:'Create nft address'"`
+	Verifyaddr   string `json:"vrf_addr" gorm:"type:char(42) ;comment:'Validator address'"`
+	Currency     string `json:"currency" gorm:"type:varchar(10) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'Transaction currency'"`
+	Price        uint64 `json:"price" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Price at creation time'"`
+	Royalty      int    `json:"royalty" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
+	Paychan      string `json:"paychan" gorm:"type:char(20) DEFAULT NULL;COMMENT:'trading channel'"`
+	TransCur     string `json:"trans_cur" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'Transaction currency'"`
+	Transprice   uint64 `json:"transprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'transaction price'"`
+	Transtime    int64  `json:"last_trans_time" gorm:"type:bigint DEFAULT NULL;comment:'Last trading time'"`
+	Createdate   int64  `json:"createdate" gorm:"type:bigint DEFAULT NULL;comment:'nft creation time'"`
+	Favorited    int    `json:"favorited" gorm:"type:int unsigned zerofill DEFAULT 0;comment:'Follow count'"`
+	Transcnt     int    `json:"transcnt" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'The number of transactions, plus one for each transaction'"`
+	Transamt     uint64 `json:"transamt" gorm:"type:bigint DEFAULT NULL;comment:'total transaction amount'"`
+	Verified     string `json:"verified" gorm:"type:char(20) DEFAULT NULL;comment:'Whether the nft work has passed the review'"`
+	Verifieddesc string `json:"Verifieddesc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'Review description: Failed review description'"`
+	Verifiedtime int64  `json:"vrf_time" gorm:"type:bigint DEFAULT NULL;comment:'Review time'"`
+	Selltype     string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft transaction type'"`
+	Mintstate    string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'minting status'"`
 }
 
 type Wnfts struct {
@@ -81,7 +79,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 	collections := nftInfo.CollectionsName
 	categories := nftInfo.Category
 	//hide := nftInfo.Hide
-	royalty := strconv.FormatInt(int64(nftInfo.Royalty * 100), 10)
+	royalty := strconv.FormatInt(int64(nftInfo.Royalty*100), 10)
 	//royalty := nftInfo.Royalty
 	//count := nftInfo.Count
 	//asset_sample := "nftInfo.Image"
@@ -146,7 +144,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 		snftCollection = nftaddress[:snftCollectionOffset]
 		err := nft.db.Where("createaddr = ? AND  name=?",
 			nftInfo.CollectionsCreator, collections).First(&collectRec)
-		if err.Error != nil && err.Error != gorm.ErrRecordNotFound{
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			log.Println("UploadWNft() database err=", err.Error)
 			return ErrCollectionNotExist
 		}
@@ -158,7 +156,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			collectRec.Name = collections
 			collectRec.Desc = nftInfo.CollectionsDesc
 			collectRec.Img = nftInfo.CollectionsImgUrl
-			collectRec.Contract = /*nftInfo.CollectionsExchanger*/"0x0000000000000000000000000000000000000000"
+			collectRec.Contract = /*nftInfo.CollectionsExchanger*/ "0x0000000000000000000000000000000000000000"
 			collectRec.Contracttype = "snft"
 			collectRec.Categories = nftInfo.CollectionsCategory
 
@@ -188,24 +186,24 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 		nfttab.Transcnt = 0
 		nfttab.Transamt = 0*/
 		nfttab := map[string]interface{}{
-			"Createaddr": creator_addr,
-			"Ownaddr": owner_addr,
-			"Name": name,
-			"Desc": desc,
-			"Meta": meta,
-			"Categories": categories,
+			"Createaddr":     creator_addr,
+			"Ownaddr":        owner_addr,
+			"Name":           name,
+			"Desc":           desc,
+			"Meta":           meta,
+			"Categories":     categories,
 			"Collectcreator": collectRec.Createaddr,
-			"Collections": collections,
-			"Url": source_url,
-			"Selltype": SellTypeNotSale.String(),
-			"Verifiedtime": time.Now().Unix(),
-			"Createdate": time.Now().Unix(),
-			"Transprice": 0,
-			"Price": 0,
-			"Transtime": 0,
-			"Transcnt": 0,
-			"Transamt": 0,
-			"Favorited": 0,
+			"Collections":    collections,
+			"Url":            source_url,
+			"Selltype":       SellTypeNotSale.String(),
+			"Verifiedtime":   time.Now().Unix(),
+			"Createdate":     time.Now().Unix(),
+			"Transprice":     0,
+			"Price":          0,
+			"Transtime":      0,
+			"Transcnt":       0,
+			"Transamt":       0,
+			"Favorited":      0,
 		}
 		sysInfo := SysInfos{}
 		dberr := nft.db.Model(&SysInfos{}).Last(&sysInfo)
@@ -232,7 +230,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			//}
 			if nftaddress[len(nftaddress)-2:] == "00" {
 				NftCatch.SetFlushFlag()
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal + 1)
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error
@@ -319,7 +317,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			//}
 			if nftaddress[len(nftaddress)-2:] == "00" {
 				NftCatch.SetFlushFlag()
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal",sysInfo.Snfttotal + 1)
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error

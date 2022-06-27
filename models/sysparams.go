@@ -8,10 +8,18 @@ import (
 	"fmt"
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/ethereum/go-ethereum/crypto"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"gorm.io/gorm"
+	"image"
+	"image/jpeg"
+	"image/png"
+	"io"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -32,13 +40,14 @@ const (
 	initCategories    = "art,music,domain_names,virtual_worlds,trading_cards,collectibles,sports,utility"
 	LenName           = 60
 	LenEmail          = 60
+	LenLink           = 60
 	LenPriceStr       = 9
 	LowPrice          = 0
 	ToolongAuciton    = 365
 	HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"}]}"
 	DefAutoFlag       = "true"
 	DefAutoSnft       = "false"
-	DefUploadSize     = 100000000
+	DefUploadSize     = 100 * 1024 * 1024
 	DefCatchTime      = 15
 	DefNftloopcount   = 5
 	DefSNftStartBlock = 1
@@ -87,6 +96,11 @@ var (
 	AllowNft               bool
 	AllowUserMinit         bool
 	UploadSize             uint64
+	Backupipfs             bool
+	BackupIpfsUrl          string
+	DefaultCaptcha         string
+	DefaultMask            string
+	DefaultCaptchaNum      int
 )
 
 type ExchangerAuthrize struct {
@@ -100,38 +114,38 @@ type ExchangerAuthrize struct {
 }
 
 type SysParamsRec struct {
-	NFT1155addr    string `json:"nft1155addr" gorm:"type:char(42) ;comment:'nft1155合约地址'"`
-	Adminaddr      string `json:"adminaddr" gorm:"type:char(42) ;comment:'管理员合约地址'"`
-	Lowprice       uint64 `json:"lowprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'底价'"`
-	Blocknumber    uint64 `json:"blocknumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'区块高度'"`
-	Scannumber     uint64 `json:"scannumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'已扫描区块高度'"`
-	Scansnftnumber uint64 `json:"scansnftnumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'已扫描snft区块高度'"`
-	Royaltylimit   int    `json:"royaltylimit" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'版税'"`
-	Signdata       string `json:"sig" gorm:"type:longtext ;comment:'签名数据'"`
-	Homepage       string `json:"homepage" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'homepage数据'"`
-	Exchangerinfo  string `json:"exchangerInfo" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'交易所信息数据'"`
-	Icon           string `json:"icon" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'图形数据'"`
-	Data           string `json:"data" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'轮播图、看板等数据'"`
-	Categories     string `json:"categories" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'nft分类'"`
-	Extend         string `json:"extend" gorm:"type:longtext ;comment:'扩展'"`
-	Nftaudit       string `json:"nftaudit" gorm:"type:varchar(10) ;comment:'nft上传是否需要审核'"`
-	Userkyc        string `json:"userkyc" gorm:"type:varchar(10) ;comment:'kyc是否需要审核'"`
-	Deflanguage    string `json:"def_language" gorm:"type:varchar(50) CHARACTER SET utf8mb4 ;comment:'交易所默认语言'"`
-	Restrictcode   string `json:"restrictcode" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'交易所国家代码限制'"`
-	Autoflag       string `json:"autoflag" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'轮播图、看板等数据自动提取标志'"`
-	Catchtime      int    `json:"catchtime" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'HomePage提取时间间隔'"`
-	Nftloopcount   int    `json:"nftloopcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'轮播图选取的nft数'"`
-	//Nftloopflush           int    `json:"nftloopflush" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'轮播图提取间隔'"`
-	Collectcount int `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'热门合集选取数'"`
-	//Collectflush           int    `json:"collectflush" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'热门合集提取间隔'"`
-	Nftcount       int    `json:"nftcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'热门nft选取数'"`
-	Exchangerprv   string `json:"exchangerprv" gorm:"type:longtext;COMMENT:'交易所私钥'"`
-	Exchangerauth  string `json:"exchangerauth" gorm:"type:longtext;COMMENT:'交易所签名'"`
-	Transfersnft   string `json:"transfersnft" gorm:"type:varchar(10) ;comment:'snft是否自动导入'"`
-	Allownft       string `json:"allownft" gorm:"type:varchar(10) ;comment:'nft是否允许创建'"`
-	Autocommitsnft string `json:"autocommitsnft" gorm:"type:varchar(10) ;comment:'snft自动注入eth'"`
-	Allowusermint  string `json:"allowusermint" gorm:"type:varchar(10);comment:'是否允许用户铸币'"`
-	Uploadsize     uint64 `json:"uploadsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'上传nft限制大小'"`
+	NFT1155addr    string `json:"nft1155addr" gorm:"type:char(42) ;comment:'nft1155 contract address'"`
+	Adminaddr      string `json:"adminaddr" gorm:"type:char(42) ;comment:'Administrator contract address'"`
+	Lowprice       uint64 `json:"lowprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Reserve price'"`
+	Blocknumber    uint64 `json:"blocknumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'block height'"`
+	Scannumber     uint64 `json:"scannumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Scanned block height'"`
+	Scansnftnumber uint64 `json:"scansnftnumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Scanned snft block height'"`
+	Savedsnft      string `json:"snft" gorm:"type:char(42) ;comment:'snft backed up to ipfs'"`
+	Royaltylimit   int    `json:"royaltylimit" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
+	Signdata       string `json:"sig" gorm:"type:longtext ;comment:'sign data'"`
+	Homepage       string `json:"homepage" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'homepage data'"`
+	Exchangerinfo  string `json:"exchangerInfo" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange information data'"`
+	Icon           string `json:"icon" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'picture data'"`
+	Data           string `json:"data" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'slideshow, Kanban, etc.'"`
+	Categories     string `json:"categories" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'nft category'"`
+	Extend         string `json:"extend" gorm:"type:longtext ;comment:'extend'"`
+	Nftaudit       string `json:"nftaudit" gorm:"type:varchar(10) ;comment:'Does nft upload need to be reviewed?'"`
+	Userkyc        string `json:"userkyc" gorm:"type:varchar(10) ;comment:'Does kyc need to be audited?'"`
+	Deflanguage    string `json:"def_language" gorm:"type:varchar(50) CHARACTER SET utf8mb4 ;comment:'Exchange default language'"`
+	Restrictcode   string `json:"restrictcode" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange country code restrictions'"`
+	Autoflag       string `json:"autoflag" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Automatically extract flag from data such as carousel and kanban'"`
+	Catchtime      int    `json:"catchtime" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'HomePage fetch interval'"`
+	Nftloopcount   int    `json:"nftloopcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'The number of nfts selected by the carousel'"`
+	Collectcount int `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular Collection Picks'"`
+	Nftcount       int    `json:"nftcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular nft Picks'"`
+	Exchangerprv   string `json:"exchangerprv" gorm:"type:longtext;COMMENT:'Exchange private key'"`
+	Exchangerauth  string `json:"exchangerauth" gorm:"type:longtext;COMMENT:'Exchange signature'"`
+	Transfersnft   string `json:"transfersnft" gorm:"type:varchar(10) ;comment:'Whether snft is automatically imported'"`
+	Allownft       string `json:"allownft" gorm:"type:varchar(10) ;comment:'Does nft allow to create'"`
+	Autocommitsnft string `json:"autocommitsnft" gorm:"type:varchar(10) ;comment:'snft automatically injects chain'"`
+	Allowusermint  string `json:"allowusermint" gorm:"type:varchar(10);comment:'Whether to allow users to mint coins'"`
+	Uploadsize     uint64 `json:"uploadsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit size'"`
+	Backupipfs     string `json:"backupipfs" gorm:"type:varchar(10) ;comment:'whether to backup to ipfs'"`
 
 	//Nftlush                int    `json:"nftlush" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'热门nft提取时间间隔'"`
 }
@@ -192,6 +206,7 @@ type SysParamsInfo struct {
 	AllowNft       string `json:"allownft"`
 	AllowUserMint  string `json:"allowusermint"`
 	Uploadsize     string `json:"uploadsize"`
+	Backupipfs     string `json:"backupipfs"`
 }
 
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
@@ -224,6 +239,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			params.Allownft = DefAutoSnft
 			params.Allowusermint = DefAutoSnft
 			params.Uploadsize = DefUploadSize
+			params.Backupipfs = DefAutoSnft
 			//params.Exchangerprv = key
 			//params.Nftlush = DefNftlush
 			err = nft.db.Model(&SysParams{}).Create(&params)
@@ -270,6 +286,8 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	AllowNft, _ = strconv.ParseBool(params.Allownft)
 	paraminfo.AllowUserMint = params.Allowusermint
 	AllowUserMinit, _ = strconv.ParseBool(params.Allowusermint)
+	paraminfo.Backupipfs = params.Backupipfs
+	Backupipfs, _ = strconv.ParseBool(params.Backupipfs)
 	if params.Uploadsize != 0 {
 		UploadSize = params.Uploadsize
 		beego.BConfig.MaxMemory = int64(params.Uploadsize)
@@ -409,6 +427,14 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			}
 			AllowUserMinit = audit
 		}
+		if param.Backupipfs != "" {
+			updateP.Backupipfs = param.Backupipfs
+			audit, err := strconv.ParseBool(param.Backupipfs)
+			if err != nil {
+				return errors.New("Backupipfs  input  error.")
+			}
+			Backupipfs = audit
+		}
 		if param.Uploadsize != "" {
 			low, _ := strconv.ParseUint(param.Uploadsize, 10, 64)
 			updateP.Uploadsize = low
@@ -512,6 +538,11 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		fmt.Println("SetSysParams() create SysParams err= ", err.Error)
 		return err.Error
 	}
+	if param.Homepage != "" {
+		HomePageCatchs.HomePageFlashLock()
+		HomePageCatchs.HomePageFlashFlag = true
+		HomePageCatchs.HomePageFlashUnLock()
+	}
 	return nil
 }
 
@@ -555,7 +586,7 @@ func (nft NftDb) GetExchageSig() (bool, error) {
 	var auth bool
 	err := nft.db.Last(&params)
 	if err.Error != nil {
-		fmt.Println("SetExchageSig() update exchangerauth err= ", err.Error)
+		fmt.Println("GetExchageSig() update exchangerauth err= ", err.Error)
 		return false, err.Error
 	}
 	if params.Exchangerauth == "" {
@@ -656,6 +687,7 @@ func InitSysParams(Sqldsndb string) error {
 		}
 	}
 	go AutoPeriodEth(Sqldsndb)
+	go CaptchaDefault()
 	//hexExchangePrv := crypto.FromECDSA(ExchangerPrv)
 	//hexExchangePrvStr := hexutil.Encode(hexExchangePrv)[2:]
 	//contracts.SetSysParams(BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
@@ -777,17 +809,19 @@ func ScanNfts(sqldsn string, interval time.Duration, stop chan struct{}) {
 }
 
 type HotTrans struct {
-	Contract string `json:"contract" gorm:"type:char(42) NOT NULL;comment:'合约地址'"`
-	Tokenid  string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'唯一标识nft标志'"`
+	Contract string `json:"contract" gorm:"type:char(42) NOT NULL;comment:'contract address'"`
+	Tokenid  string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'contract token id'"`
 }
 
 func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struct{}) {
 	ticker := time.NewTicker(time.Minute * 1)
 	scan := time.NewTicker(time.Duration(interval) * time.Minute)
-
+	log.Println("ScanLoop() start: ", "interval=", interval)
+	defer log.Println("ScanLoop() end")
 	for {
 		select {
 		case <-scan.C:
+			log.Println("ScanLoop() <-scan.C: start")
 			nd, err := NewNftDb(sqldsn)
 			if err != nil {
 				log.Printf("ScanLoop() connect database err = %s\n", err)
@@ -908,7 +942,9 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 			HomePageCatchs.HomePageFlashFlag = true
 			HomePageCatchs.HomePageFlashUnLock()
 			nd.Close()
+			log.Println("ScanLoop() <-scan.C: end")
 		case <-ticker.C:
+			log.Println("ScanLoop() <-ticker.C: start")
 			nd, err := NewNftDb(sqldsn)
 			if err != nil {
 				log.Printf("ScanLoop() connect database err = %s\n", err)
@@ -925,10 +961,13 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 				interval = t
 				scan.Reset(time.Duration(interval) * time.Minute)
 			}
+			log.Println("ScanLoop() <-ticker.C: end")
 		case <-stop:
+			log.Println("ScanLoop() <-stop: start")
 			ticker.Stop()
 			scan.Stop()
 			stoped <- struct{}{}
+			log.Println("ScanLoop() <-stop: end")
 			return
 		}
 	}
@@ -980,4 +1019,130 @@ func PKCS7UnPadding(origData []byte) []byte {
 	length := len(origData)
 	unpadding := int(origData[length-1])
 	return origData[:(length - unpadding)]
+}
+
+func CaptchaDefault() {
+	if DefaultCaptcha == "" {
+		DefaultCaptcha = "/ipfs/QmS4ihJENZthDt14czh3d7rvRfzeFp5qrA1jQmvy1jbeE1"
+	}
+	if DefaultMask == "" {
+		DefaultMask = "/ipfs/QmcJQiyCuUtqboNX18ymt1UAEvihRz3DF9QGoFGf7XjovF/mask.png"
+	}
+	fmt.Println("default captcha:", DefaultCaptcha)
+	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
+	s := shell.NewShell(url)
+	s.SetTimeout(100 * time.Second)
+	var maskdata io.Reader
+	var err error
+	for {
+		maskdata, err = s.Cat(DefaultMask)
+		if err != nil {
+			log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
+			time.Sleep(2 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
+	//maskdata, err := s.Cat(DefaultMask)
+	//if err != nil {
+	//	log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
+	//	return
+	//}
+	//var snft nftInfo
+	//b, err := ioutil.ReadAll(rc)
+	//if err != nil {
+	//	log.Println("GetnftInfoFromIPFSWithShell() ReadAll() err=", err)
+	//	return nil, err
+	//}
+	//maskdata, err := http.Get(DefaultCaptcha)
+	//if err != nil {
+	//	fmt.Printf("mask Http get [%v] failed! %v", maskdata, err)
+	//	return
+	//}
+
+	jbody, err := ioutil.ReadAll(maskdata)
+	if err != nil {
+		log.Printf("mask Read http response failed! %v", err)
+		return
+	}
+	newPath := ImageDir + "/captcha/"
+	_, err = os.Stat(newPath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(newPath, os.ModePerm)
+		if err != nil {
+			fmt.Println("CaptchaDefault() create dir err=", err)
+			return
+		}
+	}
+	f, err := os.Create(newPath + "mask")
+	img, _, err := image.Decode(bytes.NewReader(jbody))
+	if err != nil {
+		fmt.Printf("mask Decode  failed! %v", err)
+		return
+	}
+	defer f.Close()
+	err = png.Encode(f, img)
+	if err != nil {
+		fmt.Println("mask png encode err=", err)
+		return
+	}
+
+	var v io.Reader
+	for {
+		v, err = s.Cat(DefaultCaptcha)
+		if err != nil {
+			log.Printf("captcha Http [%v] failed! %v", DefaultCaptcha, err)
+			time.Sleep(2 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
+	//v, err := http.Get(DefaultCaptcha)
+	//if err != nil {
+	//	fmt.Printf("Http get [%v] failed! %v", DefaultCaptcha, err)
+	//	return
+	//}
+	//defer v.Body.Close()
+	content, err := ioutil.ReadAll(v)
+	if err != nil {
+		fmt.Printf("Read http response failed! %v", err)
+		return
+	}
+	var data []map[string]string
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		fmt.Println(err)
+	}
+	DefaultCaptchaNum = len(data)
+	for i, j := range data {
+		si := fmt.Sprintf("%05x", i)
+		fmt.Println(j)
+		jdata, err := http.Get(j["url"])
+		if err != nil {
+			fmt.Printf("range Http get [%v] failed! %v", j["url"], err)
+			return
+		}
+		defer jdata.Body.Close()
+		jbody, err := ioutil.ReadAll(jdata.Body)
+		if err != nil {
+			fmt.Printf("Read http response failed! %v", err)
+			return
+		}
+		f, err := os.Create(newPath + si)
+		img, _, err := image.Decode(bytes.NewReader(jbody))
+		if err != nil {
+			fmt.Printf("image Decode  failed! %v", err)
+			return
+		}
+		defer f.Close()
+		err = jpeg.Encode(f, img, nil)
+		if err != nil {
+			fmt.Println("jpeg encode err=", err)
+			return
+		}
+
+	}
+	fmt.Println("default captcha init ok")
 }

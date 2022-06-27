@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//修改集合:post
+//Modify the collection: post
 func (nft *NftExchangeControllerV2) ModifyCollectionsImage() {
 	fmt.Println("ModifyCollectionsImage()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) ModifyCollectionsImage() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -93,6 +93,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_ModifyCollectionsImage(data 
 
 	return nil
 }
-
-
-

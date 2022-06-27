@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//审核NFT
+//Audit NFTs
 func (nft *NftExchangeControllerV2) VerifyNft() {
 	fmt.Println("VerifyNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -72,7 +72,6 @@ func (nft *NftExchangeControllerV2) VerifyNft() {
 	nft.Ctx.ResponseWriter.Write(responseData)
 	fmt.Println("VerifyNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
-
 
 func (nft *NftExchangeControllerV2) verifyInputData_VerifyNft(data map[string]string) error {
 	regString, _ := regexp.Compile(PattenString)

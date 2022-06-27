@@ -45,7 +45,8 @@ func main()  {
 	//upLoadCount := 100
 	//SrcUrl = "http://192.168.1.235:9006/c0x70eb3d3f80b577e9c3954d04b787c40b763a369b/v2/"
 	//SrcUrl = "http://192.168.1.235:9006/c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5/v2/"
-	SrcUrl = "http://192.168.1.235:10582/v2/"
+	//SrcUrl = "http://192.168.1.235:10582/v2/"	//c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5
+	SrcUrl = "http://192.168.1.235:10578/v2/"	//c0x70eb3d3f80b577e9c3954d04b787c40b763a369b
 	tKey, tokens, err := Slogin(testCount)
 	if err != nil {
 		fmt.Println("TestUpload() err=", err)
@@ -64,7 +65,8 @@ func main()  {
 				fmt.Println("NewCollect() err=", err)
 				//return
 			}
-			meta := "/ipfs/QmaNavMMmsgCyxtHMUhNM3pNfHqiiaJX4mrutXM6RF8JPy"
+			//meta := "/ipfs/QmeCZAgHfigGsAek4bEj8P1LyohaK3JGzxfp1U7QgyCbR2" //
+			meta := "/ipfs/QmaNavMMmsgCyxtHMUhNM3pNfHqiiaJX4mrutXM6RF8JPy" //logo
 			for n := 0; n < upLoadCount/testCount; n++ {
 				st := time.Now()
 				err := Upload(userAddr, "collect_test_" + strconv.Itoa(i), "upload_test_" + strconv.Itoa(i), tokens[i], meta, tKey[i].WorkKey)
@@ -80,14 +82,59 @@ func main()  {
 	wd.Wait()
 }
 
-func mainnew()  {
-	testCount := 10
+func mainnew0()  {
+	testCount := 1
 	upLoadCount := 100000000
 	//upLoadCount := 10
 	//upLoadCount := 100
 	//SrcUrl = "http://192.168.1.235:9006/c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5/v2/"
 	//SrcUrl = "http://192.168.1.235:9006/c0x70eb3d3f80b577e9c3954d04b787c40b763a369b/v2/"
-	SrcUrl = "http://192.168.1.235:10582/v2/"
+	//SrcUrl = "http://192.168.1.235:10582/v2/"	//c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5
+	SrcUrl = "http://192.168.1.235:10578/v2/"	//c0x70eb3d3f80b577e9c3954d04b787c40b763a369b
+	tKey, tokens, err := Slogin(testCount)
+	if err != nil {
+		fmt.Println("TestUpload() err=", err)
+		return
+	}
+	fmt.Println("TestUpload() login end.")
+	fmt.Println("start Test Upload.")
+	wd := sync.WaitGroup{}
+	for i := 0; i < testCount; i++ {
+		wd.Add(1)
+		go func(i int) {
+			defer wd.Done()
+			userAddr := crypto.PubkeyToAddress(tKey[i].LogKey.PublicKey).String()
+			err := NewCollect("collect_test_" + strconv.Itoa(i), userAddr, tokens[i], tKey[i].WorkKey)
+			if err != nil {
+				fmt.Println("NewCollect() err=", err)
+				//return
+			}
+			nftmeta := GetTestNfts(9)
+			for n := 0; n < upLoadCount/testCount; n++ {
+				st := time.Now()
+				err := UploadWithImage(userAddr, "collect_test_" + strconv.Itoa(i), "upload_test_" + strconv.Itoa(i),
+					tokens[i], nftmeta.Meta, nftmeta.Image, tKey[i].WorkKey)
+				if err != nil {
+					fmt.Println("upload(i)", i, " err=", err)
+					return
+				}
+				fmt.Printf("userAddr=%s UpLoadNft spend time=%s end time =%s\n", userAddr, time.Now().Sub(st), time.Now())
+			}
+
+		}(i)
+	}
+	wd.Wait()
+}
+
+func mainnew()  {
+	testCount := 1
+	upLoadCount := 100000000
+	//upLoadCount := 10
+	//upLoadCount := 100
+	//SrcUrl = "http://192.168.1.235:9006/c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5/v2/"
+	//SrcUrl = "http://192.168.1.235:9006/c0x70eb3d3f80b577e9c3954d04b787c40b763a369b/v2/"
+	//SrcUrl = "http://192.168.1.235:10582/v2/"	//c0xbc8ac1fe086809fdaab2568dd3e8025218a62bb5
+	SrcUrl = "http://192.168.1.235:10578/v2/"	//c0x70eb3d3f80b577e9c3954d04b787c40b763a369b
 	tKey, tokens, err := Slogin(testCount)
 	if err != nil {
 		fmt.Println("TestUpload() err=", err)
@@ -109,7 +156,8 @@ func mainnew()  {
 			nftmeta := GetTestNfts(i)
 			for n := 0; n < upLoadCount/testCount; n++ {
 				st := time.Now()
-				err := UploadWithImage(userAddr, "collect_test_" + strconv.Itoa(i), "upload_test_" + strconv.Itoa(i), tokens[i], nftmeta.Meta, nftmeta.Image, tKey[i].WorkKey)
+				err := UploadWithImage(userAddr, "collect_test_" + strconv.Itoa(i), "upload_test_" + strconv.Itoa(i),
+					tokens[i], nftmeta.Meta, nftmeta.Image, tKey[i].WorkKey)
 				if err != nil {
 					fmt.Println("upload(i)", i, " err=", err)
 					return

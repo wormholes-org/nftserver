@@ -8,18 +8,19 @@ import (
 )
 
 type UserInfo struct {
-	Name string `json:"user_name"` //用户名
-	//Portrait     	string 	`json:"portrait"`           //用户头像
-	Email           string `json:"user_mail"`         //邮箱
-	Bio             string `json:"user_info"`         //自我描述
-	Verified        string `json:"verified"`          //是否通过验证
-	NftCount        int    `json:"nft_count"`         //用户持有的NFT总数
-	CreateCount     int    `json:"create_count"`      //用户创作的NFT总数
-	OwnerCount      int    `json:"owner_count"`       //用户创作的NFT的拥有者数量
-	TradeAmount     uint64 `json:"trade_amount"`      //用户创作的NFT的成交额,
-	TradeAvgPrice   uint64 `json:"trade_avg_price"`   //用户创作的NFT均价,
-	TradeFloorPrice uint64 `json:"trade_floor_price"` //用户创作的NFT最低价
-	Identity        string `json:"identity"`          //用户身份
+	Name string `json:"user_name"` //user name
+	//Portrait     	string 	`json:"portrait"`           //profile picture
+	Email           string `json:"user_mail"`         //email
+	Link            string `json:"user_link"`         //User social account
+	Bio             string `json:"user_info"`         //self description
+	Verified        string `json:"verified"`          //Is it verified
+	NftCount        int    `json:"nft_count"`         //Total number of NFTs held by users
+	CreateCount     int    `json:"create_count"`      //Total number of NFTs created by users
+	OwnerCount      int    `json:"owner_count"`       //Number of owners of user-created NFTs
+	TradeAmount     uint64 `json:"trade_amount"`      //The turnover of user-created NFTs,
+	TradeAvgPrice   uint64 `json:"trade_avg_price"`   //Average price of user-created NFTs,
+	TradeFloorPrice uint64 `json:"trade_floor_price"` //Lowest price for user-created NFTs
+	Identity        string `json:"identity"`          //user ID
 }
 
 func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
@@ -40,6 +41,7 @@ func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
 	uinfo.Name = user.Username
 	//uinfo.Portrait = user.Portrait
 	uinfo.Email = user.Email
+	uinfo.Link = user.Link
 	uinfo.Bio = user.Bio
 	uinfo.Verified = user.Verified
 	var recCount int64
@@ -126,12 +128,15 @@ func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
 	return uinfo, nil
 }
 
-func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user_mail, user_info, sig string) error {
+func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user_mail, user_info, user_link, sig string) error {
 	user_addr = strings.ToLower(user_addr)
 	if len(user_name) > LenName {
 		return ErrLenName
 	}
 	if len(user_mail) > LenEmail {
+		return ErrLenEmail
+	}
+	if len(user_link) > LenLink {
 		return ErrLenEmail
 	}
 	fmt.Println("ModifyUserInfo() start.")
@@ -152,6 +157,9 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 	}
 	if user_mail != "" {
 		user.Email = user_mail
+	}
+	if user_link != "" {
+		user.Link = user_link
 	}
 	if portrait != "" {
 		imagerr := SavePortrait(ImageDir, user_addr, portrait)

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-//售卖(上架)
+//For sale (on the shelf)
 func (nft *NftExchangeControllerV2) Sell() {
 	fmt.Println("Sell()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData

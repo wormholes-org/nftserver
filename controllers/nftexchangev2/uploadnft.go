@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-//上传nft作品:post
+//Upload nft works:post
 func (nft *NftExchangeControllerV2) UploadNft() {
 	fmt.Println("UploadNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	spendT := time.Now()
@@ -41,7 +41,6 @@ func (nft *NftExchangeControllerV2) UploadNft() {
 			httpResponseData.Data = []interface{}{}
 		} else {
 
-			//调用nftipfs,将图片上传到ipfs文件服务器
 			//cid, err := nft.AddFileToIpfs(data["asset_sample"])
 			//if err != nil {
 			//	httpResponseData.Code = "400"
@@ -85,7 +84,7 @@ func (nft *NftExchangeControllerV2) UploadNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -117,9 +116,6 @@ func (nft *NftExchangeControllerV2) AddFileToIpfs(content string) (string, error
 	}
 }
 
-//发送POST请求
-//url:请求地址		data:POST请求提交的数据		contentType:请求体格式，如：application/json
-//content:请求返回的内容
 func (nft *NftExchangeControllerV2) SendPost(url string, data interface{}, contentType string) (respData controllers.HttpResponseData, err error) {
 	jsonStr, _ := json.Marshal(data)
 	//fmt.Println("SendPost,url=", url, "jsonStr=", string(jsonStr))
@@ -155,7 +151,6 @@ func (nft *NftExchangeControllerV2) IpfsTest() {
 	}
 }
 
-//删除Nft
 func (nft *NftExchangeControllerV2) DelNft() {
 	fmt.Println("DelNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -200,12 +195,87 @@ func (nft *NftExchangeControllerV2) DelNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
 	fmt.Println("DelNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+}
+
+func (nft *NftExchangeControllerV2) SetNft() {
+	fmt.Println("SetNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	spendT := time.Now()
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+	if err != nil {
+		fmt.Printf("UploadNftImage() connect database err = %s\n", err)
+		return
+	}
+	defer nd.Close()
+
+	data, sigData := nft.GetData()
+	token := nft.Ctx.Request.Header.Get("Token")
+	inputDataErr := nft.verifyInputData_UploadNftImage(data, token)
+	if inputDataErr != nil {
+		httpResponseData.Code = "500"
+		httpResponseData.Msg = inputDataErr.Error()
+		httpResponseData.Data = []interface{}{}
+	} else {
+		approveAddr, _ := approveAddrsMap.GetApproveAddr(data["user_addr"])
+		_, err := signature.IsValidAddr(sigData, data["sig"], approveAddr)
+		if err != nil {
+			httpResponseData.Code = "500"
+			httpResponseData.Msg = err.Error()
+			httpResponseData.Data = []interface{}{}
+		} else {
+			err = nd.InsertSigData(data["sig"], sigData)
+			if err != nil {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			} else {
+				f, h, err := nft.GetFile("myfile")
+				imageHash := ""
+				filename := ""
+				if err == nil {
+					f.Close()
+					imageHash, err = nft.SaveToIpfs("myfile")
+					filename = h.Filename
+				} else {
+					err = nil
+				}
+				if err != nil {
+					httpResponseData.Code = "500"
+					httpResponseData.Msg = err.Error()
+					httpResponseData.Data = []interface{}{}
+					fmt.Println("SaveToFile err=", err)
+				} else {
+					totalt := time.Now()
+					nftimage, err := nd.SetNft(data["user_addr"],
+						data["md5"], data["name"], data["desc"],
+						imageHash, filename,
+						data["nft_token_id"],
+						data["categories"], data["collections"],
+						data["asset_sample"], data["hide"], data["royalty"], data["count"], data["attributes"], data["sig"])
+					if err == nil {
+						httpResponseData.Code = "200"
+						httpResponseData.Data = nftimage
+					} else {
+						httpResponseData.Code = "500"
+						httpResponseData.Msg = err.Error()
+						httpResponseData.Data = []interface{}{}
+					}
+					fmt.Printf(" nd.SetNft() total Spend time=%s time.now=%s\n", time.Now().Sub(totalt), time.Now())
+				}
+			}
+		}
+	}
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+
+	fmt.Printf("SetNft() Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+	fmt.Println("SetNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
 func (nft *NftExchangeControllerV2) verifyInputData_UploadNft(data map[string]string, token string) error {

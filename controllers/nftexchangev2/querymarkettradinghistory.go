@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//获取用户交易历史
+//Get user transaction history
 func (nft *NftExchangeControllerV2) QueryMarketTradingHistory() {
 	fmt.Println("QueryMarketTradingHistory()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
@@ -118,4 +118,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_QueryMarketTradingHistory(da
 
 	return nil
 }
-

@@ -48,25 +48,25 @@ func (nft *NftExchangeControllerV2) BatchBuyResultInterface() {
 			//		httpResponseData.Msg = inputDataErr.Error()
 			//		httpResponseData.Data = []interface{}{}
 			//	} else {
-					inputDataErr = nd.BuyResultInterface(data["admin_addr"], data["from"], data["to"],
-						data["nft_contract_addr"], data["nft_token_id"],
-						data["trade_sig"], data["price"], data["royalty"],
-						data["txhash"], data["sig"], data["admin_sig"])
-					if inputDataErr == nil {
-						httpResponseData.Code = "200"
-						httpResponseData.Data = []interface{}{}
-					} else {
-						httpResponseData.Code = "500"
-						httpResponseData.Msg = inputDataErr.Error()
-						httpResponseData.Data = []interface{}{}
-					}
-				//}
+			inputDataErr = nd.BuyResultInterface(data["admin_addr"], data["from"], data["to"],
+				data["nft_contract_addr"], data["nft_token_id"],
+				data["trade_sig"], data["price"], data["royalty"],
+				data["txhash"], data["sig"], data["admin_sig"])
+			if inputDataErr == nil {
+				httpResponseData.Code = "200"
+				httpResponseData.Data = []interface{}{}
+			} else {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = inputDataErr.Error()
+				httpResponseData.Data = []interface{}{}
+			}
+			//}
 			//}
 		}
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "输入的用户信息错误"
+		httpResponseData.Msg = "Incorrect user information entered"
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
