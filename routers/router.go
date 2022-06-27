@@ -230,7 +230,7 @@ func registRouterV2() {
 	beego.Router("/v2/modifynft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetNft")
 	//query aptcha
 	beego.Router("/v2/querycaptcha", &nftexchangev2.NftExchangeControllerV2{}, "post:GetCaptcha")
-	//auth captcha
+	//Authorization captcha
 	beego.Router("/v2/authcaptcha", &nftexchangev2.NftExchangeControllerV2{}, "post:AuthCaptcha")
 
 }
