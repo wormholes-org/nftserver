@@ -183,8 +183,8 @@ func CreateNetCode() (Captcha, error) {
 		return Captcha{}, err
 	}
 	imageRandX := GetRandInt(400)
-	if imageRandX < 60 {
-		imageRandX += 60
+	if imageRandX < 100 {
+		imageRandX += 100
 	}
 
 	imageRandY := GetRandInt(300)
@@ -217,6 +217,16 @@ func CreateNetCode() (Captcha, error) {
 		fmt.Printf("maskimg image Decode  failed! %v", err)
 		return Captcha{}, err
 	}
+	f, err = ioutil.ReadFile(models.ImageDir + "/captcha/" + "maskframe")
+	if err != nil {
+		fmt.Println("CreateNetCode() maskframe readfile err=", err)
+		return Captcha{}, err
+	}
+	maskframe, _, err := image.Decode(bytes.NewReader(f))
+	if err != nil {
+		fmt.Printf("maskimg image Decode  failed! %v", err)
+		return Captcha{}, err
+	}
 
 	bgdata := imaging.Overlay(originalimg, maskimg, minPotion, 1.0)
 	//f, err = os.Create("./captcha/code/" + imageId + ".jpeg")
@@ -238,6 +248,8 @@ func CreateNetCode() (Captcha, error) {
 		}
 	}
 
+	dataframe := imaging.OverlayCenter(img, maskframe, 1.0)
+
 	CaptchaMap[imageId] = strconv.Itoa(imageRandX)
 	emptyBuff := bytes.NewBuffer(nil)
 	jpeg.Encode(emptyBuff, bgdata, nil)
@@ -245,7 +257,7 @@ func CreateNetCode() (Captcha, error) {
 	base64.StdEncoding.Encode(dist, emptyBuff.Bytes())
 
 	emptyBuff = bytes.NewBuffer(nil)
-	png.Encode(emptyBuff, img)
+	png.Encode(emptyBuff, dataframe)
 	maskdist := make([]byte, 5000000)
 	base64.StdEncoding.Encode(maskdist, emptyBuff.Bytes())
 

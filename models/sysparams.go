@@ -100,6 +100,7 @@ var (
 	BackupIpfsUrl          string
 	DefaultCaptcha         string
 	DefaultMask            string
+	DefaultMaskFrame       string
 	DefaultCaptchaNum      int
 )
 
@@ -136,7 +137,7 @@ type SysParamsRec struct {
 	Autoflag       string `json:"autoflag" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Automatically extract flag from data such as carousel and kanban'"`
 	Catchtime      int    `json:"catchtime" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'HomePage fetch interval'"`
 	Nftloopcount   int    `json:"nftloopcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'The number of nfts selected by the carousel'"`
-	Collectcount int `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular Collection Picks'"`
+	Collectcount   int    `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular Collection Picks'"`
 	Nftcount       int    `json:"nftcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular nft Picks'"`
 	Exchangerprv   string `json:"exchangerprv" gorm:"type:longtext;COMMENT:'Exchange private key'"`
 	Exchangerauth  string `json:"exchangerauth" gorm:"type:longtext;COMMENT:'Exchange signature'"`
@@ -902,14 +903,18 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 				rand.Seed(time.Now().UnixNano())
 				limit, _ = strconv.Atoi(params.Nftloopcount)
 				scaned := make(map[int64]bool)
+				log.Println("ScanLoop() recCount= ", recCount)
 				for i := 0; i < limit && int64(i) < recCount; i++ {
-					index := rand.Int63() % recCount
-					if index == 0 {
+					index := rand.Int63()%recCount + 1
+					log.Println("ScanLoop() rand.Int63() index= ", index)
+					/*if index == 0 {
 						index = 1
-					}
+					}*/
 					flag := scaned[index]
 					if flag {
 						i = i - 1
+						log.Println("ScanLoop() scaned[index] index= ", index)
+						time.Sleep(time.Second)
 						continue
 					}
 					scaned[index] = true
@@ -917,7 +922,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 					dberr := nd.db.Where("id = ?", index).First(&nftRec)
 					if dberr.Error != nil {
 						nd.Close()
-						log.Println("ScanLoop() First(&nftRec) err = ", dberr.Error)
+						log.Println("ScanLoop() index=", index, "First(&nftRec) err = ", dberr.Error)
 						continue
 					}
 					var hpnft HomePageNft
@@ -1026,13 +1031,15 @@ func CaptchaDefault() {
 		DefaultCaptcha = "/ipfs/QmS4ihJENZthDt14czh3d7rvRfzeFp5qrA1jQmvy1jbeE1"
 	}
 	if DefaultMask == "" {
-		DefaultMask = "/ipfs/QmcJQiyCuUtqboNX18ymt1UAEvihRz3DF9QGoFGf7XjovF/mask.png"
+		DefaultMask = "/ipfs/QmZkbudV725WbCjcFG2frNNTSrKheAZT7PRZzCED5D6HyY/mask.png"
+		DefaultMaskFrame = "/ipfs/QmZkbudV725WbCjcFG2frNNTSrKheAZT7PRZzCED5D6HyY/maskframe.png"
 	}
 	fmt.Println("default captcha:", DefaultCaptcha)
 	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
 	s := shell.NewShell(url)
 	s.SetTimeout(100 * time.Second)
 	var maskdata io.Reader
+	var maskframe io.Reader
 	var err error
 	for {
 		maskdata, err = s.Cat(DefaultMask)
@@ -1040,9 +1047,16 @@ func CaptchaDefault() {
 			log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
 			time.Sleep(2 * time.Second)
 			continue
+		}
+		maskframe, err = s.Cat(DefaultMaskFrame)
+		if err != nil {
+			log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
+			time.Sleep(2 * time.Second)
+			continue
 		} else {
 			break
 		}
+
 	}
 	//maskdata, err := s.Cat(DefaultMask)
 	//if err != nil {
@@ -1063,7 +1077,12 @@ func CaptchaDefault() {
 
 	jbody, err := ioutil.ReadAll(maskdata)
 	if err != nil {
-		log.Printf("mask Read http response failed! %v", err)
+		log.Printf("mask Read cat response failed! %v", err)
+		return
+	}
+	framebody, err := ioutil.ReadAll(maskframe)
+	if err != nil {
+		log.Printf("maskframe Read cat response failed! %v", err)
 		return
 	}
 	newPath := ImageDir + "/captcha/"
@@ -1081,13 +1100,23 @@ func CaptchaDefault() {
 		fmt.Printf("mask Decode  failed! %v", err)
 		return
 	}
+	ff, err := os.Create(newPath + "maskframe")
+	ffimg, _, err := image.Decode(bytes.NewReader(framebody))
+	if err != nil {
+		fmt.Printf("maskframe Decode  failed! %v", err)
+		return
+	}
 	defer f.Close()
 	err = png.Encode(f, img)
 	if err != nil {
 		fmt.Println("mask png encode err=", err)
 		return
 	}
-
+	err = png.Encode(ff, ffimg)
+	if err != nil {
+		fmt.Println("mask png encode err=", err)
+		return
+	}
 	var v io.Reader
 	for {
 		v, err = s.Cat(DefaultCaptcha)

@@ -3,7 +3,6 @@ package nftexchangev2
 import (
 	"encoding/json"
 	"fmt"
-	beego "github.com/beego/beego/v2/server/web"
 	"github.com/nftexchange/nftserver/common/signature"
 	"github.com/nftexchange/nftserver/controllers"
 	"github.com/nftexchange/nftserver/models"
@@ -413,8 +412,6 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 		return
 	}
 	defer nd.Close()
-	beego.Handler("/v2/setperiodeth", http.TimeoutHandler(http.HandlerFunc(sayHelloTimeout), time.Second*30, ""))
-
 	var data map[string]string
 	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
 	defer nft.Ctx.Request.Body.Close()

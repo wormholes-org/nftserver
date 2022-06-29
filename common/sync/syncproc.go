@@ -22,14 +22,14 @@ import (
 )
 
 const (
-	waitTime          = time.Second * 60
-	ScanBlockTime     = time.Second * 1
-	ScanSnftBlockTime = time.Second * 5
-	WaitIpfsFailTime  = time.Second * 1
+	waitTime            = time.Second * 60
+	ScanBlockTime       = time.Second * 1
+	ScanSnftBlockTime   = time.Second * 5
+	WaitIpfsFailTime    = time.Second * 1
 	SaveIpfsToLocalTime = time.Minute * 30
-	ScanIpfsFlagTime = time.Second * 10
-	ZeroAddr          = "0x0000000000000000000000000000000000000000"
-	DefaultSnft 	  = "0x80000000000000000000000000000000000000"
+	ScanIpfsFlagTime    = time.Second * 10
+	ZeroAddr            = "0x0000000000000000000000000000000000000000"
+	DefaultSnft         = "0x80000000000000000000000000000000000000"
 )
 
 func SyncBlockTxs(sqldsn string, block uint64, blockTxs []*contracts.NftTx) error {
@@ -207,9 +207,7 @@ func InitSyncBlockTs(sqldsn string) error {
 			}
 		}
 	}()
-	if models.Backupipfs {
-		go BackupIpfsSnft(sqldsn)
-	}
+	go BackupIpfsSnft(sqldsn)
 	return nil
 }
 
@@ -348,7 +346,7 @@ func AddDirIpfs(dir string) (string, error) {
 	return cid, err
 }
 
-func SaveIpfsToLocal(ipfsHash string) (error) {
+func SaveIpfsToLocal(ipfsHash string) error {
 	url := models.BackupIpfsUrl
 	s := shell.NewShell(url)
 	s.SetTimeout(SaveIpfsToLocalTime)
@@ -362,11 +360,11 @@ func SaveIpfsToLocal(ipfsHash string) (error) {
 
 type SnftInfoData struct {
 	SnftInfo *models.SnftInfo
-	TimeTag time.Time
+	TimeTag  time.Time
 }
 
 type IpfsCatch struct {
-	Mux   sync.Mutex
+	Mux      sync.Mutex
 	SnftInfo map[string]*SnftInfoData
 }
 
@@ -389,12 +387,12 @@ func (n *IpfsCatch) SetByHash(hash string, snftinfo *models.SnftInfo) *models.Sn
 	n.Mux.Lock()
 	defer n.Mux.Unlock()
 	if len(n.SnftInfo) == 0 {
-		fmt.Println("IpfsCatch-SetByHash() NftFilterCatch len ==0 " )
+		fmt.Println("IpfsCatch-SetByHash() NftFilterCatch len ==0 ")
 		n.SnftInfo = make(map[string]*SnftInfoData)
 	}
 	s := *snftinfo
 	n.SnftInfo[hash] = &SnftInfoData{&s, time.Now().Add(time.Minute * 30)}
-	fmt.Println("IpfsCatch-SetByHash() NftFilterCatch","len=", len(n.SnftInfo)," hash=", hash)
+	fmt.Println("IpfsCatch-SetByHash() NftFilterCatch", "len=", len(n.SnftInfo), " hash=", hash)
 	for s, info := range n.SnftInfo {
 		if info.TimeTag.Before(time.Now()) {
 			delete(n.SnftInfo, s)
@@ -408,7 +406,7 @@ var ScanIpfsCatch IpfsCatch
 func ScanWorkerNft(sqldsn string, blockS uint64) error {
 	snftAddr, err := contracts.GetSnftAddressList(big.NewInt(0).SetUint64(blockS), true)
 	if err != nil {
-		log.Println("ScanWorkerNft() GetSnftAddressList err =" , err, "blocks", blockS)
+		log.Println("ScanWorkerNft() GetSnftAddressList err =", err, "blocks", blockS)
 		return err
 	}
 	snftInfos := make([]models.SnftInfo, len(snftAddr))
@@ -416,7 +414,7 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 		for i, address := range snftAddr {
 			accountInfo, err := contracts.GetAccountInfo(address.NftAddress, big.NewInt(0).SetUint64(blockS))
 			if err != nil {
-				log.Println("ScanWorkerNft() GetAccountInfo err =" , err, "NftAddress= ", address.NftAddress, "blocks", blockS)
+				log.Println("ScanWorkerNft() GetAccountInfo err =", err, "NftAddress= ", address.NftAddress, "blocks", blockS)
 				return err
 			}
 			fmt.Println("ScanWorkerNft() MetaUrl=", accountInfo.MetaURL, "blockS=", blockS)
@@ -438,7 +436,7 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 			}*/
 			var metaUrl, metaHash string
 			if accountInfo.MetaURL[:index] == "/ipfs/QmeCPcX3rYguWqJYDmJ6D4qTQqd5asr8gYpwRcgw44WsS7" ||
-				accountInfo.MetaURL[:index] == "/ipfs/QmYgBEB9CEx356zqJaDd4yjvY92qE276Gh1y2baWeDY3By"{
+				accountInfo.MetaURL[:index] == "/ipfs/QmYgBEB9CEx356zqJaDd4yjvY92qE276Gh1y2baWeDY3By" {
 				//metaUrl = "/ipfs/QmVyVJTMQVbHRz8dr8RHrW4c1pgnspcM3Ee1pj9vae2oo8" //1.237
 				metaUrl = "/ipfs/QmNbNvhW1StGPQaXhXMQcfT6W7HqEXDY6MfZijuRLf7Roa" //云服务器
 				//metaUrl = "/ipfs/QmWpDcyU287P3bgw74nmUmWGDcaRYGud51y8xxQkiK5zDR" //云服务器
@@ -450,14 +448,14 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 			var snftinfo *models.SnftInfo
 			if snftinfo = ScanIpfsCatch.GetByHash(metaHash); snftinfo == nil {
 				timecount := time.Duration(1)
-				for  {
+				for {
 					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
 					if err != nil {
 						timecount = timecount * 2
-						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=",timecount, " err =", err, "ipfs hash=",  metaHash)
+						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
 						errflag := strings.Index(err.Error(), "context deadline exceeded")
 						if errflag != -1 {
-							time.Sleep(WaitIpfsFailTime * timecount )
+							time.Sleep(WaitIpfsFailTime * timecount)
 							continue
 						}
 						errflag = strings.Index(err.Error(), "connection refused")
@@ -577,73 +575,73 @@ func SaveIpfsMeta(sqldsn string) error {
 	} else {
 		snft = params.Savedsnft
 	}
-	for  {
+	for {
 		nftData := models.Nfts{}
 		result := nd.GetDB().Model(&models.Nfts{}).Select([]string{"meta"}).Where("snft = ?", snft).First(&nftData)
 		if result.Error != nil {
 			log.Println("SaveIpfsMeta() no snft save to ipfs err=", dbErr.Error)
-			return  result.Error
+			return result.Error
 		}
 		log.Println("SaveIpfsMeta() backup snft meta snft=", snft)
 		index := strings.LastIndex(nftData.Meta, "/")
 		if index == -1 {
 			log.Printf("ScanWorkerNft() LastIndex error.\n")
-			h, _ := big.NewInt(0).SetString(snft[2:] + "00", 16)
-			h = h.Add(h,big.NewInt(256))
+			h, _ := big.NewInt(0).SetString(snft[2:]+"00", 16)
+			h = h.Add(h, big.NewInt(256))
 			snft = common.BigToAddress(h).Hex()
 			snft = snft[:len(snft)-2]
 			continue
 			return errors.New("ScanWorkerNft(): MetaUrl error.")
 		}
 		timecount := time.Duration(1)
-		for  {
+		for {
 			fmt.Println("SaveIpfsMeta() backup to ipfs main hash=", nftData.Meta[:index])
 			err := SaveIpfsToLocal(nftData.Meta[:index])
 			if err != nil {
-				time.Sleep(WaitIpfsFailTime * timecount )
+				time.Sleep(WaitIpfsFailTime * timecount)
 				timecount = timecount * 2
 				continue
 			}
 			break
 		}
 		for i := 0; i < 256; i++ {
-				metaHash := nftData.Meta[:index] + "/" + hex.EncodeToString([]byte{byte(i)})
-				fmt.Println("SaveIpfsMeta() backup to ipfs chip hash=", metaHash)
-				var snftinfo *models.SnftInfo
-				timecount := time.Duration(1)
-				for {
-					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
-					if err != nil {
-						timecount = timecount * 2
-						log.Println("SaveIpfsMeta() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
-						time.Sleep(WaitIpfsFailTime * timecount)
-						continue
-					}
-					break
+			metaHash := nftData.Meta[:index] + "/" + hex.EncodeToString([]byte{byte(i)})
+			fmt.Println("SaveIpfsMeta() backup to ipfs chip hash=", metaHash)
+			var snftinfo *models.SnftInfo
+			timecount := time.Duration(1)
+			for {
+				snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
+				if err != nil {
+					timecount = timecount * 2
+					log.Println("SaveIpfsMeta() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
+					time.Sleep(WaitIpfsFailTime * timecount)
+					continue
 				}
-				metaHash = snftinfo.SourceUrl
-				for  {
-					err := SaveIpfsToLocal(metaHash)
-					if err != nil {
-						time.Sleep(WaitIpfsFailTime * timecount )
-						timecount = timecount * 2
-						continue
-					}
-					break
-				}
-				metaHash = snftinfo.CollectionsImgUrl
-				for  {
-					err := SaveIpfsToLocal(metaHash)
-					if err != nil {
-						time.Sleep(WaitIpfsFailTime * timecount )
-						timecount = timecount * 2
-						continue
-					}
-					break
-				}
+				break
 			}
-		h, _ := big.NewInt(0).SetString(snft[2:] + "00", 16)
-		h = h.Add(h,big.NewInt(256))
+			metaHash = snftinfo.SourceUrl
+			for {
+				err := SaveIpfsToLocal(metaHash)
+				if err != nil {
+					time.Sleep(WaitIpfsFailTime * timecount)
+					timecount = timecount * 2
+					continue
+				}
+				break
+			}
+			metaHash = snftinfo.CollectionsImgUrl
+			for {
+				err := SaveIpfsToLocal(metaHash)
+				if err != nil {
+					time.Sleep(WaitIpfsFailTime * timecount)
+					timecount = timecount * 2
+					continue
+				}
+				break
+			}
+		}
+		h, _ := big.NewInt(0).SetString(snft[2:]+"00", 16)
+		h = h.Add(h, big.NewInt(256))
 		snft = common.BigToAddress(h).Hex()
 		snft = snft[:len(snft)-2]
 		err := nd.GetDB().Transaction(func(tx *gorm.DB) error {
