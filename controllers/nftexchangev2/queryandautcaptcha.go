@@ -253,18 +253,19 @@ func CreateNetCode() (Captcha, error) {
 	CaptchaMap[imageId] = strconv.Itoa(imageRandX)
 	emptyBuff := bytes.NewBuffer(nil)
 	jpeg.Encode(emptyBuff, bgdata, nil)
-	dist := make([]byte, 5000000)
-	base64.StdEncoding.Encode(dist, emptyBuff.Bytes())
+	//dist := make([]byte, len(string(bgdata.Pix)))
+	//base64.StdEncoding.Encode(dist, emptyBuff.Bytes())
+	bgdatastr := base64.StdEncoding.EncodeToString(emptyBuff.Bytes())
 
 	emptyBuff = bytes.NewBuffer(nil)
 	png.Encode(emptyBuff, dataframe)
-	maskdist := make([]byte, 5000000)
-	base64.StdEncoding.Encode(maskdist, emptyBuff.Bytes())
+	//maskdist := make([]byte, len(string(dataframe.Pix)))
+	maskdiststr := base64.StdEncoding.EncodeToString(emptyBuff.Bytes())
 
-	captcha.Image = "data:image/jpeg;base64," + string(dist)
+	captcha.Image = "data:image/jpeg;base64," + bgdatastr
 	captcha.Imageid = imageId
 	captcha.Imagey = imageRandY
-	captcha.Imagecrop = "data:image/png;base64," + string(maskdist)
+	captcha.Imagecrop = "data:image/png;base64," + maskdiststr
 	//fmt.Println(captcha)
 	return captcha, nil
 }
