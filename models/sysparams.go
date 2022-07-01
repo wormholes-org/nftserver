@@ -18,7 +18,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -40,7 +39,7 @@ const (
 	initCategories    = "art,music,domain_names,virtual_worlds,trading_cards,collectibles,sports,utility"
 	LenName           = 60
 	LenEmail          = 60
-	LenLink           = 60
+	LenLink           = 2000
 	LenPriceStr       = 9
 	LowPrice          = 0
 	ToolongAuciton    = 365
@@ -1028,7 +1027,7 @@ func PKCS7UnPadding(origData []byte) []byte {
 
 func CaptchaDefault() {
 	if DefaultCaptcha == "" {
-		DefaultCaptcha = "/ipfs/QmS4ihJENZthDt14czh3d7rvRfzeFp5qrA1jQmvy1jbeE1"
+		DefaultCaptcha = "/ipfs/QmQjTwQDAxJ6cNhW7fQRC8EnAbdpSTPiP859m9EbNSs6Cx"
 	}
 	if DefaultMask == "" {
 		DefaultMask = "/ipfs/QmZkbudV725WbCjcFG2frNNTSrKheAZT7PRZzCED5D6HyY/mask.png"
@@ -1045,13 +1044,13 @@ func CaptchaDefault() {
 		maskdata, err = s.Cat(DefaultMask)
 		if err != nil {
 			log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 			continue
 		}
 		maskframe, err = s.Cat(DefaultMaskFrame)
 		if err != nil {
 			log.Printf("mask Http  [%v] failed! %v", DefaultMask, err)
-			time.Sleep(2 * time.Second)
+			time.Sleep(5 * time.Second)
 			continue
 		} else {
 			break
@@ -1148,13 +1147,18 @@ func CaptchaDefault() {
 	for i, j := range data {
 		si := fmt.Sprintf("%05x", i)
 		fmt.Println(j)
-		jdata, err := http.Get(j["url"])
-		if err != nil {
-			fmt.Printf("range Http get [%v] failed! %v", j["url"], err)
-			return
+		var jdata io.Reader
+		for {
+			jdata, err = s.Cat(j["url"])
+			if err != nil {
+				log.Printf("captcha cat [%v] failed! %v", DefaultCaptcha, err)
+				time.Sleep(2 * time.Second)
+				continue
+			} else {
+				break
+			}
 		}
-		defer jdata.Body.Close()
-		jbody, err := ioutil.ReadAll(jdata.Body)
+		jbody, err := ioutil.ReadAll(jdata)
 		if err != nil {
 			fmt.Printf("Read http response failed! %v", err)
 			return

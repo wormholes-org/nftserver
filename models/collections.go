@@ -131,7 +131,7 @@ func (nft NftDb) QueryNFTCollectionList(start_index, count string) ([]UserCollec
 		if int64(nftCount) > temp {
 			nftCount = int(temp)
 		}
-		err = nft.db.Model(Collects{}).Select([]string{"createaddr", "contract", "Contracttype", "name", "img"}).Where("totalcount > 0").Order("transamt desc, id desc").Limit(nftCount).Offset(startIndex).Find(&collectRecs)
+		err = nft.db.Model(Collects{}).Select([]string{"createaddr", "contract", "Contracttype", "name", "img", "totalcount"}).Where("totalcount > 0").Order("transamt desc, id desc").Limit(nftCount).Offset(startIndex).Find(&collectRecs)
 		if err.Error != nil {
 			fmt.Println("QueryNFTCollectionList() find record err=", err)
 			return nil, 0, ErrNftNotExist
@@ -150,6 +150,7 @@ func (nft NftDb) QueryNFTCollectionList(start_index, count string) ([]UserCollec
 			//userCollect.Royalty = collectRecs[i].Royalty
 			userCollect.Categories = collectRecs[i].Categories
 			userCollect.Contracttype = collectRecs[i].Contracttype
+			userCollect.Totalcount = collectRecs[i].Totalcount
 			userCollects = append(userCollects, userCollect)
 		}
 		return userCollects, int(recCount), nil

@@ -89,7 +89,7 @@ func IsValidAddr(
 	fmt.Println("sigdebug verify [N]")
 	//return true, nil
 
-	return false, errors.New("address is invalid  addr" + addr + "    verifi" + verificationAddrS + "   test 0xb018")
+	return false, errors.New("address is invalid  addr：" + addr + ",verificationAddrS:" + verificationAddrS)
 }
 
 func RemoveSignData(jsonDataS string) string {
@@ -177,7 +177,7 @@ func SignAppconf(filePath string) {
 	}
 	sig[64] += 27
 	sigstr := hexutil.Encode(sig)
-	msg = msg + "#签名数据\n" + "[sig]\n" + "app.conf.sig = " + sigstr
+	msg = msg + "#sing data\n" + "[sig]\n" + "app.conf.sig = " + sigstr
 	_, err = file.WriteAt([]byte(msg), 0)
 	if err != nil {
 		fmt.Println(err)
