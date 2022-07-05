@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gorm.io/gorm"
+	"log"
 	"sync"
 )
 
@@ -209,12 +210,20 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 
 	HomePageCatchs.NftCountLock()
 	if HomePageCatchs.NftCountFlag || flashFlag {
-		nftRec := Nfts{}
-		result := nft.db.Model(&Nfts{}).Select("id").Last(&nftRec)
-		if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
-			return nil, result.Error
+		//nftRec := Nfts{}
+		//result := nft.db.Model(&Nfts{}).Select("id").Last(&nftRec)
+		//if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		//	return nil, result.Error
+		//}
+		sysInfo := SysInfos{}
+		result := nft.db.Model(&SysInfos{}).Last(&sysInfo)
+		if result.Error != nil {
+			if result.Error != gorm.ErrRecordNotFound {
+				log.Println("homepage() SysInfos err=", result.Error)
+				return nil, result.Error
+			}
 		}
-		homePageResp.Total = int64(nftRec.ID)
+		homePageResp.Total = int64(sysInfo.Nfttotal)
 		HomePageCatchs.NftCount = homePageResp.Total
 		HomePageCatchs.NftCountFlag = false
 	} else {

@@ -2517,7 +2517,14 @@ type UserCollection struct {
 	Contracttype string `json:"contracttype"`
 	Categories   string `json:"categories"`
 	Totalcount   int    `json:"total_count"`
+	Transcount   int    `json:"transcount"`
 }
+
+//type Tranhistory struct {
+//	Collections    string `json:"collections"`
+//	Collectcreator string `json:"collectcreator"`
+//	Txhash         string `json:"txhash"`
+//}
 
 func (nft NftDb) QueryUserCollectionList(user_addr, start_index, count string) ([]UserCollection, int, error) {
 	user_addr = strings.ToLower(user_addr)
@@ -3343,6 +3350,7 @@ func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, 
 		}
 		for k, _ := range users {
 			users[k].Portrait = ""
+			users[k].Background = ""
 		}
 		return users, int(recCount), nil
 

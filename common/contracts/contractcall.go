@@ -1561,6 +1561,9 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 					log.Println("GetBlockTxs() wormholes mint type err=", err)
 				}
 			case WormHolesExchange:
+				if !transFlag {
+					continue
+				}
 				wormtrans := WormholesExchange{}
 				jsonErr := json.Unmarshal(data[10:], &wormtrans)
 				if jsonErr != nil {

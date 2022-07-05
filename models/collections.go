@@ -131,12 +131,14 @@ func (nft NftDb) QueryNFTCollectionList(start_index, count string) ([]UserCollec
 		if int64(nftCount) > temp {
 			nftCount = int(temp)
 		}
-		err = nft.db.Model(Collects{}).Select([]string{"createaddr", "contract", "Contracttype", "name", "img", "totalcount"}).Where("totalcount > 0").Order("transamt desc, id desc").Limit(nftCount).Offset(startIndex).Find(&collectRecs)
+		err = nft.db.Model(Collects{}).Select([]string{"createaddr", "contract", "Contracttype", "name", "img", "totalcount", "transcnt"}).Where("totalcount > 0").Order("transamt desc, id desc").Limit(nftCount).Offset(startIndex).Find(&collectRecs)
 		if err.Error != nil {
 			fmt.Println("QueryNFTCollectionList() find record err=", err)
 			return nil, 0, ErrNftNotExist
 		}
+
 		userCollects := make([]UserCollection, 0, 20)
+		//var collectlist, collectaddr []string
 		for i := 0; i < len(collectRecs); i++ {
 			var userCollect UserCollection
 			userCollect.CreatorAddr = collectRecs[i].Createaddr
@@ -151,8 +153,33 @@ func (nft NftDb) QueryNFTCollectionList(start_index, count string) ([]UserCollec
 			userCollect.Categories = collectRecs[i].Categories
 			userCollect.Contracttype = collectRecs[i].Contracttype
 			userCollect.Totalcount = collectRecs[i].Totalcount
+			userCollect.Transcount = collectRecs[i].Transcnt
 			userCollects = append(userCollects, userCollect)
+			//collectlist = append(collectlist, collectRecs[i].Name)
+			//collectaddr = append(collectaddr, collectRecs[i].Createaddr)
 		}
+
+		//var tran []Tranhistory
+		//err = nft.db.Table("nfts").Select("nfts.collections ,nfts.collectcreator,trans.txhash").
+		//	Joins("left join trans on trans.selltype != ? and trans.selltype != ?  and trans.tokenid =nfts.tokenid and trans.deleted_at is null",
+		//		SellTypeError.String(), SellTypeMintNft.String()).
+		//	Where("nfts.collections in ? and  nfts.collectcreator  in  ?", collectlist, collectaddr).Find(&tran)
+		//if err.Error != nil {
+		//	fmt.Println("QueryNFTCollectionList() find trans err=", err)
+		//	return nil, 0, err.Error
+		//}
+		//for _, v := range tran {
+		//	if v.Txhash == "" {
+		//		continue
+		//	}
+		//	for i, j := range userCollects {
+		//		if j.Name == v.Collections && j.CreatorAddr == v.Collectcreator {
+		//			userCollects[i].Transcount++
+		//			break
+		//		}
+		//		continue
+		//	}
+		//}
 		return userCollects, int(recCount), nil
 	}
 }

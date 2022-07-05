@@ -167,7 +167,7 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 			fmt.Println("ModifyUserInfo() SavePortrait() err=", imagerr)
 			return ErrPortraitImage
 		}
-		user.Portrait = portrait
+		//user.Portrait = portrait
 	}
 	if background != "" {
 		imagerr := SaveBackground(ImageDir, user_addr, background)
@@ -175,7 +175,7 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 			fmt.Println("ModifyUserInfo() SaveBackground() err=", imagerr)
 			return ErrBackgroudImage
 		}
-		user.Background = background
+		//user.Background = background
 	}
 	if sig != "" {
 		user.Signdata = sig
