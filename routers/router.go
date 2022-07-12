@@ -189,7 +189,7 @@ func registRouterV2() {
 	//Modify snft
 	beego.Router("/v2/modifySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
 	//query snft
-	beego.Router("/v2/querySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
+	//beego.Router("/v2/querySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
 	//delete snft
 	beego.Router("/v2/delSnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
 	//snft collect setsnft
