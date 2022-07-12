@@ -101,6 +101,7 @@ var (
 	DefaultMask            string
 	DefaultMaskFrame       string
 	DefaultCaptchaNum      int
+	LimitWritesDatabase    bool
 )
 
 type ExchangerAuthrize struct {
