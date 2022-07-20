@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 	"strconv"
+	"time"
 )
 
 type SnftChipInfo struct {
@@ -28,26 +29,69 @@ type SnftChipInfo struct {
 	//Sellprice		uint64		`json:"sellprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'price being sold'"`
 }
 
+type SnftChipCatch struct {
+	NftInfo []SnftChipInfo
+	Total   uint64
+}
+
 func (nft NftDb) QuerySnftChip(contract, tokenid, start_Index, count string) ([]SnftChipInfo, uint64, error) {
+	spendT := time.Now()
+	queryCatchSql := contract + tokenid + start_Index + count
+	nftCatch := SnftChipCatch{}
+	cerr := GetRedisCatch().GetCatchData("QuerySnftChip", queryCatchSql, &nftCatch)
+	if cerr == nil {
+		log.Printf("QuerySnftChip() catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		return nftCatch.NftInfo, nftCatch.Total, nil
+	}
 	var nftRec Nfts
 	err := nft.db.Model(&Nfts{}).Select("snft").Where("contract = ? AND tokenid = ?", contract, tokenid).First(&nftRec)
 	if err.Error != nil {
 		log.Println("QuerySnftChip() Select(snft) err=", err.Error)
-		return nil, 0, err.Error
+		return nil, 0, ErrNotFound
 	}
 	var recCount int64
 	err = nft.db.Model(Nfts{}).Where("snft = ?", nftRec.Snft).Count(&recCount)
 	if err.Error != nil {
 		log.Println("QuerySnftChip() Count(&recCount) err=", err.Error)
-		return nil, 0, err.Error
+		return nil, 0, ErrDataBase
 	}
 	startIndex, _ := strconv.Atoi(start_Index)
 	nftCount, _ := strconv.Atoi(count)
 	nftInfo := []SnftChipInfo{}
 	err = nft.db.Model(Nfts{}).Where("snft = ?", nftRec.Snft).Offset(startIndex).Limit(nftCount).Scan(&nftInfo)
 	if err.Error != nil {
-		log.Println("QuerySnftChip()Find(&nftInfo) err=", err.Error)
-		return nil, 0, err.Error
+		log.Println("QuerySnftChip() Find(&nftInfo) err=", err.Error)
+		return nil, 0, ErrDataBase
 	}
+	GetRedisCatch().CatchQueryData("QuerySnftChip", queryCatchSql, &SnftChipCatch{nftInfo, uint64(recCount)})
+	log.Printf("QuerySnftChip() no catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+	return nftInfo, uint64(recCount), nil
+}
+
+func (nft NftDb) QueryOwnerSnftChip(owner, start_Index, count string) ([]SnftChipInfo, uint64, error) {
+	spendT := time.Now()
+	queryCatchSql := owner + start_Index + count
+	nftCatch := SnftChipCatch{}
+	cerr := GetRedisCatch().GetCatchData("QueryOwnerSnftChip", queryCatchSql, &nftCatch)
+	if cerr == nil {
+		log.Printf("QueryOwnerSnftChip() catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		return nftCatch.NftInfo, nftCatch.Total, nil
+	}
+	var recCount int64
+	err := nft.db.Model(Nfts{}).Where("ownaddr = ?", owner).Count(&recCount)
+	if err.Error != nil {
+		log.Println("QueryOwnerSnftChip() Count(&recCount) err=", err.Error)
+		return nil, 0, ErrDataBase
+	}
+	startIndex, _ := strconv.Atoi(start_Index)
+	nftCount, _ := strconv.Atoi(count)
+	nftInfo := []SnftChipInfo{}
+	err = nft.db.Model(Nfts{}).Where("ownaddr = ?", owner).Offset(startIndex).Limit(nftCount).Scan(&nftInfo)
+	if err.Error != nil {
+		log.Println("QueryOwnerSnftChip() Find(&nftInfo) err=", err.Error)
+		return nil, 0, ErrDataBase
+	}
+	GetRedisCatch().CatchQueryData("QueryOwnerSnftChip", queryCatchSql, &SnftChipCatch{nftInfo, uint64(recCount)})
+	log.Printf("QueryOwnerSnftChip() no catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	return nftInfo, uint64(recCount), nil
 }

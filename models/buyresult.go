@@ -557,8 +557,8 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			tonftRec := Nfts{}
 			tonftRec.Selltype = SellTypeNotSale.String()
 			tonftRec.Transtime = txtime
-			tonftRec.Ownaddr = to
 			if nftTx.Status {
+				tonftRec.Ownaddr = to
 				tonftRec.Transprice = trans.Price
 				tonftRec.Transamt = nftRec.Transamt + trans.Price
 				tonftRec.Transcnt = nftRec.Transcnt + 1
@@ -570,45 +570,49 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			}
 			if aucFlag {
 				if aucSellType == SellTypeHighestBid.String() {
-					bidRec := Bidding{}
-					err = nft.db.Model(&Bidding{}).Where("bidaddr = ?", to).First(&bidRec)
-					if err.Error != nil {
-						fmt.Println("BuyResultWithWAmount() get bid record err=", err.Error)
-						return err.Error
-					}
-					if bidRec.VoteStage != "" {
-						snftP := SnftPhase{}
-						err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).First(&snftP)
+					if nftTx.Status {
+						bidRec := Bidding{}
+						err = nft.db.Model(&Bidding{}).Where("bidaddr = ?", to).First(&bidRec)
 						if err.Error != nil {
-							fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+							fmt.Println("BuyResultWithWAmount() get bid record err=", err.Error)
 							return err.Error
 						}
-						vote := snftP.Vote
-						snftP = SnftPhase{}
-						snftP.Vote = vote + 1
-						err = tx.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).Updates(&snftP)
-						if err.Error != nil {
-							fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-							return err.Error
+						if bidRec.VoteStage != "" {
+							snftP := SnftPhase{}
+							err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).First(&snftP)
+							if err.Error != nil {
+								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+								return err.Error
+							}
+							vote := snftP.Vote
+							snftP = SnftPhase{}
+							snftP.Vote = vote + 1
+							err = tx.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).Updates(&snftP)
+							if err.Error != nil {
+								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+								return err.Error
+							}
 						}
 					}
 				} else {
-					fmt.Println("BuyResultWithWAmount() auctionRec.VoteStage=", auctionRec.VoteStage)
-					if auctionRec.VoteStage != "" {
-						snftP := SnftPhase{}
-						err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).First(&snftP)
-						if err.Error != nil {
-							fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-							return err.Error
-						}
-						vote := snftP.Vote
-						fmt.Println("BuyResultWithWAmount() snftP.Vote=", snftP.Vote)
-						snftP = SnftPhase{}
-						snftP.Vote = vote + 1
-						err = tx.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).Updates(&snftP)
-						if err.Error != nil {
-							fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-							return err.Error
+					if nftTx.Status {
+						fmt.Println("BuyResultWithWAmount() auctionRec.VoteStage=", auctionRec.VoteStage)
+						if auctionRec.VoteStage != "" {
+							snftP := SnftPhase{}
+							err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).First(&snftP)
+							if err.Error != nil {
+								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+								return err.Error
+							}
+							vote := snftP.Vote
+							fmt.Println("BuyResultWithWAmount() snftP.Vote=", snftP.Vote)
+							snftP = SnftPhase{}
+							snftP.Vote = vote + 1
+							err = tx.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).Updates(&snftP)
+							if err.Error != nil {
+								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+								return err.Error
+							}
 						}
 					}
 				}
@@ -1022,7 +1026,9 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 					return err.Error
 				}
 			}
-			NftCatch.SetFlushFlag()
+			//NftCatch.SetFlushFlag()
+			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case 39:
 			fmt.Println("BuyResultExchange() exchange 39 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("ownaddr", ZeroAddr)
@@ -1044,7 +1050,9 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 					return err.Error
 				}
 			}
-			NftCatch.SetFlushFlag()
+			//NftCatch.SetFlushFlag()
+			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case 40:
 			fmt.Println("BuyResultExchange() exchange 40 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			err := tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("ownaddr", ZeroAddr)
@@ -1076,7 +1084,9 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 					return err.Error
 				}
 			}
-			NftCatch.SetFlushFlag()
+			//NftCatch.SetFlushFlag()
+			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case 42:
 			fmt.Println("BuyResultExchange() exchange 42 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).Update("ownaddr", ZeroAddr)
@@ -1107,7 +1117,9 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 						return err.Error
 					}
 				}
-				NftCatch.SetFlushFlag()
+				//NftCatch.SetFlushFlag()
+				GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+				GetRedisCatch().SetDirtyFlag(SnftExchange)
 			}
 		}
 		return nil

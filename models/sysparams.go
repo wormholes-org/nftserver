@@ -61,47 +61,51 @@ const (
 )
 
 var (
-	TradeAddr              string
-	NFT1155Addr            string
-	Weth9Addr              string
-	AdminAddr              string
-	BrowseNode             string
-	EthersNode             string
-	NftIpfsServerIP        string
-	NftstIpfsServerPort    string
-	EthersWsNode           string
-	ImageDir               string
-	AdminListPrv           string
-	SuperAdminPrv          string
-	SuperAdminAddr         string
-	TradeAuthAddrPrv       string
-	AdminMintPrv           string
-	Lowprice               uint64
-	RoyaltyLimit           int
-	NFTUploadAuditRequired bool
-	KYCUploadAuditRequired bool
-	Authorize              string
-	ExchangeOwer           string
-	ExchangeName           string
-	ExchangeBlocknumber    uint64
-	AnnouncementRequired   bool
-	TransferNFT            bool
-	AutocommitSnft         bool
-	ExchangerPrv           *ecdsa.PrivateKey
-	ExchangerAddr          string
-	ExchangerAuth          string
-	DebugPort              string
-	DebugAllowNft          string
-	AllowNft               bool
-	AllowUserMinit         bool
-	UploadSize             uint64
-	Backupipfs             bool
-	BackupIpfsUrl          string
-	DefaultCaptcha         string
-	DefaultMask            string
-	DefaultMaskFrame       string
-	DefaultCaptchaNum      int
-	LimitWritesDatabase    bool
+	TradeAddr               string
+	NFT1155Addr             string
+	Weth9Addr               string
+	AdminAddr               string
+	BrowseNode              string
+	EthersNode              string
+	NftIpfsServerIP         string
+	NftstIpfsServerPort     string
+	EthersWsNode            string
+	ImageDir                string
+	AdminListPrv            string
+	SuperAdminPrv           string
+	SuperAdminAddr          string
+	TradeAuthAddrPrv        string
+	AdminMintPrv            string
+	Lowprice                uint64
+	RoyaltyLimit            int
+	NFTUploadAuditRequired  bool
+	KYCUploadAuditRequired  bool
+	Authorize               string
+	ExchangeOwer            string
+	ExchangeName            string
+	ExchangeBlocknumber     uint64
+	AnnouncementRequired    bool
+	TransferNFT             bool
+	AutocommitSnft          bool
+	ExchangerPrv            *ecdsa.PrivateKey
+	ExchangerAddr           string
+	ExchangerAuth           string
+	DebugPort               string
+	DebugAllowNft           string
+	AllowNft                bool
+	AllowUserMinit          bool
+	UploadSize              uint64
+	Backupipfs              bool
+	BackupIpfsUrl           string
+	QueryRedisCatchSvr      string
+	QueryRedisSvrPasswd     string
+	MainRedisCatchSvr       string
+	MainRedisCatchSvrPasswd string
+	DefaultCaptcha          string
+	DefaultMask             string
+	DefaultMaskFrame        string
+	DefaultCaptchaNum       int
+	LimitWritesDatabase     bool
 )
 
 type ExchangerAuthrize struct {
@@ -212,7 +216,14 @@ type SysParamsInfo struct {
 
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	var params SysParams
+	var paraminfo SysParamsInfo
+	//cerr := GetRedisCatch().GetCatchData("QuerySysParams", "QuerySysParams", &paraminfo)
+	//if cerr == nil {
+	//	log.Printf("QuerySysParams() default  time.now=%s\n", time.Now())
+	//	return &paraminfo, nil
+	//}
 	err := nft.db.Last(&params)
+	log.Println(params)
 	if err.Error != nil {
 		if err.Error == gorm.ErrRecordNotFound {
 			params = SysParams{}
@@ -246,14 +257,13 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			err = nft.db.Model(&SysParams{}).Create(&params)
 			if err.Error != nil {
 				fmt.Println("SetSysParams() create SysParams err= ", err.Error)
-				return nil, err.Error
+				return nil, ErrDataBase
 			}
 		} else {
 			fmt.Println("QuerySysParams() not find err=", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 	}
-	var paraminfo SysParamsInfo
 	paraminfo.NFT1155addr = params.NFT1155addr
 	paraminfo.Adminaddr = params.Adminaddr
 	paraminfo.Lowprice = strconv.FormatUint(params.Lowprice, 10)
@@ -297,8 +307,9 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 		beego.BConfig.MaxMemory = DefUploadSize
 	}
 	paraminfo.Uploadsize = strconv.FormatUint(params.Uploadsize, 10)
+	//GetRedisCatch().CatchQueryData("QuerySysParams", "QuerySysParams", &paraminfo)
 	//paraminfo.Nftlush 		= strconv.Itoa(params.Nftlush)
-	return &paraminfo, err.Error
+	return &paraminfo, nil
 }
 
 func (nft NftDb) GetSysParam(parameter string) (string, error) {
@@ -359,7 +370,7 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			//updateP.Exchangerprv = key
 		} else {
 			fmt.Println("QuerySysParams() not find err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 	} else {
 		updateP.SysParamsRec = paramRec.SysParamsRec
@@ -377,7 +388,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Nftaudit = param.Nftaudit
 			audit, err := strconv.ParseBool(updateP.Nftaudit)
 			if err != nil {
-				return errors.New("NftAudit input  error.")
+				log.Println("NftAudit input  error.")
+				return ErrData
 			}
 			NFTUploadAuditRequired = audit
 		}
@@ -385,22 +397,27 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Transfersnft = param.TransferNFT
 			audit, err := strconv.ParseBool(param.TransferNFT)
 			if err != nil {
-				return errors.New("TransferNFT input  error.")
+				log.Println("TransferNFT input  error.")
+				return ErrData
 			}
+			log.Println("TransferNFT =", param.TransferNFT)
 			TransferNFT = audit
 		}
 		if param.Userkyc != "" {
 			updateP.Userkyc = param.Userkyc
 			audit, err := strconv.ParseBool(updateP.Userkyc)
 			if err != nil {
-				return errors.New("Userkyc  input  error.")
+				log.Println("Userkyc input  error.")
+				return ErrData
+
 			}
 			KYCUploadAuditRequired = audit
 		}
 		if param.Announcement != "" {
 			audit, err := strconv.ParseBool(param.Announcement)
 			if err != nil {
-				return errors.New("Announcement  input  error.")
+				log.Println("Announcement input  error.")
+				return ErrData
 			}
 			AnnouncementRequired = audit
 		}
@@ -408,7 +425,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Autocommitsnft = param.AutocommitSnft
 			audit, err := strconv.ParseBool(param.AutocommitSnft)
 			if err != nil {
-				return errors.New("AutocommitSnft  input  error.")
+				log.Println("AutocommitSnft input  error.")
+				return ErrData
 			}
 			AutocommitSnft = audit
 		}
@@ -416,7 +434,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Allownft = param.AllowNft
 			audit, err := strconv.ParseBool(param.AllowNft)
 			if err != nil {
-				return errors.New("AllowNft  input  error.")
+				log.Println("AllowNft input  error.")
+				return ErrData
 			}
 			AllowNft = audit
 		}
@@ -424,7 +443,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Allowusermint = param.AllowUserMint
 			audit, err := strconv.ParseBool(param.AllowUserMint)
 			if err != nil {
-				return errors.New("AllowUserMint  input  error.")
+				log.Println("AllowUserMint input  error.")
+				return ErrData
 			}
 			AllowUserMinit = audit
 		}
@@ -432,7 +452,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Backupipfs = param.Backupipfs
 			audit, err := strconv.ParseBool(param.Backupipfs)
 			if err != nil {
-				return errors.New("Backupipfs  input  error.")
+				log.Println("Backupipfs input  error.")
+				return ErrData
 			}
 			Backupipfs = audit
 		}
@@ -483,23 +504,24 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			if af == "true" || af == "false" {
 				updateP.Autoflag = af
 			} else {
-				fmt.Println("SetSysParams() AutoFlag err= ")
-				return errors.New("AutoFlag error.")
+				log.Println("SetSysParams AutoFlag  error.")
+				return ErrData
 			}
 		}
 		if IsIntDataValid(param.Catchtime) {
 			time, terr := strconv.Atoi(param.Catchtime)
 			if terr != nil || time < 0 {
-				fmt.Println("SetSysParams() Catchtime err= ")
-				return errors.New("Catchtime error.")
+				log.Println("SetSysParams Catchtime  error.")
+				return ErrData
 			}
 			updateP.Catchtime = time
 		}
 		if IsIntDataValid(param.Nftloopcount) {
 			Nftloopcount, terr := strconv.Atoi(param.Nftloopcount)
 			if terr != nil || Nftloopcount < 0 {
-				fmt.Println("SetSysParams() Nftloopcount err= ")
-				return errors.New("Nftloopcount error.")
+				log.Println("SetSysParams Nftloopcount  error.=", terr)
+				return ErrData
+
 			}
 			updateP.Nftloopcount = Nftloopcount
 		}
@@ -509,8 +531,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		if IsIntDataValid(param.Collectcount) {
 			Collectcount, terr := strconv.Atoi(param.Collectcount)
 			if terr != nil || Collectcount < 0 {
-				fmt.Println("SetSysParams() Collectcount err= ")
-				return errors.New("Collectcount error.")
+				log.Println("SetSysParams() Collectcount err=", terr)
+				return ErrData
 			}
 			updateP.Collectcount = Collectcount
 		}
@@ -520,8 +542,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		if IsIntDataValid(param.Nftcount) {
 			Nftcount, terr := strconv.Atoi(param.Nftcount)
 			if terr != nil || Nftcount < 0 {
-				fmt.Println("SetSysParams() Nftcount err= ")
-				return errors.New("Nftcount error.")
+				log.Println("SetSysParams() Nftcount err=", terr)
+				return ErrData
 			}
 			updateP.Nftcount = Nftcount
 		}
@@ -537,13 +559,16 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 	err = nft.db.Model(&SysParams{}).Create(&updateP)
 	if err.Error != nil {
 		fmt.Println("SetSysParams() create SysParams err= ", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
-	if param.Homepage != "" {
-		HomePageCatchs.HomePageFlashLock()
-		HomePageCatchs.HomePageFlashFlag = true
-		HomePageCatchs.HomePageFlashUnLock()
-	}
+	//if param.Homepage != "" {
+	//	GetRedisCatch().SetDirtyFlag([]string{"QueryHomePage"})
+	//HomePageCatchs.HomePageFlashLock()
+	//HomePageCatchs.HomePageFlashFlag = true
+	//HomePageCatchs.HomePageFlashUnLock()
+	//}
+	//GetRedisCatch().SetDirtyFlag(SysParamsDirtyName)
+	log.Println("SetSysParams =", updateP)
 	return nil
 }
 
@@ -553,7 +578,7 @@ func (nft NftDb) SetAnnouncementParam(param string) error {
 	announce, err := strconv.ParseBool(param)
 	if err != nil {
 		fmt.Println("SetAnnouncementParam()  err=", err)
-		return errors.New("input announcement switch params  error ")
+		return ErrDataFormat
 	}
 	AnnouncementRequired = announce
 	return nil
@@ -564,7 +589,7 @@ func (nft NftDb) SetExchageSig(exchange string) error {
 	err := nft.db.Last(&SysParams{}).Update("exchangerauth", exchange)
 	if err.Error != nil {
 		fmt.Println("SetExchageSig() update exchangerauth err= ", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
 	return nil
 }
@@ -573,9 +598,26 @@ func (nft NftDb) TranSnft() error {
 	if TransferNFT == true {
 		return nil
 	}
+	log.Println("update blocknumber,transferNFT=", TransferNFT)
+
 	err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1, "transfersnft": "true"})
 	if err.Error != nil {
 		fmt.Println("TranSnft() update Blocknumber err= ", err.Error)
+		return err.Error
+	}
+
+	return nil
+}
+
+func (nft NftDb) TranNft() error {
+	if TransferNFT == false {
+		return nil
+	}
+	log.Println("update transfersnft,transferNFT=", TransferNFT)
+
+	err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"transfersnft": "false"})
+	if err.Error != nil {
+		fmt.Println("TranNft() update Blocknumber err= ", err.Error)
 		return err.Error
 	}
 
@@ -588,7 +630,7 @@ func (nft NftDb) GetExchageSig() (bool, error) {
 	err := nft.db.Last(&params)
 	if err.Error != nil {
 		fmt.Println("GetExchageSig() update exchangerauth err= ", err.Error)
-		return false, err.Error
+		return false, ErrDataBase
 	}
 	if params.Exchangerauth == "" {
 		auth = false
@@ -612,7 +654,7 @@ func InitSysParams(Sqldsndb string) error {
 	err := json.Unmarshal([]byte(Authorize), &auth)
 	if err != nil {
 		fmt.Printf("InitSysParams() ExchangerAuthrize= %s    Unmarshal err = %s\n", Authorize, err)
-		return err
+		return ErrDataFormat
 	}
 	_, err = IsValidAddr(auth.ExchangeOwner+auth.To+strconv.Itoa(auth.BlockNumber), auth.Sig, auth.ExchangeOwner)
 	if err != nil {
@@ -641,13 +683,26 @@ func InitSysParams(Sqldsndb string) error {
 	ExchangerAddr = SuperAdminAddr
 	contracts.SetSysParams(EthersNode, BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
 		NFT1155Addr, AdminAddr, AdminListPrv, TradeAuthAddrPrv, AdminMintPrv, SuperAdminPrv, ExchangeOwer)
-	nd, err := NewNftDb(Sqldsndb)
-	defer nd.Close()
 
+	err = NewQueryCatch(QueryRedisCatchSvr, QueryRedisSvrPasswd)
+	if err != nil {
+		log.Println("InitSysParams() NewQueryCatch err=", err)
+		return errors.New("InitSysParams() NewQueryCatch error.")
+	}
+	if LimitWritesDatabase {
+		err = NewQueryMainCatch(MainRedisCatchSvr, MainRedisCatchSvrPasswd)
+		if err != nil {
+			log.Println("InitSysParams() NewQueryMainCatch err=", err)
+			return errors.New("InitSysParams() NewQueryMainCatch error.")
+		}
+		go GetRedisCatch().ScanDirtyQuerys(GetRedisMainCatch())
+	}
+	nd, err := NewNftDb(Sqldsndb)
 	if err != nil {
 		fmt.Printf("InitSysParams() connect database err = %s\n", err)
 		return err
 	}
+	defer nd.Close()
 	params, err := nd.QuerySysParams()
 	if err != nil {
 		fmt.Printf("InitSysParams() QuerySysParams() err = %s\n", err)
@@ -675,10 +730,22 @@ func InitSysParams(Sqldsndb string) error {
 		}
 		go HomePageFlash(Sqldsndb)
 	}
-	if DebugAllowNft != "" {
+	log.Println("DebugAllowNft =", DebugAllowNft)
+	if DebugAllowNft == "true" {
 		err = nd.TranSnft()
 		if err != nil {
 			fmt.Printf("InitSysParams() TranSnft() err = %v\n", err)
+			return err
+		}
+		_, err = nd.QuerySysParams()
+		if err != nil {
+			fmt.Printf("InitSysParams() QuerySysParams() err = %s\n", err)
+			return err
+		}
+	} else {
+		err = nd.TranNft()
+		if err != nil {
+			fmt.Printf("InitSysParams() TranNft() err = %v\n", err)
 			return err
 		}
 		_, err = nd.QuerySysParams()
@@ -722,6 +789,7 @@ func InitSysParams(Sqldsndb string) error {
 		}
 	}
 	_, err = nd.QueryHomePage(true)
+
 	return nil
 }
 
@@ -943,9 +1011,9 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 				Homepage: string(homestr),
 			}
 			nd.SetSysParams(newParam)
-			HomePageCatchs.HomePageFlashLock()
-			HomePageCatchs.HomePageFlashFlag = true
-			HomePageCatchs.HomePageFlashUnLock()
+			//HomePageCatchs.HomePageFlashLock()
+			//HomePageCatchs.HomePageFlashFlag = true
+			//HomePageCatchs.HomePageFlashUnLock()
 			nd.Close()
 			log.Println("ScanLoop() <-scan.C: end")
 		case <-ticker.C:

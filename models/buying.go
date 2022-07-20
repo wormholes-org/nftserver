@@ -56,31 +56,31 @@ func WormTrans(mintState, sellerSig, buyerSig string) error {
 		err := json.Unmarshal([]byte(buyerSig), &buyer)
 		if err != nil {
 			fmt.Println("WormTrans() Minted Buyer Unmarshal() err=", err)
-			return err
+			return ErrDataFormat
 		}
 		err = contracts.ExchangeTrans(buyer, contracts.SuperAdminAddr)
 		if err != nil {
 			fmt.Println("WormTrans() ExchangeTrans() err=", err)
-			return err
+			return errors.New(ErrBlockchain.Error() + err.Error())
 		}
 	} else {
 		seller := contracts.Seller2{}
 		err := json.Unmarshal([]byte(sellerSig), &seller)
 		if err != nil {
 			fmt.Println("WormTrans() unminted Seller2 Unmarshal() err=", err)
-			return err
+			return ErrDataFormat
 		}
 		buyer := contracts.Buyer1{}
 		fmt.Println("WormTrans() Buyer buyerSig=", buyerSig)
 		err = json.Unmarshal([]byte(buyerSig), &buyer)
 		if err != nil {
 			fmt.Println("WormTrans() unminted Buyer Unmarshal() err=", err)
-			return err
+			return ErrDataFormat
 		}
 		err = contracts.ExchangerMint(seller, buyer, contracts.SuperAdminAddr)
 		if err != nil {
 			fmt.Println("WormTrans() ExchangerMint() err=", err)
-			return err
+			return errors.New(ErrBlockchain.Error() + err.Error())
 		}
 	}
 	return nil
@@ -144,15 +144,19 @@ func (nft NftDb) BuyingNft(userAddr,
 	fmt.Println("BuyingNft() sellerSig=", sellerSig)
 	fmt.Println("BuyingNft() price=", price)
 	fmt.Println("BuyingNft() voteStage=", voteStage)
-	UserSync.Lock(userAddr)
-	defer UserSync.UnLock(userAddr)
+
+	if UserSync.LockLogic(userAddr) {
+		return ErrUserTrading
+	} else {
+		defer UserSync.UnLock(userAddr)
+	}
 
 	var auctionRec Auction
 	err := nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&auctionRec)
 	if err.Error != nil {
 		if err.Error != gorm.ErrRecordNotFound {
 			fmt.Println("BuyingNft() RecordNotFound")
-			return err.Error
+			return errors.New(ErrDataBase.Error() + err.Error.Error())
 		}
 		return ErrNftNotSell
 	}
@@ -181,7 +185,7 @@ func (nft NftDb) BuyingNft(userAddr,
 			auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 		if dberr.Error != nil {
 			log.Println("BuyingNft() update auction record err=", dberr.Error)
-			return dberr.Error
+			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
 		txhash, err := AuthWormTrans(nftrecord.Mintstate, auctionRec.Tradesig, buyerSig, ExchangerAuth)
 		if err != nil {
@@ -193,9 +197,9 @@ func (nft NftDb) BuyingNft(userAddr,
 				auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 			if dberr.Error != nil {
 				log.Println("BuyingNft() update auction record err=", dberr.Error)
-				return dberr.Error
+				return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 			}
-			return errors.New("BuyingNft() AuthWormTrans." + err.Error())
+			return errors.New(ErrBlockchain.Error() + err.Error())
 		}
 
 		for i := 0; i < WaitTransTime; i++ {
@@ -220,16 +224,18 @@ func (nft NftDb) BuyingNft(userAddr,
 			auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 		if dberr.Error != nil {
 			log.Println("BuyingNft() update auction record err=", dberr.Error)
-			return dberr.Error
+			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
-		return errors.New("Waiting for the deal to close!")
+		GetRedisCatch().SetDirtyFlag(TradingDirtyName)
+
+		return ErrWaitingClose
 	} else {
 		var bidRec Bidding
 		dberr := nft.db.Where("contract = ? AND tokenid = ? AND bidaddr = ?", contractAddr, tokenId, buyerAddr).First(&bidRec)
 		if dberr.Error != nil {
 			if dberr.Error != gorm.ErrRecordNotFound {
 				log.Println("BuyingNft() RecordNotFound")
-				return dberr.Error
+				return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 			}
 			return ErrNftNotSell
 		}
@@ -243,7 +249,7 @@ func (nft NftDb) BuyingNft(userAddr,
 			auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 		if dberr.Error != nil {
 			log.Println("BuyingNft() update auction record err=", dberr.Error)
-			return dberr.Error
+			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
 		txhash, err := AuthWormTrans(nftrecord.Mintstate, sellerSig, bidRec.Tradesig, ExchangerAuth)
 		if err != nil {
@@ -255,9 +261,9 @@ func (nft NftDb) BuyingNft(userAddr,
 				auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 			if dberr.Error != nil {
 				log.Println("BuyingNft() update auction record err=", dberr.Error)
-				return dberr.Error
+				return errors.New(ErrBlockchain.Error() + dberr.Error.Error())
 			}
-			return errors.New("BuyingNft() AuthWormTrans." + err.Error())
+			return errors.New(ErrBlockchain.Error() + err.Error())
 		}
 		for i := 0; i < WaitTransTime; i++ {
 			trans := Trans{}
@@ -280,9 +286,11 @@ func (nft NftDb) BuyingNft(userAddr,
 			auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).Updates(auctRec)
 		if dberr.Error != nil {
 			log.Println("BuyingNft() update auction record err=", dberr.Error)
-			return dberr.Error
+			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
-		return errors.New("Waiting for the deal to close!")
+		GetRedisCatch().SetDirtyFlag(TradingDirtyName)
+
+		return ErrWaitingClose
 	}
 	return nil
 }
@@ -297,7 +305,7 @@ func (nft NftDb) GroupBuyingNft(userAddr, params string) error {
 	err := json.Unmarshal([]byte(params), &Buying)
 	if err != nil {
 		fmt.Println("Unmarshal input err=", err)
-		return err
+		return ErrDataFormat
 	}
 	fmt.Println("buying:   ", Buying)
 	for _, j := range Buying {

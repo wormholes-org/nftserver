@@ -27,6 +27,24 @@ func (u *UserSyncMapList) Lock(userAddr string) {
 	user.Lock()
 }
 
+func (u *UserSyncMapList) LockLogic(userAddr string) bool {
+	u.Mux.Lock()
+	defer u.Mux.Unlock()
+	if len(u.Users) == 0 {
+		u.Users = make(map[string]*sync.Mutex)
+	}
+	user, ok := u.Users[userAddr]
+	if ok {
+		return true
+	} else {
+		u.Users[userAddr] = new(sync.Mutex)
+		user, _ = u.Users[userAddr]
+		user.Lock()
+		return false
+	}
+
+}
+
 func (u *UserSyncMapList) UnLock(userAddr string) {
 	user, ok := u.Users[userAddr]
 	if ok {
@@ -64,8 +82,10 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 			db = nft.db.Model(&user).Create(&user)
 			if db.Error != nil {
 				fmt.Println("loging()->create() err=", db.Error)
-				return db.Error
+				return ErrLoginFailed
 			}
+			//GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
+
 		}
 	} else {
 		newUser := Users{}
@@ -81,6 +101,7 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 		db = nft.db.Model(&Users{}).Where("useraddr = ?", userAddr).Updates(&newUser)
 		if db.Error != nil {
 			fmt.Printf("login()->UPdate() users err=%s\n", db.Error)
+			return ErrLoginFailed
 		}
 	}
 	return db.Error
@@ -111,7 +132,7 @@ func (nft NftDb) LoginNew(userAddr, sigData string) error {
 			db = nft.db.Model(&user).Create(&user)
 			if db.Error != nil {
 				fmt.Println("\"log num=\", num, loging()->create() err=", db.Error)
-				return db.Error
+				return ErrLoginFailed
 			}
 			fmt.Println("log()", "user.id= ", user.ID)
 			fmt.Println("log()", "userOld.id= ", userOld.ID)
@@ -121,6 +142,7 @@ func (nft NftDb) LoginNew(userAddr, sigData string) error {
 		db = nft.db.Model(&Users{}).Where("useraddr = ?", userAddr).Update("userlogin", time.Now().Unix())
 		if db.Error != nil {
 			fmt.Printf("login()->UPdate() users err=%s\n", db.Error)
+			return ErrLoginFailed
 		}
 	}
 	return db.Error

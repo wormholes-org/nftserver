@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"strconv"
@@ -50,7 +51,7 @@ func (nft NftDb) QueryAnnouncements(start_index, count string) (int, []Announces
 			return 0, nil, nil
 		}
 		fmt.Println("QuerySingleAnnouncement() recCount err=", err)
-		return 0, nil, err.Error
+		return 0, nil, errors.New(ErrDataBase.Error() + err.Error.Error())
 	}
 
 	startIndex, _ := strconv.Atoi(start_index)
@@ -61,7 +62,7 @@ func (nft NftDb) QueryAnnouncements(start_index, count string) (int, []Announces
 	if err.Error != nil {
 		if err.Error != gorm.ErrRecordNotFound {
 			fmt.Println("QuerySingleAnnouncement() dbase err=", err.Error)
-			return 0, nil, err.Error
+			return 0, nil, errors.New(ErrDataBase.Error() + err.Error.Error())
 		} else {
 			fmt.Println("QuerySingleAnnouncement() not find err=", err.Error)
 			return 0, nil, nil
@@ -85,11 +86,12 @@ func (nft NftDb) SetAnnouncement(title, content string) error {
 	db := nft.db.Model(&Announcements{}).Create(&announce)
 	if db.Error != nil {
 		fmt.Println("SetAnnouncement()->create() err=", db.Error)
-		return db.Error
+		return errors.New(ErrDataBase.Error() + db.Error.Error())
 	}
-	HomePageCatchs.AnnouncesLock()
-	HomePageCatchs.AnnouncesFlag = true
-	HomePageCatchs.AnnouncesUnLock()
+	GetRedisCatch().SetDirtyFlag(AnnouncementName)
+	//HomePageCatchs.AnnouncesLock()
+	//HomePageCatchs.AnnouncesFlag = true
+	//HomePageCatchs.AnnouncesUnLock()
 	return nil
 }
 
@@ -98,7 +100,7 @@ func (nft NftDb) DelAnnounce(delAnnouncelist string) error {
 	err := json.Unmarshal([]byte(delAnnouncelist), &dellst)
 	if err != nil {
 		fmt.Println("DelAnnounce() Unmarshal err=", err)
-		return err
+		return ErrDataFormat
 	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		for _, id := range dellst {
@@ -106,10 +108,11 @@ func (nft NftDb) DelAnnounce(delAnnouncelist string) error {
 			if db.Error != nil {
 				if db.Error != gorm.ErrRecordNotFound {
 					fmt.Println("DelAnnounce() delete auction record err=", db.Error)
-					return db.Error
+					return errors.New(ErrDataBase.Error() + db.Error.Error())
 				}
 			}
 		}
+		GetRedisCatch().SetDirtyFlag(AnnouncementName)
 		return nil
 	})
 }

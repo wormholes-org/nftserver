@@ -178,18 +178,21 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNftImage(data map[stri
 	if data["user_addr"] != "" {
 		match := regString.MatchString(data["user_addr"])
 		if !match {
+			log.Println("user_addr err =", data["user_addr"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["creator_addr"] != "" {
 		match := regString.MatchString(data["creator_addr"])
 		if !match {
+			log.Println("creator_addr err =", data["creator_addr"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["owner_addr"] != "" {
 		match := regString.MatchString(data["owner_addr"])
 		if !match {
+			log.Println("owner_addr err =", data["owner_addr"])
 			return ERRINPUTINVALID
 		}
 	}
@@ -208,24 +211,28 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNftImage(data map[stri
 	if data["nft_contract_addr"] != "" {
 		match := regString.MatchString(data["nft_contract_addr"])
 		if !match {
+			log.Println("nft_contract_addr err =", data["nft_contract_addr"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["nft_token_id"] != "" {
 		match := regString.MatchString(data["nft_token_id"])
 		if !match {
+			log.Println("nft_token_id err =", data["nft_token_id"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["md5"] != "" {
 		match := regString.MatchString(data["md5"])
 		if !match {
+			log.Println("md5 err =", data["md5"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["categories"] != "" {
 		match := regString.MatchString(data["categories"])
 		if !match {
+			log.Println("categories err =", data["categories"])
 			return ERRINPUTINVALID
 		}
 	}
@@ -237,29 +244,34 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNftImage(data map[stri
 	//}
 	match := regImage.MatchString(data["asset_sample"])
 	if !match {
+		log.Println("asset_sample err =", data["asset_sample"])
 		return ERRINPUTINVALID
 	}
 	if data["hide"] != "" {
 		match := regString.MatchString(data["hide"])
 		if !match {
+			log.Println("hide err =", data["hide"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["royalty"] != "" {
 		match := regNumber.MatchString(data["royalty"])
 		if !match {
+			log.Println("royalty err =", data["royalty"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["count"] != "" {
 		match := regNumber.MatchString(data["count"])
 		if !match {
+			log.Println("count err =", data["count"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["sig"] != "" {
 		match := regString.MatchString(data["sig"])
 		if !match {
+			log.Println("sig err =", data["sig"])
 			return ERRINPUTINVALID
 		}
 	}

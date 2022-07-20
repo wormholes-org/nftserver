@@ -46,6 +46,13 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	mInfo.Nftliked = make(map[string]int)
 	mInfo.Collectowners = make(map[string]int)
 	t := time.Now()
+	//marketcache := t.Format("2006-01-02")
+	//cerr := GetRedisCatch().GetCatchData("QueryMarketInfo", marketcache, &mInfo)
+	//if cerr == nil {
+	//	log.Printf("QueryUnverifiedNfts() default  time.now=%s\n", time.Now())
+	//	return &mInfo, nil
+	//}
+	//GetRedisCatch().SetDirtyFlag([]string{"QueryMarketInfo"})
 	t = t.AddDate(0, 0, -1)
 	for i := 0; i < 24; i++ {
 		//mInfo.Dayinfo[i].Tindex = t.Hour()
@@ -64,7 +71,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err := nft.db.Raw(rsql).Scan(&eInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Dayinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	j := 0
 	for _, info := range eInft {
@@ -93,7 +100,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&eInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Monthinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	j = 0
 	for _, info := range eInft {
@@ -122,7 +129,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&eInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Yearinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	j = 0
 	for _, info := range eInft {
@@ -138,7 +145,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Model(Nfts{}).Count(&nftcount)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() nftcount err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	mInfo.Nftamount = int(nftcount)
 
@@ -147,7 +154,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 		"selltype != ? and selltype != ?", SellTypeMintNft.String(), SellTypeError.String()).Count(&recCount)
 	if dberr.Error != nil {
 		fmt.Println("QueryMarketInfo() nfttransamt err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	if recCount > 0 {
 		var nfttransamt int64
@@ -155,7 +162,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 		err = nft.db.Raw(rsql).Scan(&nfttransamt)
 		if err.Error != nil {
 			fmt.Println("QueryMarketInfo() nfttransamt err=", err)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		mInfo.Nfttransamt = uint64(nfttransamt)
 	}
@@ -170,7 +177,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&nftac)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() nfttransamt err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	for _, n := range nftac {
 		mInfo.Nftowners[n.Ownaddr] = n.Count
@@ -184,7 +191,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&collect)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Collectowners err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	for _, n := range collect {
 		mInfo.Collectowners[n.Createaddr] = n.Count
@@ -198,11 +205,13 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&like)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() likes err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	for _, n := range like {
 		mInfo.Nftliked[n.Tokenid] = n.Count
 	}
+	//GetRedisCatch().CatchQueryData("QueryMarketInfo", marketcache, &mInfo)
+
 	return &mInfo, nil
 }
 
@@ -211,6 +220,13 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 	mInfo := NFTMarketInfo{}
 
 	t := time.Now()
+	//marketcache := t.Format("2006-01-02")
+	//cerr := GetRedisCatch().GetCatchData("GetNftMarketInfo", marketcache, &mInfo)
+	//if cerr == nil {
+	//	log.Printf("GetNftMarketInfo() default  time.now=%s\n", time.Now())
+	//	return &mInfo, nil
+	//}
+	//GetRedisCatch().SetDirtyFlag([]string{"QueryMarketInfo"})
 	t = t.AddDate(0, 0, -31)
 	for i := 0; i < 31; i++ {
 		t = t.AddDate(0, 0, 1)
@@ -224,7 +240,7 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 	err := nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Monthinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 
 	j := 0
@@ -254,7 +270,7 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Dayinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	j = 0
 	for _, info := range mInft {
@@ -283,7 +299,7 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 	err = nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() Dayinfo err=", err)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	j = 0
 	for _, info := range mInft {
@@ -295,5 +311,7 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 			}
 		}
 	}
+	//GetRedisCatch().CatchQueryData("GetNftMarketInfo", marketcache, &mInfo)
+
 	return &mInfo, nil
 }

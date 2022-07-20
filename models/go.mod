@@ -4,8 +4,8 @@ go 1.16
 
 require (
 	github.com/beego/beego/v2 v2.0.1
-	github.com/disintegration/imaging v1.6.2
 	github.com/ethereum/go-ethereum v1.10.9
+	github.com/garyburd/redigo v1.6.3
 	github.com/ipfs/go-ipfs-api v0.3.0
 	github.com/nftexchange/nftserver/common/contracts v0.0.0
 	//github.com/nftexchange/nftserver/ethhelper v0.0.0
@@ -16,9 +16,4 @@ require (
 //github.com/fatih/structs v1.1.0
 )
 
-replace (
-	github.com/nftexchange/nftserver/common/contracts v0.0.0 => ../common/contracts
-	//github.com/nftexchange/nftserver/ethhelper v0.0.0 => ../ethhelper
-	//github.com/nftexchange/nftserver/ethhelper/common v0.0.0 => ../ethhelper/common
-	//github.com/nftexchange/nftserver/ethhelper/database v0.0.0 => ../ethhelper/database
-)
+replace github.com/nftexchange/nftserver/common/contracts v0.0.0 => ../common/contracts

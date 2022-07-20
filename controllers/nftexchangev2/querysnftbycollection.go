@@ -28,7 +28,7 @@ func (nft *NftExchangeControllerV2) QuerySnftByCollection() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		inputDataErr := nft.verifyInputData_QuerySnftByCollection(data)

@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 )
@@ -23,22 +24,30 @@ func (v Countrys) TableName() string {
 }
 
 func (nft NftDb) QueryCountrys() ([]CountryRec, error) {
-	countrys := make([]Countrys, 0, 20)
-	db := nft.db.Model(&Countrys{}).Find(&countrys)
+	country := []CountryRec{}
+	//cerr := GetRedisCatch().GetCatchData("QueryCountrys", "QueryCountrys", &country)
+	//if cerr == nil {
+	//	log.Printf("QueryCountrys() default  time.now=%s\n", time.Now())
+	//	return country, nil
+	//}
+
+	//countrys := make([]Countrys, 0, 20)
+	db := nft.db.Model(&Countrys{}).Find(&country)
 	if db.Error != nil {
 		if db.Error == gorm.ErrRecordNotFound {
 			return nil, nil
 		} else {
 			fmt.Println("QueryCountry() dbase err=", db.Error)
-			return nil, db.Error
+			return nil, errors.New(ErrDataBase.Error() + db.Error.Error())
 		}
-	} else {
-		countryRecs := make([]CountryRec, 0, 20)
-		for _, cn := range countrys {
-			countryRecs = append(countryRecs, cn.CountryRec)
-		}
-		return countryRecs, nil
 	}
+	//countryRecs := make([]CountryRec, 0, 20)
+	//for _, cn := range country {
+	//	countryRecs = append(countryRecs, cn.CountryRec)
+	//}
+	//GetRedisCatch().CatchQueryData("QueryCountrys", "QueryCountrys", &country)
+
+	return country, nil
 }
 
 func (nft NftDb) ModifyCountry(Regionen, Regioncn, Domain, Telecode string) error {
@@ -55,7 +64,7 @@ func (nft NftDb) ModifyCountry(Regionen, Regioncn, Domain, Telecode string) erro
 			db = nft.db.Model(&Countrys{}).Create(&country)
 			if db.Error != nil {
 				fmt.Println("ModifyCountry()->create() err=", db.Error)
-				return db.Error
+				return errors.New(ErrDataBase.Error() + db.Error.Error())
 			}
 		} else {
 			fmt.Println("ModifyCountry() dbase err=", db.Error)
@@ -70,6 +79,8 @@ func (nft NftDb) ModifyCountry(Regionen, Regioncn, Domain, Telecode string) erro
 			fmt.Printf("ModifyCountry()->UPdate() users err=%s\n", db.Error)
 		}
 	}
+	//GetRedisCatch().SetDirtyFlag(CountryDirtyName)
+
 	return db.Error
 }
 

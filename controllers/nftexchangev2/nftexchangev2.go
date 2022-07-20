@@ -24,8 +24,9 @@ const (
 )
 
 var (
-	ERRINPUTINVALID = errors.New("input data invalid")
-	ERRTOKEN        = errors.New("token invalid, please relogin!")
+	ERRINPUTINVALID = errors.New("549,input data invalid")
+	ERRTOKEN        = errors.New("550,token invalid, please relogin!")
+	ERRINPUT        = errors.New("551,Incorrect user information entered")
 )
 
 type NftExchangeControllerV2 struct {

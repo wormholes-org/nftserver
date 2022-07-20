@@ -214,7 +214,7 @@ func (nft NftDb) UploadNft(
 			err := tx.Model(&Nfts{}).Create(&nfttab)
 			if err.Error != nil {
 				fmt.Println("UploadNft() err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			fmt.Printf("UploadNft() Nfts Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			spendT = time.Now()
@@ -225,27 +225,29 @@ func (nft NftDb) UploadNft(
 				err = tx.Model(&CollectLists{}).Create(&collectListRec)
 				if err.Error != nil {
 					fmt.Println("UploadNft() create CollectLists err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&Collects{}).Where("name = ? AND createaddr =?",
 					collections, creator_addr).Update("totalcount", collectRec.Totalcount+1)
 				if err.Error != nil {
 					fmt.Println("UploadNft() add collectins totalcount err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 			}
 			err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("nfttotal", sysInfo.Nfttotal+1)
 			if err.Error != nil {
 				fmt.Println("UploadNft() add  SysInfos nfttotal err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			fmt.Printf("UploadNft() collections Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
-			HomePageCatchs.NftCountLock()
-			HomePageCatchs.NftCountFlag = true
-			HomePageCatchs.NftCountUnLock()
+			//HomePageCatchs.NftCountLock()
+			//HomePageCatchs.NftCountFlag = true
+			//HomePageCatchs.NftCountUnLock()
 			return nil
 		})
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+		GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+
 		fmt.Printf("UploadNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		return err
 	} else {
@@ -359,7 +361,7 @@ func (nft NftDb) UploadNft(
 		//	return ErrNftUpAddrNotAdmin
 		//}
 		fmt.Println("UploadNft() upload address is not admin.")
-		return errors.New("UploadNft unsport admin upload.")
+		return ErrData
 	}
 	return nil
 }
@@ -371,46 +373,48 @@ func (nft NftDb) DelNft(useraddr, contract, tokenid string) error {
 	if err.Error != nil {
 		if err.Error != gorm.ErrRecordNotFound {
 			fmt.Println("DelNft() delete subscribe record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		fmt.Println("DelNft() RecordNotFound")
-		return errors.New("nft RecordNotFound")
+		return ErrNotFound
 	}
 	if nfts.Mintstate != NoMinted.String() {
 		fmt.Println("DelNft() delete nft Minstate cannot deleted")
-		return errors.New("nft Minstate cannot deleted")
+		return ErrDeleteNft
 	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Model(&Nfts{}).Where("tokenid=?", tokenid).Delete(&Nfts{})
 		if err.Error != nil {
 			fmt.Println("DelNft() delete subscribe record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = tx.Model(&Collects{}).Where("name = ? AND createaddr =?",
 			nfts.Collections, nfts.Collectcreator).Update("totalcount", gorm.Expr("totalcount - ?", 1))
 		if err.Error != nil {
 			fmt.Println("DelNft() add collectins totalcount err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		sysInfo := SysInfos{}
 		err = nft.db.Model(&SysInfos{}).Last(&sysInfo)
 		if err.Error != nil {
 			if err.Error != gorm.ErrRecordNotFound {
 				log.Println("DelNft() SysInfos err=", err)
-				return ErrCollectionNotExist
+				return ErrDataBase
 			}
 			err = nft.db.Model(&SysInfos{}).Create(&sysInfo)
 			if err.Error != nil {
 				log.Println("DelNft() SysInfos create err=", err)
-				return ErrCollectionNotExist
+				return ErrDataBase
 			}
 		}
 		err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("nfttotal", sysInfo.Nfttotal-1)
 		if err.Error != nil {
 			fmt.Println("DelNft() add  SysInfos nfttotal err=", err.Error)
-			return err.Error
+			return ErrNotExist
 		}
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+
+		GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 		return nil
 	})
 }
@@ -503,15 +507,22 @@ func (nft NftDb) SetNft(
 	collectImageUrl, serr := SaveToIpfs(collectRec.Img)
 	if serr != nil {
 		log.Println("SetNft() save collection image err=", serr)
-		return NftImage{}, errors.New("SetNft() save collection image error.")
+		return NftImage{}, ErrIpfsImage
 	}
 	fmt.Printf("SetNft() preprocess Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	if SourceUrl != "" {
 		spendT = time.Now()
-		imagerr := SaveNftImage(ImageDir, collectRec.Contract, nft_token_id, asset_sample)
-		if imagerr != nil {
-			fmt.Println("UploadNftImage() save image err=", imagerr)
-			return NftImage{}, ErrNftImage
+		//imagerr := SaveNftImage(ImageDir, collectRec.Contract, nft_token_id, asset_sample)
+		//if imagerr != nil {
+		//	fmt.Println("UploadNftImage() save image err=", imagerr)
+		//	return NftImage{}, ErrNftImage
+		//}
+		if asset_sample != "" {
+			imagerr := SaveNftImage(ImageDir, collectRec.Contract, nft_token_id, asset_sample)
+			if imagerr != nil {
+				fmt.Println("UploadNftImage() save image err=", imagerr)
+				return NftImage{}, ErrNftImage
+			}
 		}
 		var nftMeta nftInfo
 		nftMeta.CreatorAddr = user_addr
@@ -574,15 +585,17 @@ func (nft NftDb) SetNft(
 			err := tx.Model(&Nfts{}).Where("tokenid=?", nft_token_id).Updates(&setnfts)
 			if err.Error != nil {
 				fmt.Println("SetNft() err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 
-			HomePageCatchs.NftCountLock()
-			HomePageCatchs.NftCountFlag = true
-			HomePageCatchs.NftCountUnLock()
+			//HomePageCatchs.NftCountLock()
+			//HomePageCatchs.NftCountFlag = true
+			//HomePageCatchs.NftCountUnLock()
 			return nil
 		})
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+		GetRedisCatch().SetDirtyFlag(SetNftDirtyName)
+
 		fmt.Printf("SetNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		return nftimage, err
 	} else {
@@ -590,7 +603,7 @@ func (nft NftDb) SetNft(
 		getMeta, gerr := GetNftInfoFromIPFSWithShell(setnfts.Meta)
 		if gerr != nil {
 			fmt.Println("SetNft() get meta err =", gerr)
-			return NftImage{}, gerr
+			return NftImage{}, ErrIpfsImage
 		}
 
 		var nftMeta nftInfo
@@ -618,7 +631,7 @@ func (nft NftDb) SetNft(
 		meta, serr := SaveToIpfs(string(metaStr))
 		if serr != nil {
 			log.Println("SetNft() save nftmeta info err=", serr)
-			return NftImage{}, errors.New("UploadNftImage() save nftmeta info error.")
+			return NftImage{}, ErrIpfsImage
 		}
 		meta = "/ipfs/" + meta
 		fmt.Printf("SetNft() SaveNftImage Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
@@ -655,15 +668,16 @@ func (nft NftDb) SetNft(
 			err := tx.Model(&Nfts{}).Where("tokenid=?", nft_token_id).Updates(&setnfts)
 			if err.Error != nil {
 				fmt.Println("SetNft() err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 
-			HomePageCatchs.NftCountLock()
-			HomePageCatchs.NftCountFlag = true
-			HomePageCatchs.NftCountUnLock()
+			//HomePageCatchs.NftCountLock()
+			//HomePageCatchs.NftCountFlag = true
+			//HomePageCatchs.NftCountUnLock()
 			return nil
 		})
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+		GetRedisCatch().SetDirtyFlag(SetNftDirtyName)
 		fmt.Printf("SetNft() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		return nftimage, nil
 	}

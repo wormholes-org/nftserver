@@ -126,6 +126,7 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 		}
 	}
 	for _, nftTx := range blockTrans.Wnfttxs {
+		log.Println("nfttx :", nftTx)
 		if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" /*&& nftTx.Price != ""*/ &&
 			nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
 			err = nd.BuyResultWithWAmount(nftTx)
@@ -133,7 +134,9 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 				fmt.Println("SyncBlockTxs() BuyResultWithWAmount() err=", err)
 				return err
 			}
-			models.NftCatch.SetFlushFlag()
+
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
 		}
 		if nftTx.From == ZeroAddr && nftTx.To != ZeroAddr {
 			err = nd.BuyResultWTransfer(nftTx)
@@ -141,7 +144,9 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 				fmt.Println("SyncBlockTxs() BuyResultWTransfer() err=", err)
 				return err
 			}
-			models.NftCatch.SetFlushFlag()
+
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
 		}
 		if nftTx.From != ZeroAddr && nftTx.To == ZeroAddr {
 			err = nd.BuyResultExchange(nftTx)
@@ -149,9 +154,11 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 				fmt.Println("SyncBlockTxs() BuyResultExchange() err=", err)
 				return err
 			}
-			models.NftCatch.SetFlushFlag()
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
 		}
 	}
+
 	if err == nil {
 		var params models.SysParams
 		dbErr := nd.GetDB().Last(&params)
@@ -170,43 +177,46 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 }
 
 func InitSyncBlockTs(sqldsn string) error {
-	if models.TransferNFT {
-		/*syncBlocks, err := models.GetDbBlockNumber(sqldsn)
-		if err != nil {
-			fmt.Println("InitSyncBlockTs() get scan block num err=", err)
-			return err
-		}*/
-		snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
-		if err != nil {
-			fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
-			return err
-		}
-		for snftBlockS < contracts.GetCurrentBlockNumber() {
-			fmt.Println("InitSyncBlockTs() call ScanWorkerNft() blockNum=", snftBlockS)
-			err := ScanWorkerNft(sqldsn, snftBlockS)
+	if !models.LimitWritesDatabase {
+		if models.TransferNFT {
+			/*syncBlocks, err := models.GetDbBlockNumber(sqldsn)
 			if err != nil {
-				log.Println("InitSyncBlockTs() call SyncWorkerNft() err=", err)
-				continue
-				//return err
+				fmt.Println("InitSyncBlockTs() get scan block num err=", err)
+				return err
+			}*/
+			snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
+			if err != nil {
+				fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
+				return err
 			}
-			snftBlockS = snftBlockS + 1
-		}
-		go SyncWorkerNft(sqldsn)
-	}
-	err := SyncBlockNew(sqldsn)
-	if err != nil {
-		fmt.Println("InitSyncBlockTs() SyncBlockNew err=", err)
-		return err
-	}
-	go func() {
-		ticker := time.NewTicker(ScanBlockTime)
-		for {
-			select {
-			case <-ticker.C:
-				SyncBlockNew(models.Sqldsndb)
+			for snftBlockS < contracts.GetCurrentBlockNumber() {
+				fmt.Println("InitSyncBlockTs() call ScanWorkerNft() blockNum=", snftBlockS)
+				err := ScanWorkerNft(sqldsn, snftBlockS)
+				if err != nil {
+					log.Println("InitSyncBlockTs() call SyncWorkerNft() err=", err)
+					continue
+					//return err
+				}
+				snftBlockS = snftBlockS + 1
 			}
+			go SyncWorkerNft(sqldsn)
 		}
-	}()
+		err := SyncBlockNew(sqldsn)
+		if err != nil {
+			fmt.Println("InitSyncBlockTs() SyncBlockNew err=", err)
+			return err
+		}
+		go func() {
+			ticker := time.NewTicker(ScanBlockTime)
+			for {
+				select {
+				case <-ticker.C:
+					SyncBlockNew(models.Sqldsndb)
+				}
+			}
+		}()
+	}
+
 	go BackupIpfsSnft(sqldsn)
 	return nil
 }
@@ -689,7 +699,7 @@ func SyncBlockNew(sqldsn string) error {
 		return err
 	}
 	//blockS = 37215
-	//blockS = 17350
+	//blockS = 18351
 	for blockS <= contracts.GetCurrentBlockNumber() {
 		txs, err := contracts.GetBlockTxsNew(blockS)
 		if err != nil {

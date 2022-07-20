@@ -6,6 +6,7 @@ import (
 	"github.com/nftexchange/nftserver/controllers"
 	"github.com/nftexchange/nftserver/models"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"time"
 )
@@ -27,7 +28,7 @@ func (nft *NftExchangeControllerV2) AskForApprove() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		inputDataErr := nft.verifyInputData_AskForApprove(data)
@@ -59,12 +60,15 @@ func (nft *NftExchangeControllerV2) verifyInputData_AskForApprove(data map[strin
 	if data["nft_contract_addr"] != "" {
 		match := regString.MatchString(data["nft_contract_addr"])
 		if !match {
+			log.Println("nft_contract_addr input error")
 			return ERRINPUTINVALID
 		}
 	}
 	if data["nft_token_id"] != "" {
 		match := regString.MatchString(data["nft_token_id"])
 		if !match {
+			log.Println("nft_token_id input error")
+
 			return ERRINPUTINVALID
 		}
 	}

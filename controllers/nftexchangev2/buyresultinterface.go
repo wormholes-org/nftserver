@@ -67,7 +67,7 @@ func (nft *NftExchangeControllerV2) BuyResultInterface() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -150,4 +150,3 @@ func (nft *NftExchangeControllerV2) verifyInputData_BuyResultInterface(data map[
 
 	return nil
 }
-

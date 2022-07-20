@@ -5,22 +5,22 @@ import (
 	"strings"
 )
 
-type CollectionInfo struct{
-	Createaddr		string	`json:"collection_creator_addr"`
-	Contract		string	`json:"nft_contract_addr"`
-	Contracttype	string	`json:"contracttype"`
-	Name			string	`json:"name"`
-	Desc			string	`json:"desc"`
-	Categories		string	`json:"categories"`
-	Totalcount		int		`json:"totalcount"`
-	Tradeamount		uint64	`json:"trade_amount"`
-	Tradeavgprice	uint64	`json:"trade_avg_price"`
-	Tradefloorprice	uint64	`json:"trade_floor_price"`
-	Img          	string  `json:"img"`
-	Extend			string	`json:"extend"`
+type CollectionInfo struct {
+	Createaddr      string `json:"collection_creator_addr"`
+	Contract        string `json:"nft_contract_addr"`
+	Contracttype    string `json:"contracttype"`
+	Name            string `json:"name"`
+	Desc            string `json:"desc"`
+	Categories      string `json:"categories"`
+	Totalcount      int    `json:"totalcount"`
+	Tradeamount     uint64 `json:"trade_amount"`
+	Tradeavgprice   uint64 `json:"trade_avg_price"`
+	Tradefloorprice uint64 `json:"trade_floor_price"`
+	Img             string `json:"img"`
+	Extend          string `json:"extend"`
 }
 
-func (nft * NftDb) QueryCollectionInfo(creatorAddr string,
+func (nft *NftDb) QueryCollectionInfo(creatorAddr string,
 	collectionName string) ([]CollectionInfo, error) {
 
 	creatorAddr = strings.ToLower(creatorAddr)
@@ -31,15 +31,15 @@ func (nft * NftDb) QueryCollectionInfo(creatorAddr string,
 	result := nft.db.Model(&Collects{}).Where("createaddr = ? and name = ?",
 		creatorAddr, collectionName).First(&collection)
 	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
-		return nil, result.Error
+		return nil, ErrData
 	}
 
 	if result.Error == nil {
 		collectionInfo.Createaddr = collection.Createaddr
-		collectionInfo.Contract	= collection.Contract
-		collectionInfo.Contracttype	= collection.Contracttype
+		collectionInfo.Contract = collection.Contract
+		collectionInfo.Contracttype = collection.Contracttype
 		collectionInfo.Name = collection.Name
-		collectionInfo.Desc	= collection.Desc
+		collectionInfo.Desc = collection.Desc
 		collectionInfo.Categories = collection.Categories
 		collectionInfo.Totalcount = collection.Totalcount
 		collectionInfo.Extend = collection.Extend
@@ -50,7 +50,7 @@ func (nft * NftDb) QueryCollectionInfo(creatorAddr string,
 
 	type CollectionAmt struct {
 		Tradeamount uint64
-		Tradecnt uint64
+		Tradecnt    uint64
 	}
 	collectionAmt := CollectionAmt{}
 	nftSql := "SELECT SUM(transamt) AS Tradeamount, SUM(transcnt) AS Tradecnt FROM nfts " +

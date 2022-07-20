@@ -229,7 +229,11 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			}
 			//}
 			if nftaddress[len(nftaddress)-2:] == "00" {
-				NftCatch.SetFlushFlag()
+				//NftCatch.SetFlushFlag()
+				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
+					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
+				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
@@ -316,7 +320,10 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			}
 			//}
 			if nftaddress[len(nftaddress)-2:] == "00" {
-				NftCatch.SetFlushFlag()
+				//NftCatch.SetFlushFlag()
+				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
+					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
+				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)

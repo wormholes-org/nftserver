@@ -7,7 +7,7 @@ require (
 	github.com/ipfs/go-ipfs-api v0.3.0
 	github.com/nftexchange/nftserver/common/contracts v0.0.0
 	github.com/nftexchange/nftserver/models v0.0.0
-	gorm.io/gorm v1.21.15 // indirect
+	gorm.io/gorm v1.21.15
 )
 
 replace (

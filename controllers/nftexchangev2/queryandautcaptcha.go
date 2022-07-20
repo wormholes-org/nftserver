@@ -42,7 +42,7 @@ func (nft *NftExchangeControllerV2) GetCaptcha() {
 	err := json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		token := nft.Ctx.Request.Header.Get("Token")
@@ -107,7 +107,7 @@ func (nft *NftExchangeControllerV2) AuthCaptcha() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 

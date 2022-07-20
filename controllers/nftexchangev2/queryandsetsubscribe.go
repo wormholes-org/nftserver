@@ -45,7 +45,7 @@ func (nft *NftExchangeControllerV2) QuerySubscribeEmails() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		inputDataErr := nft.verifyInputData_QuerySubscribes(data)
@@ -144,7 +144,7 @@ func (nft *NftExchangeControllerV2) SetSubscribeEmail() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -221,7 +221,7 @@ func (nft *NftExchangeControllerV2) DelSubscribeEmail() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

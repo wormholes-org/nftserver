@@ -30,7 +30,7 @@ func (nft *NftExchangeControllerV2) QueryNftCollectionList() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 
@@ -60,6 +60,7 @@ func (nft *NftExchangeControllerV2) QueryNftCollectionList() {
 
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("QueryNftCollectionList:", httpResponseData)
 	fmt.Println("QueryNftCollectionList() Spend time", time.Now().Sub(spendT), "time.now=", time.Now())
 	fmt.Println("QueryNftCollectionList() <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }

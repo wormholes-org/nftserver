@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) CreateSnftCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -130,7 +130,7 @@ func (nft *NftExchangeControllerV2) SetSnftCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -184,7 +184,7 @@ func (nft *NftExchangeControllerV2) SetCollectSnft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -225,7 +225,7 @@ func (nft *NftExchangeControllerV2) GetSnftCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -360,7 +360,7 @@ func (nft *NftExchangeControllerV2) SnftCollectSearch() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -427,7 +427,7 @@ func (nft *NftExchangeControllerV2) DelSnftCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

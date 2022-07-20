@@ -7,6 +7,7 @@ import (
 	"github.com/nftexchange/nftserver/controllers"
 	"github.com/nftexchange/nftserver/models"
 	"io/ioutil"
+	"log"
 	"regexp"
 	"strconv"
 	"time"
@@ -29,6 +30,8 @@ func (nft *NftExchangeControllerV2) BuyingNft() {
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
 		token := nft.Ctx.Request.Header.Get("Token")
+		log.Println("token is : ", token)
+		log.Println("data is : ", data)
 		inputDataErr := nft.verifyInputData_BuyingNft(data, token)
 		if inputDataErr != nil {
 			httpResponseData.Code = "500"
@@ -65,7 +68,7 @@ func (nft *NftExchangeControllerV2) BuyingNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -126,7 +129,7 @@ func (nft *NftExchangeControllerV2) GroupBuyingNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -188,6 +191,8 @@ func (nft *NftExchangeControllerV2) verifyInputData_BuyingNft(data map[string]st
 		}
 	}
 	getToken, _ := tokenMap.GetToken(data["user_addr"])
+	log.Printf("gentoken is : %v,and token is : %v", getToken, token)
+
 	if getToken != token {
 		return ERRTOKEN
 	}

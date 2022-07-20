@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) ModifyCollectionsImage() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

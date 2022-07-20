@@ -65,7 +65,7 @@ func (nft *NftExchangeControllerV2) CreateCollection() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -117,7 +117,7 @@ func (nft *NftExchangeControllerV2) DelCollect() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

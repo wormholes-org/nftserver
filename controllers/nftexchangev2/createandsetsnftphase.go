@@ -63,7 +63,7 @@ func (nft *NftExchangeControllerV2) CreatsSnftphase() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -128,7 +128,7 @@ func (nft *NftExchangeControllerV2) SetSnftPeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -272,7 +272,7 @@ func (nft *NftExchangeControllerV2) DelSnftPeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -290,22 +290,6 @@ func (nft *NftExchangeControllerV2) GetVotePeriod() {
 	}
 	defer nd.Close()
 
-	//homePageData, err := nd.GetVoteSnftPeriod()
-	//if err != nil {
-	//	if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
-	//		httpResponseData.Code = "200"
-	//	} else {
-	//		httpResponseData.Code = "500"
-	//	}
-	//
-	//	httpResponseData.Msg = err.Error()
-	//	httpResponseData.Data = []interface{}{}
-	//} else {
-	//	httpResponseData.Code = "200"
-	//	httpResponseData.Data = homePageData
-	//	httpResponseData.TotalCount = 0
-	//}
-
 	var data map[string]string
 	defer nft.Ctx.Request.Body.Close()
 	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
@@ -313,7 +297,7 @@ func (nft *NftExchangeControllerV2) GetVotePeriod() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 
@@ -395,7 +379,7 @@ func (nft *NftExchangeControllerV2) SetVotePeriod() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -452,7 +436,7 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

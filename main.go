@@ -42,7 +42,9 @@ func main() {
 		fmt.Println("init err exit")
 		return
 	}
-	go TimeProc(models.Sqldsndb)
+	if !models.LimitWritesDatabase {
+		go TimeProc(models.Sqldsndb)
+	}
 	//beego.BConfig.MaxMemory = nftexchangev2.UpLoadSize
 	beego.Run()
 }

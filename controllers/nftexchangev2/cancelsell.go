@@ -29,7 +29,7 @@ func (nft *NftExchangeControllerV2) CancelSell() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		token := nft.Ctx.Request.Header.Get("Token")
@@ -90,7 +90,7 @@ func (nft *NftExchangeControllerV2) GroupCancelSell() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		token := nft.Ctx.Request.Header.Get("Token")

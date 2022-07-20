@@ -149,26 +149,35 @@ type SnftCollection struct {
 
 func (nft NftDb) SnftSearch(categories, param string) ([]Nfts, error) {
 	snftsearch := []Nfts{}
+	//cerr := GetRedisCatch().GetCatchData("SnftSearch", categories+param, &snftsearch)
+	//if cerr == nil {
+	//	log.Printf("SnftSearch() cache default  time.now=%s\n", time.Now())
+	//	return snftsearch, nil
+	//}
 	if param == "" && categories == "" {
 		err := nft.db.Model(&Nfts{}).Where("snft = ? ", "").Find(&snftsearch)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			fmt.Printf("search nft err=%s", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Image = ""
 		}
+		//GetRedisCatch().CatchQueryData("SnftSearch", categories+param, &snftsearch)
+
 		return snftsearch, nil
 	}
 	if categories == "" {
 		err := nft.db.Model(&Nfts{}).Where("name like ? and snft = ?", "%"+param+"%", "").Find(&snftsearch)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			fmt.Printf("search nft err=%s", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Image = ""
 		}
+		//GetRedisCatch().CatchQueryData("SnftSearch", categories+param, &snftsearch)
+
 		return snftsearch, nil
 	} else {
 		catestr := strings.Split(categories, ",")
@@ -185,11 +194,13 @@ func (nft NftDb) SnftSearch(categories, param string) ([]Nfts, error) {
 		err := nft.db.Raw(catesql, "%"+param+"%").Scan(&snftsearch)
 		if err.Error != nil {
 			fmt.Println("SnftSearch()  err=", err)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Image = ""
 		}
+		//GetRedisCatch().CatchQueryData("SnftSearch", categories+param, &snftsearch)
+
 		return snftsearch, nil
 	}
 }

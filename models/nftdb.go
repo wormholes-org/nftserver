@@ -21,56 +21,63 @@ import (
 )
 
 var (
-	ErrNftAlreadyExist       = errors.New("nft already exist.")
-	ErrNftNotExist           = errors.New("nft Not exist.")
-	ErrNftAmount             = errors.New("nft amount error.")
-	ErrNftDelete             = errors.New("nft delete error.")
-	ErrNftIllegalMint        = errors.New("nft mint illegal.")
-	ErrAlreadyNftFavorited   = errors.New("already NftFavorited.")
-	ErrAlreadyUserFavorited  = errors.New("already UserFavorited.")
-	ErrNotNftFavorited       = errors.New("not NftFavorited.")
-	ErrNftSelling            = errors.New("nft be selling.")
-	ErrNftInsufficient       = errors.New("nft count insufficient")
-	ErrNftNotSell            = errors.New("nft not on sale.")
-	ErrNftNotMinted          = errors.New("nft not Minted.")
-	ErrAlreadyBid            = errors.New("Already bid.")
-	ErrAuctionEnd            = errors.New("The auction ended.")
-	ErrAuctionNotBegan       = errors.New("The auction not began.")
-	ErrBidOutRange           = errors.New("Bid is out-of-range.")
-	ErrNotVerify             = errors.New("Not verify.")
-	ErrUserNotVerify         = errors.New("User Not verify.")
-	ErrSellType              = errors.New("Sell type error.")
-	ErrAuctionStartAfterEnd  = errors.New("start time > end time.")
-	ErrAuctionStartBeforeNow = errors.New("start time > end time.")
-	ErrNoRightSell           = errors.New("have no right to sell.")
-	ErrRoyaltyZero           = errors.New("royalt is zero.")
-	ErrFromToAddrZero        = errors.New("from or to addr = 0.")
-	ErrNoAuthorize           = errors.New("No authorize.")
-	ErrAuthorizeLess         = errors.New("Less authorize amount.")
-	ErrBalanceLess           = errors.New("Less balance amount.")
-	ErrCollectionExist       = errors.New("Collection already exist.")
-	ErrCollectionNotExist    = errors.New("Collection not exist.")
-	ErrNftUpAddrNotOwn       = errors.New("Nft upload address not own.")
-	ErrNftUpAddrNotAdmin     = errors.New("Nft upload address not Admin.")
-	ErrNftNoMore             = errors.New("Nft no more.")
-	ErrGenerateTokenId       = errors.New("generate token id error.")
-	ErrGenerateIameId        = errors.New("generate image id error.")
-	ErrContractCountLtZero   = errors.New("contract count < 0.")
-	ErrNoTrans               = errors.New("no trade.")
-	ErrNoCategory            = errors.New("category err.")
-	ErrPrice                 = errors.New("Price error.")
-	ErrAuctionDate           = errors.New("Auction date too long..")
-	ErrDataFormat            = errors.New("data format error.")
-	ErrRoyalty               = errors.New("royalty too big error.")
-	ErrBuyOwn                = errors.New("buy your own nft.")
-	ErrTransExist            = errors.New("transaction exist.")
-	ErrGetBalance            = errors.New("Get balance error.")
-	ErrLenName               = errors.New("Username to long error.")
-	ErrLenEmail              = errors.New("Email to long error.")
-	ErrNftImage              = errors.New("Save nft image error.")
-	ErrCollectionImage       = errors.New("Save collection image error.")
-	ErrPortraitImage         = errors.New("Save Portrait image error.")
-	ErrBackgroudImage        = errors.New("Save backgroud image error.")
+	ErrNftAlreadyExist      = errors.New("501,nft already exist.")
+	ErrNftNotExist          = errors.New("502,nft Not exist.")
+	ErrNftAmount            = errors.New("503,nft amount error.")
+	ErrNftDelete            = errors.New("504,nft delete error.")
+	ErrAlreadyUserFavorited = errors.New("507,already UserFavorited.")
+	ErrNotNftFavorited      = errors.New("508,not NftFavorited.")
+	ErrNftSelling           = errors.New("509,nft be selling.")
+	ErrNftInsufficient      = errors.New("510,nft count insufficient。")
+	ErrNftNotSell           = errors.New("511,nft not on sale.")
+	ErrNftNotMinted         = errors.New("512,nft not Minted.")
+	ErrAlreadyBid           = errors.New("513,Already bid.")
+	ErrAuctionEnd           = errors.New("514,The auction ended.")
+	ErrAuctionNotBegan      = errors.New("515,The auction not began.")
+	ErrBidOutRange          = errors.New("516,Bid is out-of-range.")
+	ErrNotVerify            = errors.New("517,Not verify.")
+	ErrUserNotVerify        = errors.New("518,User Not verify.")
+	ErrSellType             = errors.New("519,Sell type error.")
+	ErrAuctionStartAfterEnd = errors.New("520,start time failed.")
+	ErrNoRightSell          = errors.New("521,have no right to sell.")
+	ErrFromToAddrZero       = errors.New("523,from or to addr = 0.")
+	ErrNoAuthorize          = errors.New("524,No authorize.")
+	ErrAuthorizeLess        = errors.New("525,Less authorize amount.")
+	ErrBalanceLess          = errors.New("526,Less balance amount.")
+	ErrCollectionExist      = errors.New("527,Collection already exist.")
+	ErrCollectionNotExist   = errors.New("528,Collection not exist.")
+	ErrNftUpAddrNotOwn      = errors.New("529,Nft upload address error.")
+	ErrNftNoMore            = errors.New("530,Nft not more.")
+	ErrGenerateTokenId      = errors.New("531,generate token id error.")
+	ErrContractCountLtZero  = errors.New("533,contract count < 0.")
+	ErrNoTrans              = errors.New("534,no trade.")
+	ErrNoCategory           = errors.New("535,category err.")
+	ErrPrice                = errors.New("536,Price error.")
+	ErrAuctionDate          = errors.New("537,Auction date too long.")
+	ErrDataFormat           = errors.New("538,data format error.")
+	ErrRoyalty              = errors.New("539,royalty too big error.")
+	ErrBuyOwn               = errors.New("540,buy your own nft.")
+	ErrTransExist           = errors.New("541,transaction exist.")
+	ErrGetBalance           = errors.New("542,Get balance error.")
+	ErrLenName              = errors.New("543,Username to long error.")
+	ErrLenEmail             = errors.New("545,Email to long error.")
+	ErrNftImage             = errors.New("546,Save image error.")
+	ErrIpfsImage            = errors.New("547,Ipfs save error.")
+	ErrBlockchain           = errors.New("548,Blockchain trans error.")
+	ErrAminType             = errors.New("553,admin type or auth error.")
+	ErrNotFound             = errors.New("554,not found.")
+	ErrDataBase             = errors.New("555,database error.")
+	ErrPermission           = errors.New("556,Insufficient permission.")
+	ErrWaitingClose         = errors.New("557,Waiting for the deal to close.")
+	ErrDeleteCollection     = errors.New("558,Collections not  delete.")
+	ErrLoginFailed          = errors.New("559,Login failed.")
+	ErrData                 = errors.New("560,data error.")
+	ErrUnauthExchange       = errors.New("561,Unauthorized exchange.")
+	ErrNotExist             = errors.New("562,Not exist.")
+	ErrAlreadyExist         = errors.New("563,already exist.")
+	ErrDataInsuff           = errors.New("564,data insufficient.")
+	ErrDeleteNft            = errors.New("565,nft not delete.")
+	ErrNotMore              = errors.New("566,not more.")
 )
 
 //const (
@@ -1318,12 +1325,12 @@ func (nft NftDb) BuyNft(userAddr, tradeSig, sigdata, contract, nftTokenId string
 		err := tx.Model(&trans).Create(&trans)
 		if err.Error != nil {
 			fmt.Println("buyNft() insert failed, ", err)
-			return err.Error
+			return errors.New(ErrDataBase.Error() + err.Error.Error())
 		}
 		err = tx.Model(&Nfts{}).Where("contract = ? AND tokenid =? ", contract, nftTokenId).Update("ownaddr", userAddr)
 		if err.Error != nil {
 			fmt.Println("buyNft() update err=", err.Error)
-			return err.Error
+			return errors.New(ErrDataBase.Error() + err.Error.Error())
 		}
 		return nil
 	})
@@ -1536,7 +1543,7 @@ func (nft NftDb) Like(userAddr, contractAddr, tokenId, sig string) error {
 				nftrecord.ID, userAddr).Delete(&NftFavorited{})
 			if err.Error != nil {
 				fmt.Println("AddFavor() create record err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			if nftrecord.Favorited > 0 {
 				favorited := nftrecord.Favorited - 1
@@ -1545,7 +1552,7 @@ func (nft NftDb) Like(userAddr, contractAddr, tokenId, sig string) error {
 				err = tx.Model(&nftrecord).Where("contract = ? AND tokenid =? ", contractAddr, tokenId).Update("favorited", nftrecord.Favorited)
 				if err.Error != nil {
 					fmt.Println("AddFavor() update NftFavorited err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 			}
 			return nil
@@ -1571,7 +1578,7 @@ func (nft NftDb) Like(userAddr, contractAddr, tokenId, sig string) error {
 		err = tx.Model(&NftFavorited{}).Create(&favorrecord)
 		if err.Error != nil {
 			fmt.Println("AddFavor() create record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		favorited := nftrecord.Favorited + 1
 		nftrecord = Nfts{}
@@ -1579,7 +1586,7 @@ func (nft NftDb) Like(userAddr, contractAddr, tokenId, sig string) error {
 		err = tx.Model(&nftrecord).Where("contract = ? AND tokenid =? ", contractAddr, tokenId).Update("favorited", nftrecord.Favorited)
 		if err.Error != nil {
 			fmt.Println("AddFavor() update NftFavorited err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -1593,7 +1600,7 @@ func (nft NftDb) DelNftFavor(userAddr, contractAddr, tokenId string) error {
 	err := nft.db.Where("contract = ? AND tokenid =? ", contractAddr, tokenId).First(&nftrecord)
 	if err.Error != nil {
 		fmt.Println("DelFavor() err= ", err.Error)
-		return err.Error
+		return ErrNotFound
 	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(&NftFavorited{}).Where("nftid = ? AND useraddr = ?", nftrecord.ID, userAddr).Delete(&NftFavorited{})
@@ -1602,12 +1609,12 @@ func (nft NftDb) DelNftFavor(userAddr, contractAddr, tokenId string) error {
 				return ErrNotNftFavorited
 			}
 			fmt.Println("DelFavor() err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = tx.Model(&nftrecord).Where("contract = ? AND tokenid =? ", contractAddr, tokenId).Update("Favorited", nftrecord.Favorited-1)
 		if err.Error != nil {
 			fmt.Println("AddFavor() update NftFavorited err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -1620,7 +1627,7 @@ func (nft NftDb) QueryNftFavorited(userAddr string) ([]Nfts, error) {
 	err := nft.db.Where("useraddr = ?", userAddr).Find(&favors)
 	if err.Error != nil {
 		fmt.Println("queryNft, err=\n ", err.Error)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	nfts := []Nfts{}
 	for _, favor := range favors {
@@ -1640,6 +1647,11 @@ func (nft NftDb) QueryNftFavorited(userAddr string) ([]Nfts, error) {
 	return nfts, err.Error
 }
 
+type UnverifiedNftsList struct {
+	Nftlist []Nfts
+	Total   int
+}
+
 //Get the NFT pending review list
 func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, error) {
 
@@ -1651,6 +1663,12 @@ func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, er
 	if IsIntDataValid(count) != true {
 		return nil, 0, ErrDataFormat
 	}
+	nftlist := UnverifiedNftsList{}
+	//cerr := GetRedisCatch().GetCatchData("QueryUnverifiedNfts", start_index+count, &nftlist)
+	//if cerr == nil {
+	//	log.Printf("QueryUnverifiedNfts() default  time.now=%s\n", time.Now())
+	//	return nftlist.Nftlist, nftlist.Total, nil
+	//}
 	err := nft.db.Model(Nfts{}).Where("snft=?", "").Count(&recCount)
 	if err.Error != nil {
 		fmt.Println("QueryUnverifiedNfts() recCount err=", err)
@@ -1672,6 +1690,10 @@ func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, er
 		for k, _ := range nfts {
 			nfts[k].Image = ""
 		}
+		nftlist.Nftlist = nfts
+		nftlist.Total = int(recCount)
+		//GetRedisCatch().CatchQueryData("QueryUnverifiedNfts", start_index+count, &nftlist)
+
 		return nfts, int(recCount), nil
 
 	}
@@ -1690,7 +1712,7 @@ func (nft NftDb) VerifyNft(vrfaddr string, owner string, contractaddr string,
 	takeResult := nft.db.Where("contract = ? and tokenid = ?",
 		contractaddr, tokenid).Take(&nftData)
 	if takeResult.Error != nil {
-		return takeResult.Error
+		return ErrNotFound
 	}
 	updateValue := make(map[string]interface{})
 	updateValue["verified"] = verified
@@ -1699,8 +1721,9 @@ func (nft NftDb) VerifyNft(vrfaddr string, owner string, contractaddr string,
 	updateValue["verifiedtime"] = time.Now().Unix()
 	updateResult := nft.db.Model(&nftData).Updates(updateValue)
 	if updateResult.Error != nil {
-		return updateResult.Error
+		return ErrDataBase
 	}
+	//GetRedisCatch().SetDirtyFlag(NftVerifiedDirtyName)
 
 	return nil
 }
@@ -1744,13 +1767,13 @@ func (nft NftDb) CancellSell(ownAddr, contractAddr, tokenId, sigData string) err
 		err = tx.Model(&Bidding{}).Where("auctionid = ?", auctionRec.ID).Delete(&Bidding{})
 		if err.Error != nil {
 			fmt.Println("CancellSell() delete bid record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = tx.Model(&Nfts{}).Where("contract = ? AND tokenid =?",
 			auctionRec.Contract, auctionRec.Tokenid).Update("selltype", SellTypeNotSale.String())
 		if err.Error != nil {
 			fmt.Println("CancellSell() update record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -2517,7 +2540,7 @@ type UserCollection struct {
 	Contracttype string `json:"contracttype"`
 	Categories   string `json:"categories"`
 	Totalcount   int    `json:"total_count"`
-	Transcount   int    `json:"transcount"`
+	Transcnt     int    `json:"transcnt"`
 }
 
 //type Tranhistory struct {
@@ -2784,14 +2807,14 @@ func (nft NftDb) QueryUserOfferList(user_addr, start_index, count string) ([]Use
 	err := nft.db.Raw(sqlCount, user_addr).Scan(&Recount)
 	if err.Error != nil {
 		fmt.Println("QueryUserInfo() query Sum err=", err)
-		return nil, 0, err.Error
+		return nil, 0, ErrDataBase
 	}
 	sql = sql + " limit" + " " + start_index + "," + count
 	var useroffer []UserOffer
 	err = nft.db.Raw(sql, user_addr).Scan(&useroffer)
 	if err.Error != nil {
 		fmt.Println("QueryUserInfo() query Sum err=", err)
-		return nil, 0, err.Error
+		return nil, 0, ErrDataBase
 	}
 	return useroffer, int(Recount), nil
 }
@@ -2928,18 +2951,18 @@ func (nft NftDb) AddUserFavor(userAddr, favoritedaddr string) error {
 		err = tx.Model(&favorrecord).Create(&favorrecord)
 		if err.Error != nil {
 			fmt.Println("AddUserFavor() create record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		user := Users{}
 		err = tx.Where("useraddr = ?", favoritedaddr).First(&user)
 		if err.Error != nil {
 			fmt.Println("AddUserFavor() find err= ", err.Error)
-			return err.Error
+			return ErrNotFound
 		}
 		err = tx.Model(&user).Where("useraddr = ?", favoritedaddr).Update("Favorited", user.Favorited+1)
 		if err.Error != nil {
 			fmt.Println("AddUserFavor() update NftFavorited err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -2962,18 +2985,18 @@ func (nft NftDb) DelUserFavor(userAddr, favoritedaddr string) error {
 				return ErrNotNftFavorited
 			}
 			fmt.Println("DelUserFavor() err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		user := Users{}
 		err = tx.Model(&user).Where("useraddr = ?", favoritedaddr).First(&user)
 		if err.Error != nil {
 			fmt.Println("DelUserFavor() find err= ", err.Error)
-			return err.Error
+			return ErrNotFound
 		}
 		err = tx.Model(&user).Where("useraddr = ?", favoritedaddr).Update("Favorited", user.Favorited-1)
 		if err.Error != nil {
 			fmt.Println("DelUserFavor() update err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -2986,7 +3009,7 @@ func (nft NftDb) QueryUserFavorited(userAddr string) ([]UserFavorited, error) {
 	err := nft.db.Where("favoruseraddr = ?", userAddr).Find(&favors)
 	if err.Error != nil {
 		fmt.Println("queryNft, err=\n ", err.Error)
-		return nil, err.Error
+		return nil, ErrDataBase
 	}
 	marshal, _ := json.Marshal(favors)
 	fmt.Printf("%s\n", string(marshal))
@@ -2995,11 +3018,11 @@ func (nft NftDb) QueryUserFavorited(userAddr string) ([]UserFavorited, error) {
 	return favors, err.Error
 }
 
-////获取市场数据
+////
 //func (nft *NftDb) QueryMarketInfo() (uint64, error){
 //	transData := []Trans{}
 //	var totalAmount7 uint64
-//	//统计七天内交易金额
+//	//
 //	before7daysTime := time.Now().AddDate(0, 0, -7)
 //	before7Date := time.Date(before7daysTime.Year(), before7daysTime.Month(), before7daysTime.Day(),
 //		0, 0, 0, 0, time.Local)
@@ -3245,7 +3268,7 @@ func (nft NftDb) ModifyCollectionsImage(name, collection_creator_addr, img, sig 
 		err := tx.Model(&Collects{}).Where("createaddr = ? AND name = ?", collection_creator_addr, name).Updates(&collectRec)
 		if err.Error != nil {
 			fmt.Println("NewCollections() err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	})
@@ -3273,7 +3296,7 @@ func (nft NftDb) SaveHistoryTrans(NftContractAddr, NftTokenId, Price, Count, Fro
 		err := tx.Model(&trans).Create(&trans)
 		if err.Error != nil {
 			fmt.Println("SaveHistoryTrans() create trans record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		nftrecord := Nfts{}
 		nftrecord.Ownaddr = To
@@ -3283,7 +3306,7 @@ func (nft NftDb) SaveHistoryTrans(NftContractAddr, NftTokenId, Price, Count, Fro
 			NftContractAddr, NftTokenId).Updates(&nftrecord)
 		if err.Error != nil {
 			fmt.Println("SaveHistoryTrans() update record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		fmt.Println("SaveHistoryTrans() from != \"\" && to != \"\" --> price != \"\" OK")
 		return nil
@@ -3321,6 +3344,11 @@ func (nft NftDb) HasContractAddr(contract_addr string) (bool, error) {
 	}
 }
 
+type QueryPendingKYCList struct {
+	Userlisr []Users
+	Total    int
+}
+
 func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, error) {
 	users := []Users{}
 	var recCount int64
@@ -3330,6 +3358,13 @@ func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, 
 	if IsIntDataValid(count) != true {
 		return nil, 0, ErrDataFormat
 	}
+
+	kyc := QueryPendingKYCList{}
+	//cerr := GetRedisCatch().GetCatchData("QueryPendingKYCList", start_index+count, &kyc)
+	//if cerr == nil {
+	//	log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
+	//	return kyc.Userlisr, kyc.Total, nil
+	//}
 	err := nft.db.Model(Users{}).Count(&recCount)
 	if err.Error != nil {
 		fmt.Println("QueryPendingKYCList() recCount err=", err)
@@ -3346,12 +3381,15 @@ func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, 
 		}
 		queryResult := nft.db.Order("id desc").Limit(nftCount).Offset(startIndex).Find(&users)
 		if queryResult.Error != nil {
-			return nil, 0, queryResult.Error
+			return nil, 0, ErrDataBase
 		}
 		for k, _ := range users {
 			users[k].Portrait = ""
 			users[k].Background = ""
 		}
+		kyc.Userlisr = users
+		kyc.Total = int(recCount)
+		//GetRedisCatch().CatchQueryData("QueryPendingKYCList", start_index+count, &kyc)
 		return users, int(recCount), nil
 
 	}
@@ -3368,7 +3406,7 @@ func (nft NftDb) UserKYC(vrfaddr string, useraddr string, desc string,
 
 	takeResult := nft.db.Where("useraddr = ?", useraddr).Take(&user)
 	if takeResult.Error != nil {
-		return takeResult.Error
+		return ErrNotFound
 	}
 	updateValue := make(map[string]interface{})
 	updateValue["verifyaddr"] = vrfaddr
@@ -3377,8 +3415,10 @@ func (nft NftDb) UserKYC(vrfaddr string, useraddr string, desc string,
 	updateValue["signdata"] = sig
 	updateResult := nft.db.Model(&user).Updates(updateValue)
 	if updateResult.Error != nil {
-		return updateResult.Error
+		return ErrDataBase
 	}
+	//GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
+
 	return nil
 }
 
@@ -3390,7 +3430,7 @@ func (nft NftDb) UserRequireKYC(useraddr string, country string, pic string, sig
 
 	takeResult := nft.db.Where("useraddr = ?", useraddr).Take(&user)
 	if takeResult.Error != nil {
-		return takeResult.Error
+		return ErrNotFound
 	}
 	updateValue := make(map[string]interface{})
 	updateValue["kycpic"] = pic
@@ -3399,8 +3439,9 @@ func (nft NftDb) UserRequireKYC(useraddr string, country string, pic string, sig
 	updateValue["country"] = country
 	updateResult := nft.db.Model(&user).Updates(updateValue)
 	if updateResult.Error != nil {
-		return updateResult.Error
+		return ErrDataBase
 	}
+
 	return nil
 }
 

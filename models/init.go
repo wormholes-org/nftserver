@@ -36,6 +36,22 @@ func init() {
 	if BackupIpfsUrl == "" {
 		BackupIpfsUrl = "127.0.0.1:5001"
 	}
+	QueryRedisCatchSvr, _ = beego.AppConfig.String("QueryRedisCatchServer")
+	if QueryRedisCatchSvr == "" {
+		QueryRedisCatchSvr = "127.0.0.1:6379"
+	}
+	QueryRedisSvrPasswd, _ = beego.AppConfig.String("QueryRedisCatchServerPasswd")
+	if QueryRedisSvrPasswd == "" {
+		QueryRedisSvrPasswd = "user123456"
+	}
+	MainRedisCatchSvr, _ = beego.AppConfig.String("MainRedisCatchSvr")
+	if MainRedisCatchSvr == "" {
+		MainRedisCatchSvr = "192.168.1.235:6379"
+	}
+	MainRedisCatchSvrPasswd, _ = beego.AppConfig.String("MainRedisCatchSvrPasswd")
+	if MainRedisCatchSvrPasswd == "" {
+		MainRedisCatchSvrPasswd = "user123456"
+	}
 	BrowseNode, _ = beego.AppConfig.String("BrowseNode")
 	EthersWsNode, _ = beego.AppConfig.String("EthersWsNode")
 	ImageDir, _ = beego.AppConfig.String("ImageDir")
@@ -47,7 +63,8 @@ func init() {
 	NFTUploadAuditRequired, _ = beego.AppConfig.Bool("NFTUploadAuditRequired")
 	Authorize, _ = beego.AppConfig.String("Authorize")
 	DebugPort, _ = beego.AppConfig.String("DebugPort")
-	DebugAllowNft, _ = beego.AppConfig.String("AllowNft")
+	DebugAllowNft, _ = beego.AppConfig.String("AllowSnft")
 	DefaultCaptcha, _ = beego.AppConfig.String("captachaurl")
+	LimitWritesDatabase, _ = beego.AppConfig.Bool("limitwritesdatabase")
 	AnnouncementRequired = true
 }

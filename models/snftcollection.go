@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -42,17 +43,17 @@ func (nft NftDb) NewSnftCollections(useraddr, name, img, contract_type, contract
 		newtoken, terr := nft.NewCollectTokenGen()
 		if terr != nil {
 			fmt.Printf("newtokengen err=%s", terr)
-			return terr
+			return ErrGenerateTokenId
 		}
 		file, serr := saveIpfsjpgImage(newtoken, img)
 		if serr != nil {
 			fmt.Println("SaveToIpfs() save collection image err=", serr)
-			return serr
+			return ErrNftImage
 		}
 		collectImageUrl, serr := SaveToIpfs(file)
 		if serr != nil {
 			fmt.Println("SaveToIpfs() save collection image err=", serr)
-			return serr
+			return ErrIpfsImage
 		}
 		snftcollectrec.Img = "/ipfs/" + collectImageUrl
 		snftcollectrec.Tokenid = newtoken
@@ -60,18 +61,20 @@ func (nft NftDb) NewSnftCollections(useraddr, name, img, contract_type, contract
 			err := tx.Model(&SnftCollect{}).Create(&snftcollectrec)
 			if err.Error != nil {
 				fmt.Println("NewCollections() err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			imagerr := SaveSnftCollectionsImage(ImageDir, useraddr, name, img)
 			if imagerr != nil {
 				fmt.Println("NewCollections() SaveCollectionsImage() err=", imagerr)
-				return ErrCollectionImage
+				return ErrNftImage
 			}
 			return nil
 		})
 	}
+	//GetRedisCatch().SetDirtyFlag(NewSnftCollect)
+
 	fmt.Println("NewCollections() dbase err=.", err)
-	return err.Error
+	return ErrDataBase
 }
 
 func (nft NftDb) SetSnftCollection(collecton SnftCollection) error {
@@ -79,7 +82,7 @@ func (nft NftDb) SetSnftCollection(collecton SnftCollection) error {
 	err := nft.db.Model(&snftcollectrec).Where("tokenid = ?", collecton.TokenID).First(&snftcollectrec)
 	if err.Error != nil {
 		fmt.Println("SetSnftPeriod() err= not find period.")
-		return err.Error
+		return ErrNotExist
 	} else {
 		if collecton.Name != "" {
 			err = nft.db.Where(" name = ? ", collecton.Name).First(&snftcollectrec)
@@ -100,8 +103,9 @@ func (nft NftDb) SetSnftCollection(collecton SnftCollection) error {
 		err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", collecton.TokenID).Updates(&snftcollectrec)
 		if err.Error != nil {
 			fmt.Println("SetSnftCollection() update err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
+		//GetRedisCatch().SetDirtyFlag(NewSnftCollect)
 
 		fmt.Println("SetSnftCollection() Ok.")
 		return nil
@@ -113,17 +117,17 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 	err := json.Unmarshal([]byte(collecton), &collectsnft)
 	if err != nil {
 		fmt.Println("setcollectSnft  Unmrashal input err=", err)
-		return err
+		return ErrDataFormat
 	}
 	if len(collectsnft) > 16 {
 		fmt.Println("setCollectSnft data err")
-		return errors.New("Snft data err")
+		return ErrDataFormat
 	}
 	snftcollects := SnftCollect{}
 	ferr := nft.db.Model(&snftcollects).Where("tokenid = ?", collectid).Find(&snftcollects)
 	if ferr.Error != nil {
 		fmt.Println("SetSnftPeriod() err= not find period.")
-		return ferr.Error
+		return ErrNotExist
 	}
 
 	return nft.db.Transaction(func(tx *gorm.DB) error {
@@ -131,15 +135,15 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 		err := tx.Model(&Snfts{}).Unscoped().Where("collection =? ", collectid).Delete(&Snfts{})
 		if err.Error != nil {
 			fmt.Println(" SnftCollect  delete err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		for i, snft := range collectsnft {
 			//existsnft := Snfts{}
 			existnft := Nfts{}
 			err = tx.Model(&Nfts{}).Where("tokenid = ? ", snft.Collect).First(&existnft)
 			if err.Error != nil {
-				fmt.Printf("input nft err=%s", err.Error)
-				return errors.New("input nft err")
+				log.Println("input nft err=", err.Error)
+				return ErrNotFound
 			}
 			insnft := Snfts{}
 			insnft.Name = existnft.Name
@@ -168,7 +172,7 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 			err = tx.Model(&Snfts{}).Create(&insnft)
 			if err.Error != nil {
 				fmt.Printf("SetCollectSnt() create  snft err=%v", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			collectstr += snft.Collect
 			if i < len(collectsnft)-1 {
@@ -182,27 +186,27 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 		err = tx.Model(&SnftCollect{}).Where("tokenid = ?", collectid).Updates(&snftcollects)
 		if err.Error != nil {
 			fmt.Println("SetCollectSnft() update  collect  err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		if totalcount != 16 {
 			snftcollectperiod := []SnftCollectPeriod{}
 			err := tx.Model(&SnftCollectPeriod{}).Where("collect=? ", collectid).Find(&snftcollectperiod)
 			if err.Error != nil {
 				fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			for _, period := range snftcollectperiod {
 				snftphase := SnftPhase{}
 				err := tx.Model(&SnftPhase{}).Where("tokenid=? ", period.Period).Find(&snftphase)
 				if err.Error != nil {
 					fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				snftphase.Accedvote = ""
 				err = tx.Model(&SnftPhase{}).Where("tokenid = ?", period.Period).Updates(&snftphase)
 				if err.Error != nil {
 					fmt.Println("SetCollectSnft() update  collect  err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 			}
 		} else {
@@ -269,7 +273,7 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 				Where("snftcollectperiod.collect = ?", collectid).Find(&snftcollectperiod)
 			if err.Error != nil {
 				fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-				return err.Error
+				return ErrDataBase
 
 			}
 			for _, period := range snftcollectperiod {
@@ -281,7 +285,7 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 					Where("snftcollectperiod.period = ?", period.Tokenid).Find(&snftperup)
 				if err.Error != nil {
 					fmt.Println("SetSnftPeriod() find SnftCollect err=.", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				total := 0
 				for _, collect := range snftperup {
@@ -302,11 +306,13 @@ func (nft NftDb) SetCollectSnft(collecton, collectid string) error {
 				err = tx.Model(&SnftPhase{}).Where("tokenid = ?", period.Tokenid).Update("accedvote", accedvote)
 				if err.Error != nil {
 					fmt.Println("SetCollectSnft() update  collect  err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 
 			}
 		}
+
+		//GetRedisCatch().SetDirtyFlag(ModifySnftCollect)
 
 		fmt.Println("SetSnftCollect()  Ok")
 		return nil
@@ -347,24 +353,30 @@ func (nft NftDb) NewCollectTokenGen() (string, error) {
 
 func (nft NftDb) GetSnftCollection(collectid string) ([]Snfts, error) {
 	snftcollect := SnftCollect{}
+	nftlist := []Snfts{}
+	//cerr := GetRedisCatch().GetCatchData("GetSnftCollection", collectid, &nftlist)
+	//if cerr == nil {
+	//	log.Printf("GetSnftCollection() default  time.now=%s\n", time.Now())
+	//	return nftlist, nil
+	//}
 	db := nft.db.Model(&SnftCollect{}).Where("tokenid = ?", collectid).Find(&snftcollect)
 	if db.Error != nil {
 		fmt.Println("GetSnftCollection() dbase err=", db.Error)
-		return nil, db.Error
+		return nil, ErrDataBase
 	}
 	snftlist := []Snfts{}
 	db = nft.db.Model(&Snfts{}).Where(" collection = ? ", collectid).Find(&snftlist)
 	if db.Error != nil {
 		fmt.Printf("GetSnftCollection() err=%s", db.Error)
-		return nil, db.Error
+		return nil, ErrDataBase
 	}
-	nftlist := []Snfts{}
 	for _, snft := range snftlist {
 		snft.Image = ""
 		snft.Signdata = ""
-
 		nftlist = append(nftlist, snft)
 	}
+	//GetRedisCatch().CatchQueryData("GetSnftCollection", collectid, &nftlist)
+
 	return nftlist, nil
 	//if snftcollect.Snft != "" {
 	//	coll := strings.Split(snftcollect.Snft, ",")
@@ -393,15 +405,21 @@ func (nft NftDb) GetSnftCollection(collectid string) ([]Snfts, error) {
 
 func (nft NftDb) CollectSearch(categories, param string) ([]SnftCollect, error) {
 	snftsearch := []SnftCollect{}
+	//cerr := GetRedisCatch().GetCatchData("CollectSearch", categories+param, &snftsearch)
+	//if cerr == nil {
+	//	log.Printf("CollectSearch() cache default  time.now=%s\n", time.Now())
+	//	return snftsearch, nil
+	//}
 	if param == "" && categories == "" {
 		err := nft.db.Model(&SnftCollect{}).Find(&snftsearch)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			fmt.Printf("search nft err=%s", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Img = ""
 		}
+		//GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
 		return snftsearch, nil
 	}
 
@@ -409,11 +427,13 @@ func (nft NftDb) CollectSearch(categories, param string) ([]SnftCollect, error) 
 		err := nft.db.Model(&SnftCollect{}).Where("name like ?", "%"+param+"%").Find(&snftsearch)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			fmt.Printf("search nft err=%s", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Img = ""
 		}
+		//GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
+
 		return snftsearch, nil
 	} else {
 		catestr := strings.Split(categories, ",")
@@ -429,12 +449,14 @@ func (nft NftDb) CollectSearch(categories, param string) ([]SnftCollect, error) 
 		catesql += " ) and name like ?"
 		err := nft.db.Raw(catesql, "%"+param+"%").Scan(&snftsearch)
 		if err.Error != nil {
-			fmt.Println("SnftSearch() Dayinfo err=", err)
-			return nil, err.Error
+			fmt.Println("CollectSearch() search err=", err)
+			return nil, ErrDataBase
 		}
 		for i, _ := range snftsearch {
 			snftsearch[i].Img = ""
 		}
+		//GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
+
 		return snftsearch, nil
 	}
 }
@@ -448,13 +470,15 @@ func (nft NftDb) DelSnftCollect(delcollect string) error {
 		err := tx.Model(&SnftCollect{}).Where("tokenid= ?", delcollect).Delete(&SnftPhase{})
 		if err.Error != nil {
 			fmt.Println("delete snftPeriod err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = nft.db.Model(&SnftCollectPeriod{}).Where(" collect = ?", delcollect).Delete(&SnftCollectPeriod{})
 		if err.Error != nil {
 			fmt.Println("DelSnftCollect() delete  snftcollect err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
+		//GetRedisCatch().SetDirtyFlag(ModifySnftCollect)
+
 		return nil
 	})
 

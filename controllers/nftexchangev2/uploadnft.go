@@ -10,6 +10,7 @@ import (
 	"github.com/nftexchange/nftserver/controllers"
 	"github.com/nftexchange/nftserver/models"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"time"
@@ -84,7 +85,7 @@ func (nft *NftExchangeControllerV2) UploadNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
@@ -195,7 +196,7 @@ func (nft *NftExchangeControllerV2) DelNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -216,7 +217,7 @@ func (nft *NftExchangeControllerV2) SetNft() {
 
 	data, sigData := nft.GetData()
 	token := nft.Ctx.Request.Header.Get("Token")
-	inputDataErr := nft.verifyInputData_UploadNftImage(data, token)
+	inputDataErr := nft.verifyInputData_SetNft(data, token)
 	if inputDataErr != nil {
 		httpResponseData.Code = "500"
 		httpResponseData.Msg = inputDataErr.Error()
@@ -286,18 +287,23 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNft(data map[string]st
 	if data["user_addr"] != "" {
 		match := regString.MatchString(data["user_addr"])
 		if !match {
+			log.Println("user_addr err", data["user_addr"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["creator_addr"] != "" {
 		match := regString.MatchString(data["creator_addr"])
 		if !match {
+			log.Println("creator_addr err", data["creator_addr"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["owner_addr"] != "" {
 		match := regString.MatchString(data["owner_addr"])
 		if !match {
+			log.Println("owner_addr err", data["owner_addr"])
+
 			return ERRINPUTINVALID
 		}
 	}
@@ -316,24 +322,32 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNft(data map[string]st
 	if data["nft_contract_addr"] != "" {
 		match := regString.MatchString(data["nft_contract_addr"])
 		if !match {
+			log.Println("nft_contract_addr err", data["nft_contract_addr"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["nft_token_id"] != "" {
 		match := regString.MatchString(data["nft_token_id"])
 		if !match {
+			log.Println("nft_token_id err", data["nft_token_id"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["md5"] != "" {
 		match := regString.MatchString(data["md5"])
 		if !match {
+			log.Println("md5 err", data["md5"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["categories"] != "" {
 		match := regString.MatchString(data["categories"])
 		if !match {
+			log.Println("categories err", data["categories"])
+
 			return ERRINPUTINVALID
 		}
 	}
@@ -345,29 +359,39 @@ func (nft *NftExchangeControllerV2) verifyInputData_UploadNft(data map[string]st
 	//}
 	match := regImage.MatchString(data["asset_sample"])
 	if !match {
+		log.Println("asset_sample err", data["asset_sample"])
+
 		return ERRINPUTINVALID
 	}
 	if data["hide"] != "" {
 		match := regString.MatchString(data["hide"])
 		if !match {
+			log.Println("hide err", data["hide"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["royalty"] != "" {
 		match := regNumber.MatchString(data["royalty"])
 		if !match {
+			log.Println("royalty err", data["royalty"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["count"] != "" {
 		match := regNumber.MatchString(data["count"])
 		if !match {
+			log.Println("count err", data["count"])
+
 			return ERRINPUTINVALID
 		}
 	}
 	if data["sig"] != "" {
 		match := regString.MatchString(data["sig"])
 		if !match {
+			log.Println("sig err", data["sig"])
+
 			return ERRINPUTINVALID
 		}
 	}
@@ -397,5 +421,121 @@ func (nft *NftExchangeControllerV2) verifyInputData_DelNft(data map[string]strin
 	if getToken != token {
 		return ERRTOKEN
 	}
+	return nil
+}
+
+func (nft *NftExchangeControllerV2) verifyInputData_SetNft(data map[string]string, token string) error {
+	regString, _ := regexp.Compile(PattenString)
+	regNumber, _ := regexp.Compile(PattenNumber)
+	regImage, _ := regexp.Compile(PattenImageBase64)
+
+	if data["user_addr"] != "" {
+		match := regString.MatchString(data["user_addr"])
+		if !match {
+			log.Println("user_addr err =", data["user_addr"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["creator_addr"] != "" {
+		match := regString.MatchString(data["creator_addr"])
+		if !match {
+			log.Println("creator_addr err =", data["creator_addr"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["owner_addr"] != "" {
+		match := regString.MatchString(data["owner_addr"])
+		if !match {
+			log.Println("owner_addr err =", data["owner_addr"])
+			return ERRINPUTINVALID
+		}
+	}
+	//if data["name"] != "" {
+	//	match := regString.MatchString(data["name"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["desc"] != "" {
+	//	match := regString.MatchString(data["desc"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	if data["nft_contract_addr"] != "" {
+		match := regString.MatchString(data["nft_contract_addr"])
+		if !match {
+			log.Println("nft_contract_addr err =", data["nft_contract_addr"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["nft_token_id"] != "" {
+		match := regString.MatchString(data["nft_token_id"])
+		if !match {
+			log.Println("nft_token_id err =", data["nft_token_id"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["md5"] != "" {
+		match := regString.MatchString(data["md5"])
+		if !match {
+			log.Println("md5 err =", data["md5"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["categories"] != "" {
+		match := regString.MatchString(data["categories"])
+		if !match {
+			log.Println("categories err =", data["categories"])
+			return ERRINPUTINVALID
+		}
+	}
+	//if data["collections"] != "" {
+	//	match := regString.MatchString(data["collections"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	if data["asset_sample"] != "" {
+		match := regImage.MatchString(data["asset_sample"])
+		if !match {
+			log.Println("asset_sample err =", data["asset_sample"])
+			return ERRINPUTINVALID
+		}
+	}
+
+	if data["hide"] != "" {
+		match := regString.MatchString(data["hide"])
+		if !match {
+			log.Println("hide err =", data["hide"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["royalty"] != "" {
+		match := regNumber.MatchString(data["royalty"])
+		if !match {
+			log.Println("royalty err =", data["royalty"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["count"] != "" {
+		match := regNumber.MatchString(data["count"])
+		if !match {
+			log.Println("count err =", data["count"])
+			return ERRINPUTINVALID
+		}
+	}
+	if data["sig"] != "" {
+		match := regString.MatchString(data["sig"])
+		if !match {
+			log.Println("sig err =", data["sig"])
+			return ERRINPUTINVALID
+		}
+	}
+	getToken, _ := tokenMap.GetToken(data["user_addr"])
+	if getToken != token {
+		return ERRTOKEN
+	}
+
 	return nil
 }

@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/beego/beego/v2 v2.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/disintegration/imaging v1.6.2
 	github.com/ethereum/go-ethereum v1.10.9
 	github.com/ipfs/go-ipfs-api v0.3.0
 	github.com/nftexchange/nftserver/common/signature v0.0.0

@@ -39,7 +39,7 @@ func (nft *NftExchangeControllerV2) IsValidVerifyAddr(nd *models.NftDb, adminTyp
 	verificationAddr, err := signature.GetEthAddr(rawData, sig)
 	if err != nil {
 		log.Println("IsValidVerifyAddr() GetEthAddr() err=", err)
-		return false, err
+		return false, errors.New("552," + err.Error())
 	}
 	verificationAddrS := verificationAddr.String()
 	verificationAddrS = strings.ToLower(verificationAddrS)
@@ -48,7 +48,7 @@ func (nft *NftExchangeControllerV2) IsValidVerifyAddr(nd *models.NftDb, adminTyp
 	db := nd.GetDB().Model(&models.Admins{}).Where("adminaddr = ? AND admintype = ?", verificationAddrS, adminType.String()).First(&admin)
 	if db.Error != nil {
 		fmt.Println("IsValidVerifyAddr() err=", err)
-		return false, errors.New("address error ")
+		return false, errors.New("552,address error ")
 	}
 	fmt.Println("IsValidVerifyAddr() verificationAddrS=", verificationAddrS, "admin.AdminAuth=", admin.AdminAuth)
 
@@ -77,7 +77,7 @@ func (nft *NftExchangeControllerV2) IsValidVerifyAddr(nd *models.NftDb, adminTyp
 			return false, errors.New("address not permission.")
 		}
 	}
-	return false, errors.New("verification address is invalid")
+	return false, errors.New("552,address is invalid")
 }
 
 func (nft *NftExchangeControllerV2) GetAdmins() {
@@ -96,7 +96,7 @@ func (nft *NftExchangeControllerV2) GetAdmins() {
 	err = json.Unmarshal(bytes, &data)
 	if err != nil {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = err.Error()
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
 		inputDataErr := nft.verifyInputData_GetAdmins(data)
@@ -176,7 +176,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_SetAdmins(data map[string]st
 }
 
 func (nft *NftExchangeControllerV2) SetAdmins() {
-	fmt.Println("SetSysParams()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	fmt.Println("SetAdmins()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
@@ -223,7 +223,7 @@ func (nft *NftExchangeControllerV2) SetAdmins() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
@@ -291,7 +291,7 @@ func (nft *NftExchangeControllerV2) DelAdmins() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	}
 	responseData, _ := json.Marshal(httpResponseData)

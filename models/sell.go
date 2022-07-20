@@ -32,7 +32,7 @@ func (nft NftDb) MakeOffer(userAddr,
 	}
 	if ExchangerAuth == "" {
 		fmt.Println("MakeOffer() Unauthorized exchange error.")
-		return errors.New("Unauthorized exchange")
+		return ErrUnauthExchange
 	}
 	if !nft.UserKYCAduit(userAddr) {
 		return ErrUserNotVerify
@@ -52,7 +52,7 @@ func (nft NftDb) MakeOffer(userAddr,
 		return ErrGetBalance
 	}
 	if !valid {
-		return errors.New(errmsg)
+		return errors.New(ErrBlockchain.Error() + errmsg)
 	}
 	var auctionRec Auction
 	err = nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&auctionRec)
@@ -80,12 +80,12 @@ func (nft NftDb) MakeOffer(userAddr,
 				err = tx.Model(&auctionRec).Create(&auctionRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create auctionRec record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create auctionHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				nftrecord = Nfts{}
 				nftrecord.Selltype = auctionRec.Selltype
@@ -93,7 +93,7 @@ func (nft NftDb) MakeOffer(userAddr,
 					auctionRec.Contract, auctionRec.Tokenid).Updates(&nftrecord)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				bidRec := Bidding{}
 				bidRec.Bidaddr = userAddr
@@ -115,14 +115,15 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRec record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
-				NftCatch.SetFlushFlag()
+				//NftCatch.SetFlushFlag()
+				GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 				fmt.Println("MakeOffer() RecordNotFound OK")
 				return nil
 			})
@@ -132,7 +133,8 @@ func (nft NftDb) MakeOffer(userAddr,
 	//if time.Now().Unix() < auctionRec.Startdate {
 	//	return ErrAuctionNotBegan
 	//}
-	NftCatch.SetFlushFlag()
+	//NftCatch.SetFlushFlag()
+	GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 	if auctionRec.Selltype == SellTypeHighestBid.String() {
 		//addrs, err := ethhelper.BalanceOfWeth()
 		fmt.Println("MakeOffer() Selltype == SellTypeHighestBid")
@@ -161,13 +163,13 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				bidRecHistory := BiddingHistory(bidRec)
 				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() first bidding OK.")
 				return nil
@@ -192,14 +194,14 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				bidRecHistory := BiddingHistory{}
 				bidRecHistory.BidRecord = bidRec.BidRecord
 				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() change bidding OK.")
 				return nil
@@ -224,13 +226,13 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				bidRecHistory := BiddingHistory(bidRec)
 				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() change bidding OK.")
 				return nil
@@ -257,12 +259,12 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRec record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() first bidding OK.")
 				return nil
@@ -287,13 +289,13 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				bidRecHistory := BiddingHistory(bidRec)
 				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() change bidding OK.")
 				return nil
@@ -320,12 +322,12 @@ func (nft NftDb) MakeOffer(userAddr,
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRec record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				fmt.Println("MakeOffer() first bidding OK.")
 				return nil
@@ -370,11 +372,15 @@ func (nft NftDb) Sell(ownAddr,
 	}
 	if ExchangerAuth == "" {
 		fmt.Println("Sell() Unauthorized exchange error.")
-		return errors.New("Unauthorized exchange")
+		return ErrUnauthExchange
 	}
 	fmt.Println("Sell() ownAddr=", ownAddr, "      time=", time.Now().String())
-	UserSync.Lock(ownAddr)
-	defer UserSync.UnLock(ownAddr)
+
+	if UserSync.LockLogic(ownAddr) {
+		return ErrUserTrading
+	} else {
+		defer UserSync.UnLock(ownAddr)
+	}
 	if !nft.UserKYCAduit(ownAddr) {
 		return ErrUserNotVerify
 	}
@@ -397,7 +403,7 @@ func (nft NftDb) Sell(ownAddr,
 	err := nft.db.Where("contract = ? AND tokenid =? AND ownaddr = ?", contractAddr, tokenId, ownAddr).First(&nftrecord)
 	if err.Error != nil {
 		fmt.Println("Sell() err= ", err.Error)
-		return err.Error
+		return ErrNftNotExist
 	}
 	if nftrecord.Verified != Passed.String() {
 		return ErrNotVerify
@@ -425,13 +431,13 @@ func (nft NftDb) Sell(ownAddr,
 					auctionRec.Contract, auctionRec.Tokenid).Delete(&Bidding{})
 				if err.Error != nil {
 					fmt.Println("Sell() delete bid record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				err = tx.Model(&Auction{}).Where("contract = ? AND tokenid = ?",
 					auctionRec.Contract, auctionRec.Tokenid).Delete(&Auction{})
 				if err.Error != nil {
 					fmt.Println("Sell() delete bidprice auction record err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				return nil
 			})
@@ -472,12 +478,12 @@ func (nft NftDb) Sell(ownAddr,
 		err = tx.Model(&auctionRec).Create(&auctionRec)
 		if err.Error != nil {
 			fmt.Println("Sell() create auctionRec record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
 		if err.Error != nil {
 			fmt.Println("Sell() create auctionHistory record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		nftrecord = Nfts{}
 		nftrecord.Hide = hide
@@ -486,7 +492,7 @@ func (nft NftDb) Sell(ownAddr,
 			auctionRec.Contract, auctionRec.Tokenid).Updates(&nftrecord)
 		if err.Error != nil {
 			fmt.Println("Sell() update record err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		/*nftrecord = Nfts{}
 		nftrecord.Royalty, _ = strconv.Atoi(royalty)
@@ -497,7 +503,8 @@ func (nft NftDb) Sell(ownAddr,
 			fmt.Println("Sell() update record err=", err.Error)
 			return err.Error
 		}*/
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+		GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 		return nil
 	})
 }

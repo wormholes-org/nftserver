@@ -22,10 +22,10 @@ func TextAndHash(data []byte) ([]byte, string) {
 func GetEthAddr(msg string, sigStr string) (common.Address, error) {
 	sigData, _ := hexutil.Decode(sigStr)
 	if len(sigData) != 65 {
-		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
+		return common.Address{}, fmt.Errorf("552,signature must be 65 bytes long")
 	}
 	if sigData[64] != 27 && sigData[64] != 28 {
-		return common.Address{}, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+		return common.Address{}, fmt.Errorf("552,invalid Ethereum signature (V is not 27 or 28)")
 	}
 	sigData[64] -= 27
 	hash, _ := TextAndHash([]byte(msg))
@@ -47,7 +47,7 @@ func IsValidVerifyAddr(rawData string, sig string) (bool, error) {
 	addrList = append(addrList, "0x7fBC8ad616177c6519228FCa4a7D9EC7d1804900")
 	verificationAddr, err := GetEthAddr(rawData, sig)
 	if err != nil {
-		return false, err
+		return false, errors.New("552," + err.Error())
 	}
 	verificationAddrS := verificationAddr.String()
 	verificationAddrS = strings.ToLower(verificationAddrS)
@@ -89,7 +89,20 @@ func IsValidAddr(
 	fmt.Println("sigdebug verify [N]")
 	//return true, nil
 
-	return false, errors.New("address is invalid  addr：" + addr + ",verificationAddrS:" + verificationAddrS)
+	return false, errors.New("552,address is invalid  addr：" + addr + ",verificationAddrS:" + verificationAddrS)
+}
+
+func RecoverAddr(
+	rawData string,
+	sig string) (string, error) {
+	verificationAddr, err := GetEthAddr(rawData, sig)
+	if err != nil {
+		return "", errors.New("522,address is invalid " + err.Error())
+	}
+	verificationAddrS := verificationAddr.String()
+	verificationAddrS = strings.ToLower(verificationAddrS)
+	return verificationAddrS, nil
+
 }
 
 func RemoveSignData(jsonDataS string) string {

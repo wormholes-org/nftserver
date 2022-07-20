@@ -76,7 +76,7 @@ func (nft *NftExchangeControllerV2) BatchUploadNft() {
 		}
 	} else {
 		httpResponseData.Code = "500"
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)

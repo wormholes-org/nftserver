@@ -1,14 +1,31 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"log"
+	"time"
+)
 
 type SearchData struct {
-	NftsRecords []Nfts			`json:"nfts"`
-	CollectsRecords []Collects	`json:"collections"`
-	UserAddrs []string			`json:"user_addrs"`
+	NftsRecords     []Nfts     `json:"nfts"`
+	CollectsRecords []Collects `json:"collections"`
+	UserAddrs       []string   `json:"user_addrs"`
 }
+
+type SearchCatch struct {
+	Searchs []SearchData
+}
+
 func (nft *NftDb) Search(cond string) ([]SearchData, error) {
 	var searchData SearchData
+	spendT := time.Now()
+	queryCatchSql := cond
+	searchCatch := SearchCatch{}
+	cerr := GetRedisCatch().GetCatchData("Search", queryCatchSql, &searchCatch)
+	if cerr == nil {
+		log.Printf("Search() catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		return searchCatch.Searchs, nil
+	}
 	nfts := []Nfts{}
 	findNftsResult := nft.db.Model(&Nfts{}).Where("name like ?", "%"+cond+"%").
 		Order("name asc").Offset(0).Limit(5).Find(&nfts)
@@ -46,6 +63,7 @@ func (nft *NftDb) Search(cond string) ([]SearchData, error) {
 		user.Kycpic = ""
 		searchData.UserAddrs = append(searchData.UserAddrs, user.Useraddr)
 	}
+	GetRedisCatch().CatchQueryData("Search", queryCatchSql, &SearchCatch{[]SearchData{searchData}})
+	log.Printf("Search() no catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	return []SearchData{searchData}, nil
 }
-

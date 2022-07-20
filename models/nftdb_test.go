@@ -37,7 +37,9 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 //const dbNameT = "nftdb"
 //const dbNameT = "snftdb8012"
 //const dbNameT = "tttt"
-const dbNameT = "c0x655b762461ba84b9c55de7346729594ce6361ac7"
+const dbNameT = "c0x6b50a8e325949797e68a79dcfadc612449e731ea"
+
+//const dbNameT = "c0x655b762461ba84b9c55de7346729594ce6361ac7"
 
 //const dbNameT = "c0x544d5471284271f0cc0b48669d553c72a0877070"
 
@@ -783,7 +785,7 @@ func TestQueryNftByFilterNew(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-
+	NewQueryCatch("192.168.56.128:6379", "")
 	nfilters := []StQueryField{
 		/*{
 			"selltype",
@@ -872,16 +874,16 @@ func TestQueryNftByFilterNew(t *testing.T) {
 	}*/
 
 	nfilters = []StQueryField{
-		{
-			"collectcreator",
-			"=",
-			"0x7a149f02e5e4571c42d5cf69b4ccb5772fa1b275",
-		},
-		{
-			"collections",
-			"=",
-			"collect_test_0",
-		},
+		//{
+		//	"collectcreator",
+		//	"=",
+		//	"0x7a149f02e5e4571c42d5cf69b4ccb5772fa1b275",
+		//},
+		//{
+		//	"collections",
+		//	"=",
+		//	"collect_test_0",
+		//},
 		//{
 		//	"selltype",
 		//	"=",
@@ -907,23 +909,28 @@ func TestQueryNftByFilterNew(t *testing.T) {
 			"<=",
 			"20000000000",
 		},*/
-		/*{
+		{
 			"createdate",
 			">=",
 			"1654226774",
+		},
+		/*{
+			"offernum",
+			">",
+			"0",
 		},*/
 	}
 	//sorts := []StSortField{{By: "createdate", Order: "desc"}}
 	//nfilters = []StQueryField{}
 	sorts := []StSortField{
-		/*{
+		{
 			"sellprice",
 			"asc",
-		},*/
-		{
+		},
+		/*{
 			"verifiedtime",
 			"asc",
-		},
+		},*/
 	}
 	nftByFilter, count, err := nd.QueryNftByFilterNftSnft(nfilters, sorts, "nft", "0", "10")
 	if err != nil {
@@ -1939,7 +1946,10 @@ func TestGetBuyingParams(t *testing.T) {
 
 func TestGetIsVliaddr(t *testing.T) {
 	fmt.Println(strings.ToLower("0x571CbB911fE99118B230585BA0cC7c5054324F85"))
-	tm := time.Unix(1655112247, 0).UTC()
+	tm := time.Unix(1656700000, 0)
+	f := tm.String()
+	fmt.Println(f)
+	fmt.Println(f)
 	fmt.Println(tm.Format("2006-01-02 15:04:05"))
 	tm = time.Unix(1654848672, 0)
 	fmt.Println(tm.Format("2006-01-02 15:04:05"))
@@ -2175,4 +2185,139 @@ func TestSaveToIpfss(t *testing.T) {
 	fmt.Println(mhash)
 
 	//return mhash, nil
+}
+
+func TestNewRedisCatch(t *testing.T) {
+	err := NewQueryCatch("192.168.1.235:6379", "user123456")
+	fmt.Println(err)
+	qCatch := GetRedisCatch()
+	err = qCatch.HsetRedisData("user1", "name", []byte("name1"))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	//err = qCatch.HdelRedisData("user1", "name")
+	name, err := qCatch.HgetRedisData("user1", "name")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	qCatch.SetDirtyFlag([]string{"user1"})
+	err = qCatch.HsetRedisData("user1", "age", []byte("20"))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	err = qCatch.HsetRedisData("user2", "name", []byte("name2"))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	qCatch.SetDirtyFlag([]string{"user1"})
+	err = qCatch.HsetRedisData("user2", "age", []byte("50"))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	name, err = qCatch.HgetRedisData("user1", "name")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	fmt.Println(string(name))
+	age, err := qCatch.HgetRedisData("user1", "age")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	fmt.Println(string(age))
+	name, err = qCatch.HgetRedisData("user2", "name")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	fmt.Println(string(name))
+	age, err = qCatch.HgetRedisData("user2", "age")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	fmt.Println(string(age))
+	//err = qCatch.SetRedisData("dskfjdkf", []byte("12345678"))
+	//nn, err := qCatch.GetRedisData("dskfjdkf")
+	//fmt.Println(nn)
+	//err = qCatch.SetRedisData("dskfjdkf", []byte("555555"))
+	//nn, err = qCatch.GetRedisData("dskfjdkf")
+	//fmt.Println(nn)
+	type test struct {
+		Name string
+		Age  int
+	}
+	ExchangeOwer = "0x01842a2cf56400a245a56955dc407c2c4137321e"
+	err = qCatch.CatchQueryData("1", "2", test{"1", 2})
+	err = qCatch.CatchQueryData("1", "2", test{"2", 200})
+	err = qCatch.CatchQueryData("1", "1", test{"1", 1})
+	err = qCatch.CatchQueryData("1", "3", test{"1", 1})
+	err = qCatch.CatchQueryData("1", "5", test{"1", 1})
+	err = qCatch.CatchQueryData("2", "3", test{"2", 3})
+	err = qCatch.CatchQueryData("2", "1", test{"2", 2})
+	err = qCatch.CatchQueryData("5", "2", test{"5", 2})
+	//var tt = test{name: "name", age: 1,}
+	tt := test{Name: "name", Age: 1}
+	//qCatch.SetDirtyFlag([]string{"1", "2"})
+	nftCatch := NftFilter{}
+
+	err = qCatch.GetCatchData("QueryNftByFilterNftSnft", "050", &nftCatch)
+	err = qCatch.GetCatchData("1", "2", &tt)
+	err = qCatch.GetCatchData("1", "2", &tt)
+	err = qCatch.GetCatchData("1", "2", &tt)
+	err = qCatch.GetCatchData("1", "2", &tt)
+	err = qCatch.GetCatchData("2", "1", &tt)
+	err = qCatch.GetCatchData("2", "3", &tt)
+	err = qCatch.GetCatchData("5", "2", &tt)
+	//qCatch.SetDirtyFlag([]string{"1", "2"})
+}
+
+func TestDelCatch(t *testing.T) {
+	err := NewQueryCatch("192.168.1.235:6379", "user123456")
+	fmt.Println(err)
+	qCatch := GetRedisCatch()
+	ExchangeOwer = "0x671a9f50d3f1a1aed7310ebb67cc7fe810a06998"
+	var paraminfo SysParamsInfo
+	cerr := qCatch.GetCatchData("QuerySysParams", "QuerySysParams", &paraminfo)
+	if cerr != nil {
+		log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
+		return
+	}
+	GetRedisCatch().SetDirtyFlag(SysParamsDirtyName)
+	cerr = qCatch.GetCatchData("QuerySysParams", "QuerySysParams", &paraminfo)
+	if cerr == nil {
+		log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
+		return
+	}
+}
+
+func TestAddDirtyQuery(t *testing.T) {
+	err := NewQueryCatch("192.168.56.128:6379", "")
+	err = NewQueryMainCatch("192.168.1.235:6379", "user123456")
+	fmt.Println(err)
+	ExchangeOwer = "0x671a9f50d3f1a1aed7310ebb67cc7fe810a06998"
+	ExchangeOwer = "0x57ed0c503c40308e802414405ce3d399fe3a42c6"
+	mCatch := GetRedisMainCatch()
+	qCatch := GetRedisCatch()
+	mDirtyQuerys, _ := mCatch.GetDirtyQuerys()
+	fmt.Println(mDirtyQuerys)
+	DirtyQuerys, _ := qCatch.GetDirtyQuerys()
+	fmt.Println(DirtyQuerys)
+
+	cerr := mCatch.SaveDirtyQuerys([]string{"QuerySysParams", "QuerySysParams0"})
+	if cerr != nil {
+		log.Printf("TestAddDirtyQuery() default  time.now=%s\n", time.Now())
+		return
+	}
+	cerr = mCatch.SaveDirtyQuerys([]string{"QuerySysParams0", "QuerySysParams1"})
+	if cerr != nil {
+		log.Printf("TestAddDirtyQuery() default  time.now=%s\n", time.Now())
+		return
+	}
+	querydirtys, _ := mCatch.GetDirtyQuerys()
+	fmt.Println(querydirtys)
+	qCatch.scanDirtyQuery(mCatch)
+	cerr = mCatch.SaveDirtyQuerys([]string{"QuerySysParams0", "QuerySysParams1"})
+	if cerr != nil {
+		log.Printf("TestAddDirtyQuery() default  time.now=%s\n", time.Now())
+		return
+	}
+	qCatch.scanDirtyQuery(mCatch)
 }

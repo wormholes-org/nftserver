@@ -32,27 +32,109 @@ func registRouterV1() {
 }
 
 func registRouterV2() {
+	if !models.LimitWritesDatabase {
+		//Upload nft
+		beego.Router("/v2/upload", &nftexchangev2.NftExchangeControllerV2{}, "post:UploadNft")
+		//Upload nft  with original images
+		beego.Router("/v2/uploadNftImage", &nftexchangev2.NftExchangeControllerV2{}, "post:UploadNftImage")
+		//buy nft
+		beego.Router("/v2/buy", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyNft")
+		//To buy nft , the exchange initiates the transaction
+		beego.Router("/v2/buying", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyingNft")
+		//cancel purchase of nft works
+		beego.Router("/v2/cancelBuy", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelBuyNft")
+		//Modify user information
+		beego.Router("/v2/modifyUserInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyUserInfo")
+		//For sale (on the shelf)
+		beego.Router("/v2/sell", &nftexchangev2.NftExchangeControllerV2{}, "post:Sell")
+		//Cancel the sale (off the shelf)
+		beego.Router("/v2/cancelSell", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelSell")
+		//Audit NFTs
+		beego.Router("/v2/vrfNFT", &nftexchangev2.NftExchangeControllerV2{}, "post:VerifyNft")
+		//User-focused NFTs
+		beego.Router("/v2/like", &nftexchangev2.NftExchangeControllerV2{}, "post:SetFavoriteNft")
+		//New collection
+		beego.Router("/v2/newCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateCollection")
+		//Modify collection information
+		beego.Router("/v2/modifyCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyCollection")
+		//Modify Collection Cover
+		beego.Router("/v2/modifyCollectionsImage", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyCollectionsImage")
+		//User apply for KYC
+		beego.Router("/v2/userRequireKYC", &nftexchangev2.NftExchangeControllerV2{}, "post:UserRequireKYC")
+		//Audit KYC
+		beego.Router("/v2/userKYC", &nftexchangev2.NftExchangeControllerV2{}, "post:UserKYC")
+		//set sysparams data
+		beego.Router("/v2/modifySysParams", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSysParams")
+		//Modify the announcement release switch
+		beego.Router("/v2/setAnnouncementParams", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAnnouncementParams")
+		//Notification of completion of purchase of nft works
+		beego.Router("/v2/buyResultInterface", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyResultInterface")
+		//Set signature data
+		beego.Router("/v2/setExchangeSig", &nftexchangev2.NftExchangeControllerV2{}, "post:SetExchangeSig")
+		//Add edit administrator
+		beego.Router("/v2/modifyAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAdmins")
+		//remove admin
+		beego.Router("/v2/delAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:DelAdmins")
+		//Add announcement
+		beego.Router("/v2/modifyAnnounce", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAnnounce")
+		//delete announcement
+		beego.Router("/v2/delAnnounces", &nftexchangev2.NftExchangeControllerV2{}, "post:DelAnnounces")
+		//Add and modify country information
+		beego.Router("/v2/modifyCountry", &nftexchangev2.NftExchangeControllerV2{}, "post:SetCountrys")
+		//upload files
+		beego.Router("/v2/upLoadFile", &nftexchangev2.NftExchangeControllerV2{}, "post:UpLoadFile")
+		//Upload snft collection
+		beego.Router("/v2/createSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateSnftCollection")
+		//modify snft collection
+		beego.Router("/v2/modifySnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftCollection")
+		//delete snft collection
+		beego.Router("/v2/delSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateSnftCollection")
+		//New snft period
+		beego.Router("/v2/creatssnftphase", &nftexchangev2.NftExchangeControllerV2{}, "post:CreatsSnftphase")
+		//Modify period
+		beego.Router("/v2/modifyPeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftPeriod")
+		//delete period
+		beego.Router("/v2/delSnftPeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
+		//Modify snft collection
+		beego.Router("/v2/modifySnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftCollection")
+		//delete snft collection
+		beego.Router("/v2/delSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftCollection")
+		//Modify snft
+		beego.Router("/v2/modifySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
+		//delete snft
+		beego.Router("/v2/delSnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
+		//snft collect setsnft
+		beego.Router("/v2/modifycollectsnft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetCollectSnft")
+		//Set a voting period
+		beego.Router("/v2/setVotePeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetVotePeriod")
+		//Select the betting chain
+		beego.Router("/v2/setperiodeth", &nftexchangev2.NftExchangeControllerV2{}, "post:SetPeriodEth")
+		//Add subscription email
+		beego.Router("/v2/setSubscribeEmail", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSubscribeEmail")
+		//Delete subscription mailbox
+		beego.Router("/v2/delSubscribeEmail", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSubscribeEmail")
+		//delete nft
+		beego.Router("/v2/delnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelNft")
+		//delete collection
+		beego.Router("/v2/delcollect", &nftexchangev2.NftExchangeControllerV2{}, "post:DelCollect")
+		//Bulk purchase of nft works, initiated by the exchange
+		beego.Router("/v2/groupbuying", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupBuyingNft")
+		//Group sale (on the shelf)
+		beego.Router("/v2/groupsell", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupSell")
+		//Mass Cancellation of Sale (on the shelf)
+		beego.Router("/v2/groupcancelsell", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupCancelSell")
+		//modify nft
+		beego.Router("/v2/modifynft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetNft")
+
+	}
 	//User login
 	beego.Router("/v2/login", &nftexchangev2.NftExchangeControllerV2{}, "post:UserLogin")
-	//Upload nft
-	beego.Router("/v2/upload", &nftexchangev2.NftExchangeControllerV2{}, "post:UploadNft")
-	//Upload nft  with original images
-	beego.Router("/v2/uploadNftImage", &nftexchangev2.NftExchangeControllerV2{}, "post:UploadNftImage")
-	//buy nft
-	beego.Router("/v2/buy", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyNft")
-	//To buy nft , the exchange initiates the transaction
-	beego.Router("/v2/buying", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyingNft")
-	//cancel purchase of nft works
-	beego.Router("/v2/cancelBuy", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelBuyNft")
-
 	//Notification of completion of purchase of nft works
-	beego.Router("/v2/buyResult", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyResult")
+	//beego.Router("/v2/buyResult", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyResult")
 	//Query nft
 	beego.Router("/v2/queryNFTList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryNftList")
 	//query user
 	beego.Router("/v2/queryUserInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryUserInfo")
-	//Modify user information
-	beego.Router("/v2/modifyUserInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyUserInfo")
 	//Query single NFT information
 	beego.Router("/v2/queryNFT", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryNft")
 	//Querying information about a single SNFT fragment
@@ -69,26 +151,14 @@ func registRouterV2() {
 	beego.Router("/v2/queryStageList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryStageList")
 	//Query period collection information
 	beego.Router("/v2/queryStageCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryStageCollection")
-	//For sale (on the shelf)
-	beego.Router("/v2/sell", &nftexchangev2.NftExchangeControllerV2{}, "post:Sell")
-	//Cancel the sale (off the shelf)
-	beego.Router("/v2/cancelSell", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelSell")
+	//Return snft fragments based on user address
+	beego.Router("/v2/queryOwnerSnftChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerSnftChip")
 	//
 	//beego.Router("/v2/modifyNFT", &controllers.NftExchangeControllerV2{}, "post:ModifyNFT")
 	//Query the NFT pending review list
 	beego.Router("/v2/queryPendingVrfList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryPendingVerificationList")
-	//Audit NFTs
-	beego.Router("/v2/vrfNFT", &nftexchangev2.NftExchangeControllerV2{}, "post:VerifyNft")
 	//Get market data
 	beego.Router("/v2/queryMarketInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryMarketInfo")
-	//User-focused NFTs
-	beego.Router("/v2/like", &nftexchangev2.NftExchangeControllerV2{}, "post:SetFavoriteNft")
-	//New collection
-	beego.Router("/v2/newCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateCollection")
-	//Modify collection information
-	beego.Router("/v2/modifyCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyCollection")
-	//Modify Collection Cover
-	beego.Router("/v2/modifyCollectionsImage", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyCollectionsImage")
 	//Get user NFT list
 	beego.Router("/v2/queryUserNFTList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryUserNftList")
 	//Query user collection list
@@ -105,13 +175,8 @@ func registRouterV2() {
 	beego.Router("/v2/queryNFTCollectionList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryNftCollectionList")
 	//Get collection details
 	beego.Router("/v2/queryCollectionInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryCollectionInfo")
-
 	//Get transaction history of NFT exchanges
 	beego.Router("/v2/queryMarketTradingHistory", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryMarketTradingHistory")
-	//User apply for KYC
-	beego.Router("/v2/userRequireKYC", &nftexchangev2.NftExchangeControllerV2{}, "post:UserRequireKYC")
-	//Audit KYC
-	beego.Router("/v2/userKYC", &nftexchangev2.NftExchangeControllerV2{}, "post:UserKYC")
 	//Get user KYC list
 	beego.Router("/v2/queryPendingKYCList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryPendingKYCList")
 	//Fuzzy query nft, collection, account
@@ -122,116 +187,53 @@ func registRouterV2() {
 	beego.Router("/v2/queryHomePage", &nftexchangev2.NftExchangeControllerV2{}, "get:QueryHomePage")
 	//get sysparams data
 	beego.Router("/v2/querySysParams", &nftexchangev2.NftExchangeControllerV2{}, "get:GetSysParams")
-	//set sysparams data
-	beego.Router("/v2/modifySysParams", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSysParams")
-	//Modify the announcement release switch
-	beego.Router("/v2/setAnnouncementParams", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAnnouncementParams")
-	//Notification of completion of purchase of nft works
-	beego.Router("/v2/buyResultInterface", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyResultInterface")
 	beego.Router("/v2/testRecover", &nftexchangev2.NftExchangeControllerV2{}, "post:Recover")
 	beego.Router("/v2/getSysParam", &nftexchangev2.NftExchangeControllerV2{}, "post:GetSysParamByParams")
-	//Set signature data
-	beego.Router("/v2/setExchangeSig", &nftexchangev2.NftExchangeControllerV2{}, "post:SetExchangeSig")
 	//Query whether to sign
 	beego.Router("/v2/getExchangeSig", &nftexchangev2.NftExchangeControllerV2{}, "get:GetExchangeSig")
-
 	//Query
 	//beego.Router("/v1/getimage", &controllers.NftExchangeController{}, "post:GetImageFromIPFS")
 	beego.Router("/v2/ipfsaddtest", &nftexchangev2.NftExchangeControllerV2{}, "get:IpfsTest")
-
 	//Query version number
-	beego.Router("v2/version", &nftexchangev2.NftExchangeControllerV2{}, "get:GetVersion")
-
+	beego.Router("/v2/version", &nftexchangev2.NftExchangeControllerV2{}, "get:GetVersion")
 	//Batch Import
 	//beego.Router("/v2/batchNewCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchCreateCollection")
 	//beego.Router("/v2/batchUpload", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchUploadNft")
 	//beego.Router("/v2/batchBuyResultInterface", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchBuyResultInterface")
 	//query administrator
-	beego.Router("v2/queryAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:GetAdmins")
+	beego.Router("/v2/queryAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:GetAdmins")
 	//Address query administrator
 	beego.Router("/v2/queryAdminsByAddr", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryAdminsByAddr")
-	//Add edit administrator
-	beego.Router("v2/modifyAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAdmins")
-	//remove admin
-	beego.Router("v2/delAdmins", &nftexchangev2.NftExchangeControllerV2{}, "post:DelAdmins")
 	//Query announcement
-	beego.Router("v2/queryAnnounce", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryAnnounce")
-	//Add announcement
-	beego.Router("v2/modifyAnnounce", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAnnounce")
-	//delete announcement
-	beego.Router("v2/delAnnounces", &nftexchangev2.NftExchangeControllerV2{}, "post:DelAnnounces")
+	beego.Router("/v2/queryAnnounce", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryAnnounce")
 	//Query country information
-	beego.Router("v2/queryCountry", &nftexchangev2.NftExchangeControllerV2{}, "get:GetCountrys")
-	//Add and modify country information
-	beego.Router("v2/modifyCountry", &nftexchangev2.NftExchangeControllerV2{}, "post:SetCountrys")
-	//upload files
-	beego.Router("v2/upLoadFile", &nftexchangev2.NftExchangeControllerV2{}, "post:UpLoadFile")
-	//Upload snft collection
-	beego.Router("/v2/createSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateSnftCollection")
-	//modify snft collection
-	beego.Router("/v2/modifySnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftCollection")
-	//delete snft collection
-	beego.Router("/v2/delSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:CreateSnftCollection")
-	//New snft period
-	beego.Router("/v2/creatssnftphase", &nftexchangev2.NftExchangeControllerV2{}, "post:CreatsSnftphase")
-	//Modify period
-	beego.Router("/v2/modifyPeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftPeriod")
+	beego.Router("/v2/queryCountry", &nftexchangev2.NftExchangeControllerV2{}, "get:GetCountrys")
 	//query period
 	beego.Router("/v2/getSnftPeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:GetSnftPeriod")
-	//delete period
-	beego.Router("/v2/delSnftPeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
-	//Modify snft collection
-	beego.Router("/v2/modifySnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSnftCollection")
 	//query snft  collection
 	beego.Router("/v2/querySnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:GetSnftCollection")
-	//delete snft collection
-	beego.Router("/v2/delSnftCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftCollection")
-	//Modify snft
-	beego.Router("/v2/modifySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
 	//query snft
 	//beego.Router("/v2/querySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
-	//delete snft
-	beego.Router("/v2/delSnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSnftPeriod")
-	//snft collect setsnft
-	beego.Router("/v2/modifycollectsnft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetCollectSnft")
 	//query snft
 	beego.Router("/v2/snftSearch", &nftexchangev2.NftExchangeControllerV2{}, "post:SnftSearch")
 	//search collect
 	beego.Router("/v2/snftCollectSearch", &nftexchangev2.NftExchangeControllerV2{}, "post:SnftCollectSearch")
 	//Get a voting period
 	beego.Router("/v2/queryVotePeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:GetVotePeriod")
-	//Set a voting period
-	beego.Router("/v2/setVotePeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetVotePeriod")
 	//Get all voting periods
 	beego.Router("/v2/queryAllvotePeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:GetAllVotePeriod")
 	//Get three voting periods
 	beego.Router("/v2/queryAccedvotePeriod", &nftexchangev2.NftExchangeControllerV2{}, "post:GetAccedVotePeriod")
-	//Select the betting chain
-	beego.Router("/v2/setperiodeth", &nftexchangev2.NftExchangeControllerV2{}, "post:SetPeriodEth")
 	//Get total nft data
 	beego.Router("/v2/queryNftMarketInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:GetNftMarketInfo")
 	//Query subscription mailbox
-	beego.Router("v2/querySubscribeEmails", &nftexchangev2.NftExchangeControllerV2{}, "post:QuerySubscribeEmails")
-	//Add subscription email
-	beego.Router("v2/setSubscribeEmail", &nftexchangev2.NftExchangeControllerV2{}, "post:SetSubscribeEmail")
-	//Delete subscription mailbox
-	beego.Router("v2/delSubscribeEmail", &nftexchangev2.NftExchangeControllerV2{}, "post:DelSubscribeEmail")
-	//delete nft
-	beego.Router("v2/delnft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelNft")
-	//delete collection
-	beego.Router("v2/delcollect", &nftexchangev2.NftExchangeControllerV2{}, "post:DelCollect")
-	//Bulk purchase of nft works, initiated by the exchange
-	beego.Router("/v2/groupbuying", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupBuyingNft")
-	//Group sale (on the shelf)
-	beego.Router("/v2/groupsell", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupSell")
-	//Mass Cancellation of Sale (on the shelf)
-	beego.Router("/v2/groupcancelsell", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupCancelSell")
-	//modify nft
-	beego.Router("/v2/modifynft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetNft")
+	beego.Router("/v2/querySubscribeEmails", &nftexchangev2.NftExchangeControllerV2{}, "post:QuerySubscribeEmails")
 	//query aptcha
 	beego.Router("/v2/querycaptcha", &nftexchangev2.NftExchangeControllerV2{}, "post:GetCaptcha")
-	//Authorization captcha
+	//auth captcha
 	beego.Router("/v2/authcaptcha", &nftexchangev2.NftExchangeControllerV2{}, "post:AuthCaptcha")
+	//admin login
+	beego.Router("/v2/adminlogin", &nftexchangev2.NftExchangeControllerV2{}, "post:AdminLogin")
 
 }
 

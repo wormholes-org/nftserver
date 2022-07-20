@@ -8,13 +8,16 @@ import (
 	"log"
 	"testing"
 )
-const sqlsvrLcT = "admin:user123456@tcp(192.168.32.128:3306)/"
-//const sqlsvrLcT = "demo:123456@tcp(192.168.56.128:3306)/"
+
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.32.128:3306)/"
+const sqlsvrLcT = "demo:123456@tcp(192.168.56.128:3306)/"
+
 //const vpnsvr = "demo:123456@tcp(192.168.1.238:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
 //const dbNameT = "nftdbdemo"
-const dbNameT = "nftdb"
+const dbNameT = "mynftdb"
 const localtimeT = "?parseTime=true&loc=Local"
+
 //const localtimeT = "?charset=utf8mb4&parseTime=True&loc=Local"
 
 const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
@@ -71,5 +74,5 @@ func TestSendAddr(t *testing.T) {
 		fmt.Println("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 	}
 	fromAddress = crypto.PubkeyToAddress(*publicKeyECDSA)
-	fmt.Println("fromAddress=", fromAddress)  //0x2b0aD05ADDa21BA4E5b94C4f9aE3BCeA15A380c5
+	fmt.Println("fromAddress=", fromAddress) //0x2b0aD05ADDa21BA4E5b94C4f9aE3BCeA15A380c5
 }

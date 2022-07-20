@@ -15,7 +15,7 @@ import (
 
 func init() {
 	//EthNode = "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161"
-	EthNode = "http://192.168.56.129:8545"
+	EthNode = "https://api.wormholestest.com"
 	Weth9Addr = "0xf4bb2e28688e89fcce3c0580d37d36a7672e8a9f"
 	TradeAddr = "0xD8D5D49182d7Abf3cFc1694F8Ed17742886dDE82"
 	Nft1155Addr = "0xa1e67a33e090afe696d7317e05c506d7687bb2e5"
@@ -44,7 +44,7 @@ func TestGetBlockTxs(t *testing.T) {
 
 func TestGetBlockTxsNew(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		_, err := GetBlockTxsNew(7650 + uint64(i))
+		_, err := GetBlockTxsNew(184926 + uint64(i))
 		if err != nil {
 			fmt.Println("GetBlockTxs error.")
 		}

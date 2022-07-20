@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
@@ -146,7 +145,7 @@ func (nft NftDb) UploadNftImage(
 	collectImageUrl, serr := SaveToIpfs(collectRec.Img)
 	if serr != nil {
 		log.Println("UploadNftImage() save collection image err=", serr)
-		return NftImage{}, errors.New("UploadNftImage() save collection image error.")
+		return NftImage{}, ErrIpfsImage
 	}
 	fmt.Printf("UploadNftImage() preprocess Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	if nft_contract_addr == "" && nft_token_id == "" {
@@ -204,7 +203,7 @@ func (nft NftDb) UploadNftImage(
 		meta, serr := SaveToIpfs(string(metaStr))
 		if serr != nil {
 			log.Println("UploadNftImage() save nftmeta info err=", serr)
-			return NftImage{}, errors.New("UploadNftImage() save nftmeta info error.")
+			return NftImage{}, ErrIpfsImage
 		}
 		meta = "/ipfs/" + meta
 		fmt.Printf("UploadNftImage() SaveNftImage Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
@@ -281,7 +280,7 @@ func (nft NftDb) UploadNftImage(
 			err := tx.Model(&Nfts{}).Create(&nfttab)
 			if err.Error != nil {
 				fmt.Println("UploadNftImage() err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			if collections != "" {
 				/*var collectListRec CollectLists
@@ -296,24 +295,26 @@ func (nft NftDb) UploadNftImage(
 					collections, creator_addr).Update("totalcount", collectRec.Totalcount+1)
 				if err.Error != nil {
 					fmt.Println("UploadNftImage() add collectins totalcount err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 			}
 			err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("nfttotal", sysInfo.Nfttotal+1)
 			if err.Error != nil {
 				fmt.Println("UploadNft() add  SysInfos nfttotal err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
-			HomePageCatchs.NftCountLock()
-			HomePageCatchs.NftCountFlag = true
-			HomePageCatchs.NftCountUnLock()
+			//HomePageCatchs.NftCountLock()
+			//HomePageCatchs.NftCountFlag = true
+			//HomePageCatchs.NftCountUnLock()
 			return nil
 		})
-		NftCatch.SetFlushFlag()
+		//NftCatch.SetFlushFlag()
+		GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+
 		fmt.Printf("UploadNftImage() Create record Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		return nftimage, err
 	} else {
 		log.Println("UploadNftImage() contract!=NULL tokenid != 0 ")
-		return NftImage{}, errors.New("UploadNftImage() contract!=NULL tokenid != 0")
+		return NftImage{}, ErrData
 	}
 }

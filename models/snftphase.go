@@ -69,7 +69,7 @@ func (nft NftDb) NewSnftPhase(useraddr, name, desc string) error {
 	err := nft.db.Where("name = ? ", name).First(&snftcollectrec)
 	if err.Error == nil {
 		fmt.Println("NewSnftPhase() err=name already exist.")
-		return ErrCollectionExist
+		return ErrAlreadyExist
 	} else if err.Error == gorm.ErrRecordNotFound {
 		snftcollectrec = SnftPhase{}
 		snftcollectrec.Createaddr = useraddr
@@ -78,18 +78,20 @@ func (nft NftDb) NewSnftPhase(useraddr, name, desc string) error {
 		newtoken, terr := nft.NewPeriodTokenGen()
 		if terr != nil {
 			fmt.Printf("newtokengen err=%s", terr)
-			return terr
+			return ErrGenerateTokenId
 		}
 		snftcollectrec.Tokenid = newtoken
 		err = nft.db.Model(&SnftPhase{}).Create(&snftcollectrec)
 		if err.Error != nil {
 			fmt.Println("NewSnftPhase() create SnftPeriod err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		return nil
 	}
+	//GetRedisCatch().SetDirtyFlag(NewSnftPeriod)
+
 	fmt.Println("NewSnftPhase() dbase err=.", err)
-	return err.Error
+	return ErrDataBase
 }
 
 func (nft NftDb) SetSnftPeriod(period Period) error {
@@ -99,7 +101,7 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 	err := nft.db.Model(&snftcollectrec).Where("tokenid = ?", period.TokenID).First(&snftcollectrec)
 	if err.Error != nil {
 		fmt.Println("SetSnftPeriod() err= not find period.")
-		return err.Error
+		return ErrNotFound
 	} else {
 		if period.Name != "" {
 			err = nft.db.Where(" name = ? ", period.Name).First(&snftcollectrec)
@@ -126,22 +128,23 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 			fmt.Println(percoll)
 			if uerr != nil {
 				log.Println("ModifyPeriodCollect()  Unmarshal() err=", err)
+				return ErrDataFormat
 			}
 			if len(percoll) > 16 {
 				fmt.Println("select collect to Period too long ")
-				return errors.New("select collect to Period too long")
+				return ErrData
 			}
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				snftphase := SnftPhase{}
 				err := tx.Model(&SnftPhase{}).Where("tokenid = ?", period.TokenID).First(&snftphase)
 				if err.Error != nil {
 					fmt.Println(" SnftCollect  get err= ", err.Error)
-					return err.Error
+					return ErrNotFound
 				}
 				err = tx.Model(&SnftCollectPeriod{}).Where("period =? ", period.TokenID).Delete(&SnftCollectPeriod{})
 				if err.Error != nil {
 					fmt.Println(" SnftCollect  delete err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 
 				total := 0
@@ -152,7 +155,7 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 						collect[modify.Collect] = modify.Collect
 					} else {
 						fmt.Println(" SnftCollect  set input data repeat ")
-						return errors.New("SnftCollect  set input data repeat")
+						return ErrData
 					}
 					//collectperiod := SnftCollectPeriod{}
 					snftperiod := &SnftCollectPeriod{}
@@ -162,14 +165,14 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 					err = tx.Model(&SnftCollectPeriod{}).Create(&snftperiod)
 					if err.Error != nil {
 						fmt.Printf("SetSnftPeriod() create SnftCollectPeriod err=%s", err.Error)
-						return err.Error
+						return ErrDataBase
 					}
 
 					collect := SnftCollect{}
 					err = tx.Model(&SnftCollect{}).Where("tokenid=? ", modify.Collect).Find(&collect)
 					if err.Error != nil {
 						fmt.Println("SetVoteSnftPeriod() find SnftCollectPeriod err=", err.Error)
-						return err.Error
+						return ErrNotFound
 					}
 					snfts := strings.Split(collect.Snft, ",")
 					if len(snfts) == 16 {
@@ -186,8 +189,9 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 				err = tx.Model(&SnftPhase{}).Where("tokenid = ?", period.TokenID).Updates(&snftcollectrec)
 				if err.Error != nil {
 					fmt.Println("period collect  update err= ", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
+				//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
 				fmt.Println("SetSnftPeriod()  Ok")
 				return nil
 			})
@@ -196,8 +200,9 @@ func (nft NftDb) SetSnftPeriod(period Period) error {
 			err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", period.TokenID).Updates(&snftcollectrec)
 			if err.Error != nil {
 				fmt.Println("SetSnftPeriod() update err= ", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
+			//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
 			fmt.Println("SetSnftPeriod() Ok.")
 			return nil
 		}
@@ -240,11 +245,16 @@ func (nft NftDb) GetSnftPeriod() ([]QueryPeriod, error) {
 	//collectionInfo := SnftPhase{}
 	snftphase := []SnftPhase{}
 	snftphasecollect := []QueryPeriod{}
+	//cerr := GetRedisCatch().GetCatchData("GetSnftPeriod", "GetSnftPeriod", &snftphasecollect)
+	//if cerr == nil {
+	//	log.Printf("GetSnftPeriod() default  time.now=%s\n", time.Now())
+	//	return snftphasecollect, nil
+	//}
 	//var snftcollectrec SnftPhase
 	db := nft.db.Model(&SnftPhase{}).Where("accedeth is null or accedeth =? ", "").Find(&snftphase)
 	if db.Error != nil {
 		fmt.Println("GetSnftPeriod() dbase err=", db.Error)
-		return nil, db.Error
+		return nil, ErrDataBase
 	}
 	for _, perod := range snftphase {
 		collect := QueryPeriod{}
@@ -260,14 +270,14 @@ func (nft NftDb) GetSnftPeriod() ([]QueryPeriod, error) {
 		err := nft.db.Model(&SnftCollectPeriod{}).Where("period=? ", perod.Tokenid).Find(&collectlocal)
 		if err.Error != nil {
 			fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for _, local := range collectlocal {
 			cocolloct := SnftCollect{}
 			err := nft.db.Where(" tokenid = ? ", local.Collect).First(&cocolloct)
 			if err.Error != nil {
 				fmt.Println("SetSnftPeriod() eSnftCollect err=.", err.Error)
-				return nil, err.Error
+				return nil, ErrDataBase
 			}
 			cocolloct.Img = ""
 			cocolloct.Local = local.Local
@@ -276,18 +286,23 @@ func (nft NftDb) GetSnftPeriod() ([]QueryPeriod, error) {
 		collect.CollectionList = percoll
 		snftphasecollect = append(snftphasecollect, collect)
 	}
+	//GetRedisCatch().CatchQueryData("GetSnftPeriod", "GetSnftPeriod", &snftphasecollect)
+
 	return snftphasecollect, nil
 }
 
 func (nft NftDb) GetAllVotePeriod() ([]QueryPeriod, error) {
-	//collectionInfo := SnftPhase{}
 	snftphase := []SnftPhase{}
 	snftphasecollect := []QueryPeriod{}
-	//var snftcollectrec SnftPhase
+	//cerr := GetRedisCatch().GetCatchData("GetAllVotePeriod", "GetAllVotePeriod", &snftphasecollect)
+	//if cerr == nil {
+	//	log.Printf("GetAllVotePeriod() default  time.now=%s\n", time.Now())
+	//	return snftphasecollect, nil
+	//}
 	db := nft.db.Model(&SnftPhase{}).Where("accedvote = ? and (accedeth is null or accedeth =?)", "true", "").Find(&snftphase)
 	if db.Error != nil {
 		fmt.Println("GetSnftPeriod() dbase err=", db.Error)
-		return nil, db.Error
+		return nil, ErrDataBase
 	}
 	for _, perod := range snftphase {
 		collect := QueryPeriod{}
@@ -303,14 +318,14 @@ func (nft NftDb) GetAllVotePeriod() ([]QueryPeriod, error) {
 		err := nft.db.Model(&SnftCollectPeriod{}).Where("period=? ", perod.Tokenid).Find(&collectlocal)
 		if err.Error != nil {
 			fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for _, local := range collectlocal {
 			cocolloct := SnftCollect{}
 			err := nft.db.Where(" tokenid = ? ", local.Collect).First(&cocolloct)
 			if err.Error != nil {
 				fmt.Println("SetSnftPeriod() eSnftCollect err=.", err.Error)
-				return nil, err.Error
+				return nil, ErrDataBase
 			}
 			cocolloct.Img = ""
 			cocolloct.Local = local.Local
@@ -319,6 +334,9 @@ func (nft NftDb) GetAllVotePeriod() ([]QueryPeriod, error) {
 		collect.CollectionList = percoll
 		snftphasecollect = append(snftphasecollect, collect)
 	}
+
+	//GetRedisCatch().CatchQueryData("GetAllVotePeriod", "GetAllVotePeriod", &snftphasecollect)
+
 	return snftphasecollect, nil
 }
 
@@ -330,7 +348,7 @@ func (nft NftDb) GetAccedVotePeriod() ([]QueryPeriod, error) {
 	db := nft.db.Model(&SnftPhase{}).Where("accedvote = ? and (accedeth is null or accedeth =?)", "true", "").Find(&snftphase)
 	if db.Error != nil {
 		fmt.Println("GetSnftPeriod() dbase err=", db.Error)
-		return nil, db.Error
+		return nil, ErrDataBase
 	}
 	for _, perod := range snftphase {
 		collect := QueryPeriod{}
@@ -346,14 +364,14 @@ func (nft NftDb) GetAccedVotePeriod() ([]QueryPeriod, error) {
 		err := nft.db.Model(&SnftCollectPeriod{}).Where("period=? ", perod.Tokenid).Find(&collectlocal)
 		if err.Error != nil {
 			fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-			return nil, err.Error
+			return nil, ErrDataBase
 		}
 		for _, local := range collectlocal {
 			cocolloct := SnftCollect{}
 			err := nft.db.Where(" tokenid = ? ", local.Collect).First(&cocolloct)
 			if err.Error != nil {
-				fmt.Println("SetSnftPeriod() eSnftCollect err=.", err.Error)
-				return nil, err.Error
+				fmt.Println("SetSnftPeriod() SnftCollect err=.", err.Error)
+				return nil, ErrDataBase
 			}
 			cocolloct.Img = ""
 			cocolloct.Local = local.Local
@@ -389,17 +407,28 @@ func (nft NftDb) GetAccedVotePeriod() ([]QueryPeriod, error) {
 	return snftvoteperiod, nil
 }
 
+type GetVoteSnftPeriodCache struct {
+	SnftPeriod []QueryPeriod
+	Total      int
+}
+
 func (nft NftDb) GetVoteSnftPeriod(startIndex string, count string) ([]QueryPeriod, int, error) {
-	//collectionInfo := SnftPhase{}
 	snftphase := []SnftPhase{}
 	snftphasecollect := []QueryPeriod{}
-	//var snftcollectrec SnftPhase
+	periodcache := GetVoteSnftPeriodCache{}
+	//cerr := GetRedisCatch().GetCatchData("GetVoteSnftPeriod", startIndex+count, &periodcache)
+	//if cerr == nil {
+	//	log.Printf("GetVoteSnftPeriod() default  time.now=%s\n", time.Now())
+	//	return periodcache.SnftPeriod, periodcache.Total, nil
+	//}
 	start, _ := strconv.Atoi(startIndex)
 	nftCount, _ := strconv.Atoi(count)
-	db := nft.db.Model(&SnftPhase{}).Where("accedvote <> '' and (accedeth is null or accedeth =?)", "").Limit(nftCount).Offset(start).Find(&snftphase)
+
+	var recCount int64
+	db := nft.db.Model(&SnftPhase{}).Where("accedvote <> '' and (accedeth is null or accedeth =?)", "").Count(&recCount).Limit(nftCount).Offset(start).Find(&snftphase)
 	if db.Error != nil {
 		fmt.Println("GetSnftPeriod() dbase err=", db.Error)
-		return nil, 0, db.Error
+		return nil, 0, ErrDataBase
 	}
 	for _, perod := range snftphase {
 		collect := QueryPeriod{}
@@ -415,7 +444,7 @@ func (nft NftDb) GetVoteSnftPeriod(startIndex string, count string) ([]QueryPeri
 		err := nft.db.Model(&SnftCollectPeriod{}).Where("period=? ", perod.Tokenid).Find(&collectlocal)
 		if err.Error != nil {
 			fmt.Println("SetSnftPeriod() find SnftCollectPeriod err=.", err.Error)
-			return nil, 0, err.Error
+			return nil, 0, ErrDataBase
 		}
 		if len(collectlocal) != 16 {
 			continue
@@ -424,8 +453,8 @@ func (nft NftDb) GetVoteSnftPeriod(startIndex string, count string) ([]QueryPeri
 			cocolloct := SnftCollect{}
 			err := nft.db.Where(" tokenid = ? ", local.Collect).First(&cocolloct)
 			if err.Error != nil {
-				fmt.Println("SetSnftPeriod() eSnftCollect err=.", err.Error)
-				return nil, 0, err.Error
+				fmt.Println("SetSnftPeriod() SnftCollect err=.", err.Error)
+				return nil, 0, ErrDataBase
 			}
 			cocolloct.Img = ""
 			cocolloct.Local = local.Local
@@ -441,20 +470,25 @@ func (nft NftDb) GetVoteSnftPeriod(startIndex string, count string) ([]QueryPeri
 		collect.CollectionList = percoll
 		snftphasecollect = append(snftphasecollect, collect)
 	}
-	return snftphasecollect, len(snftphasecollect), nil
+
+	periodcache.SnftPeriod = snftphasecollect
+	periodcache.Total = int(recCount)
+	//GetRedisCatch().CatchQueryData("GetVoteSnftPeriod", startIndex+count, &periodcache)
+
+	return snftphasecollect, int(recCount), nil
 }
 
 func (nft NftDb) SetVoteSnftPeriod(params string) error {
 	if params == "" {
 		fmt.Println("input param is null")
-		return errors.New("input param is null")
+		return ErrData
 	}
 
 	param := strings.Split(params, ",")
 	uerr := nft.db.Model(&SnftPhase{}).Where("tokenid not in ?  and accedvote <> '' ", param).Update("accedvote", "false")
 	if uerr.Error != nil {
 		fmt.Println("SetVoteSnftPeriod() update err=", uerr.Error)
-		return uerr.Error
+		return ErrNotFound
 	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		for _, period := range param {
@@ -462,23 +496,23 @@ func (nft NftDb) SetVoteSnftPeriod(params string) error {
 			err := tx.Model(&SnftPhase{}).Where("tokenid=? ", period).Find(&percoll)
 			if err.Error != nil {
 				fmt.Println("SetVoteSnftPeriod() find SnftPeriod err=.", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			percoll.Accedvote = "true"
 			err = tx.Model(&SnftPhase{}).Where("tokenid=?", period).Updates(&percoll)
 			if err.Error != nil {
 				fmt.Println("SetVoteSnftPeriod() update vote err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			collectperiod := []SnftCollectPeriod{}
 			err = tx.Model(&SnftCollectPeriod{}).Where("period=? ", period).Find(&collectperiod)
 			if err.Error != nil {
 				fmt.Println("SetVoteSnftPeriod() find SnftCollectPeriod err=", err.Error)
-				return err.Error
+				return ErrDataBase
 			}
 			if len(collectperiod) != 16 {
 				fmt.Println("collect data less than 16")
-				return errors.New("collect data less than 16")
+				return ErrDataInsuff
 			}
 			//total := 0
 			for _, coll := range collectperiod {
@@ -486,7 +520,7 @@ func (nft NftDb) SetVoteSnftPeriod(params string) error {
 				err = tx.Model(&SnftCollect{}).Where("tokenid=? ", coll.Collect).Find(&collect)
 				if err.Error != nil {
 					fmt.Println("SetVoteSnftPeriod() find SnftCollectPeriod err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				//collectImageUrl, serr := SaveToIpfs(collect.Img)
 				//if serr != nil {
@@ -497,11 +531,11 @@ func (nft NftDb) SetVoteSnftPeriod(params string) error {
 				err = tx.Model(&Snfts{}).Where("collection=? ", coll.Collect).Find(&snfts)
 				if err.Error != nil {
 					fmt.Println("SetVoteSnftPeriod() find SnftCollectPeriod err=", err.Error)
-					return err.Error
+					return ErrDataBase
 				}
 				if len(snfts) != 16 {
 					fmt.Println("snft data less than 16")
-					return errors.New("snft data less than 16")
+					return ErrDataInsuff
 				}
 				//for _, snft := range snfts {
 				//	wg.Add(1)
@@ -512,6 +546,8 @@ func (nft NftDb) SetVoteSnftPeriod(params string) error {
 			}
 		}
 		//wg.Wait()
+		//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
+
 		return nil
 	})
 
@@ -520,13 +556,13 @@ func (nft NftDb) SetVoteSnftPeriod(params string) error {
 func (nft NftDb) SetPeriodEth(params string) error {
 	if params == "" {
 		fmt.Println("input param is null")
-		return errors.New("input param is null")
+		return ErrData
 	}
 	percoll := SnftPhase{}
-	uerr := nft.db.Model(&SnftPhase{}).Where("tokenid =  ?", params).Find(&percoll)
+	uerr := nft.db.Model(&SnftPhase{}).Where("tokenid =  ?", params).First(&percoll)
 	if uerr.Error != nil {
-		fmt.Println("SetPeriodEth() update err=", uerr.Error)
-		return uerr.Error
+		fmt.Println("SetPeriodEth() find err=", uerr.Error)
+		return ErrNotFound
 	}
 	//go contracts.SendNFTTrans()
 
@@ -537,14 +573,14 @@ func (nft NftDb) SetPeriodEth(params string) error {
 			Where("snftcollectperiod.period = ?", percoll.Tokenid).Find(&collect)
 		if err.Error != nil {
 			fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		var total *int
 		num := 0
 		total = &num
 		if len(collect) != 16 {
 			fmt.Println("collect data less than 16")
-			return errors.New("collect data less than 16")
+			return ErrDataInsuff
 		}
 
 		os.Mkdir("./snft", 0777)
@@ -572,11 +608,11 @@ func (nft NftDb) SetPeriodEth(params string) error {
 					err = tx.Model(&Snfts{}).Where("collection=? ", v.Tokenid).Find(&snfts)
 					if err.Error != nil {
 						fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
-						return err.Error
+						return ErrDataBase
 					}
 					if len(snfts) != 16 {
 						fmt.Println("snft data less than 16")
-						return errors.New("snft data less than 16")
+						return ErrDataInsuff
 					}
 					fmt.Println("savemeta")
 					for _, snft := range snfts {
@@ -612,13 +648,14 @@ func (nft NftDb) SetPeriodEth(params string) error {
 		}()
 		if err.Error != nil {
 			fmt.Println("SetPeriodEth() update eth err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		serr := contracts.SendSnftTrans(dmeta, ExchangerAuth)
 		if serr != nil {
 			fmt.Println("SetPeriodEth() SendSnftTrans() err=", serr)
-			return serr
+			return errors.New(ErrTransExist.Error() + serr.Error())
 		}
+		//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
 		wg.Wait()
 		return nil
 	})
@@ -780,19 +817,20 @@ func (nft NftDb) savemeta(snft *Snfts, collect *SnftCollect, total int) error {
 func (nft NftDb) DelSnftPeriod(delperiod string) error {
 	if delperiod == "" {
 		fmt.Println("params error")
-		return errors.New("params error")
+		return ErrData
 	}
 	return nft.GetDB().Transaction(func(tx *gorm.DB) error {
 		err := tx.Model(&SnftPhase{}).Where("tokenid= ?", delperiod).Delete(&SnftPhase{})
 		if err.Error != nil {
 			fmt.Println("delete snftPeriod err=", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
 		err = nft.db.Model(&SnftCollectPeriod{}).Where(" period = ?", delperiod).Delete(&SnftCollectPeriod{})
 		if err.Error != nil {
 			fmt.Println("DelSnftPeriod() update  snftcollect err= ", err.Error)
-			return err.Error
+			return ErrDataBase
 		}
+		//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
 		return nil
 	})
 
@@ -801,20 +839,22 @@ func (nft NftDb) DelSnftPeriod(delperiod string) error {
 func (nft NftDb) SnftPeriodVote(period string) error {
 	if period == "" {
 		fmt.Println("vote period id null")
-		return errors.New("vote period is null")
+		return ErrData
 	}
 	var snftcollectrec SnftPhase
 	err := nft.db.Model(&snftcollectrec).Where("tokenid = ?", period).First(&snftcollectrec)
 	if err.Error != nil {
 		fmt.Println("SnftPeriodVote() err= not find period.")
-		return err.Error
+		return ErrNotFound
 	}
 	snftcollectrec.Vote += 1
 	err = nft.db.Model(&SnftPhase{}).Where("tokenid=", period).Updates(&snftcollectrec)
 	if err.Error != nil {
 		fmt.Println("SnftPeriodVote() update vote err=", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
+	//GetRedisCatch().SetDirtyFlag(VoteSnftPeriod)
+
 	return nil
 }
 
@@ -822,13 +862,15 @@ func (nft NftDb) SetPeriodAccedEth(meta string) error {
 	err := nft.db.Model(&SnftPhase{}).Where("meta =? ", meta).Update("accedeth", "true")
 	if err.Error != nil {
 		fmt.Println("SetPeriodAccedEth() update true err=", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
 	err = nft.db.Model(&SnftPhase{}).Where("accedeth =? ", "false").Update("accedeth", "")
 	if err.Error != nil {
 		fmt.Println("SetPeriodAccedEth() update false err=", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
+	//GetRedisCatch().SetDirtyFlag(ModifySnftPeriod)
+
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"gorm.io/gorm"
 	"strconv"
@@ -25,9 +26,9 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 	//	return ErrNftUpAddrNotAdmin
 	//}
 
-	fmt.Println(time.Now().String()[:25],"BuyResultInterface() Begin", "from=", from, "to=", to, "price=", price,
+	fmt.Println(time.Now().String()[:25], "BuyResultInterface() Begin", "from=", from, "to=", to, "price=", price,
 		"contractAddr=", contractAddr, "tokenId=", tokenId,
-		"royalty=", royalty/*, "sig=", sig, "trade_sig=", trade_sig*/)
+		"royalty=", royalty /*, "sig=", sig, "trade_sig=", trade_sig*/)
 	fmt.Println("BuyResultInterface()++q++++++++++++++++++")
 	if royalty != "" {
 		fmt.Println("BuyResultInterface() royalty!=Null mint royalty=", royalty)
@@ -55,7 +56,7 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 			err := tx.Model(&trans).Create(&trans)
 			if err.Error != nil {
 				fmt.Println("BuyResultInterface() royalty create trans err=", err.Error)
-				return err.Error
+				return errors.New(ErrDataBase.Error() + err.Error.Error())
 			}
 			nftrecord := Nfts{}
 			nftrecord.Signdata = sig
@@ -67,7 +68,7 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 				contractAddr, tokenId).Updates(&nftrecord)
 			if err.Error != nil {
 				fmt.Println("BuyResultInterface() royalty update nfts record err=", err.Error)
-				return err.Error
+				return errors.New(ErrDataBase.Error() + err.Error.Error())
 			}
 			fmt.Println("BuyResultInterface() royalty!=Null Ok")
 			return nil
@@ -75,7 +76,7 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 	}
 	fmt.Println("BuyResultInterface()-------------------")
 	if from != "" && to != "" {
-		fmt.Println("BuyResultInterface() from != Null && to != null" )
+		fmt.Println("BuyResultInterface() from != Null && to != null")
 		var nftRec Nfts
 		err := nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&nftRec)
 		if err.Error != nil {
@@ -83,7 +84,7 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 			return ErrNftNotExist
 		}
 		if price == "" {
-			fmt.Println("BuyResultInterface() price == null" )
+			fmt.Println("BuyResultInterface() price == null")
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				trans := Trans{}
 				trans.Contract = contractAddr
@@ -100,13 +101,13 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 				err := tx.Model(&trans).Create(&trans)
 				if err.Error != nil {
 					fmt.Println("BuyResultInterface() create trans record err=", err.Error)
-					return err.Error
+					return errors.New(ErrDataBase.Error() + err.Error.Error())
 				}
-				fmt.Println("BuyResultInterface() price == null OK" )
+				fmt.Println("BuyResultInterface() price == null OK")
 				return nil
 			})
-		}else{
-			fmt.Println("BuyResultInterface() price != null" )
+		} else {
+			fmt.Println("BuyResultInterface() price != null")
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				trans := Trans{}
 				trans.Contract = contractAddr
@@ -127,7 +128,7 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 				err := tx.Model(&trans).Create(&trans)
 				if err.Error != nil {
 					fmt.Println("BuyResultInterface() create trans record err=", err.Error)
-					return err.Error
+					return errors.New(ErrDataBase.Error() + err.Error.Error())
 				}
 				nftrecord := Nfts{}
 				nftrecord.Ownaddr = to
@@ -140,9 +141,9 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 					contractAddr, tokenId).Updates(&nftrecord)
 				if err.Error != nil {
 					fmt.Println("BuyResultInterface() update record err=", err.Error)
-					return err.Error
+					return errors.New(ErrDataBase.Error() + err.Error.Error())
 				}
-				fmt.Println("BuyResultInterface() from != Null && to != Null --> price != Null OK" )
+				fmt.Println("BuyResultInterface() from != Null && to != Null --> price != Null OK")
 				return nil
 			})
 		}
@@ -150,4 +151,3 @@ func (nft NftDb) BuyResultInterface(admin_addr, from, to, contractAddr, tokenId,
 	fmt.Println("BuyResultInterface() End.")
 	return ErrFromToAddrZero
 }
-

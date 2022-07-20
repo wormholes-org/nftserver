@@ -28,10 +28,12 @@ func TestGetNftSysMintInfo(t *testing.T) {
 }
 
 func TestGetSnftInfo(t *testing.T) {
-	contracts.EthNode = "http://api.wormholestest.com:8561"
+	//contracts.EthNode = "http://api.wormholestest.com:8561"
+	contracts.EthNode = "http://43.129.181.130:8561"
 	models.NftIpfsServerIP = "http://api.wormholestest.com"
 	models.NftstIpfsServerPort = "8666"
 	models.RoyaltyLimit = 1000
+	models.TransferNFT = true
 	SyncWorkerNft(sqldsnT)
 }
 
@@ -92,7 +94,39 @@ func TestName(t *testing.T) {
 	h := big.NewInt(0)
 	h, err := big.NewInt(0).SetString(snft[2:], 16)
 	fmt.Println(err)
-	h = h.Add(h,big.NewInt(256))
+	h = h.Add(h, big.NewInt(256))
 	snft = common.BigToAddress(h).Hex()
 	fmt.Println("BackupIpfsSnft() call SyncNftFromChain() blockNum=")
+}
+
+func TestSyncBlockTxsNew(t *testing.T) {
+	const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+	const dbNameT = "c0x57ed0c503c40308e802414405ce3d399fe3a42c6"
+	const localtimeT = "?parseTime=true&loc=Local"
+	const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
+	//contracts.EthNode = "https://api.wormholestest.com"
+	contracts.EthNode = "http://43.129.181.130:8561"
+	contracts.ExchangeOwer = "0x57ed0c503c40308e802414405ce3d399fe3a42c6"
+	blockS := uint64(18351)
+	blockS = uint64(52384)
+	for blockS <= contracts.GetCurrentBlockNumber() {
+		txs, err := contracts.GetBlockTxsNew(blockS)
+		if err != nil {
+			fmt.Println("SyncProc() call GetBlockTxs() err=", err)
+			return
+		}
+		err = SyncBlockTxsNew(sqldsnT, blockS, *txs)
+		if err != nil {
+			fmt.Println("SyncProc() SyncBlockTxs err=", err)
+			return
+		}
+		if len(txs.Wethc) != 0 {
+			err = models.ScanBiddings(sqldsnT, txs.Wethc)
+			if err != nil {
+				fmt.Println("SyncProc() ScanBiddings err=", err)
+				//return err
+			}
+		}
+		blockS++
+	}
 }

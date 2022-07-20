@@ -165,7 +165,7 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 		imagerr := SavePortrait(ImageDir, user_addr, portrait)
 		if imagerr != nil {
 			fmt.Println("ModifyUserInfo() SavePortrait() err=", imagerr)
-			return ErrPortraitImage
+			return ErrNftImage
 		}
 		//user.Portrait = portrait
 	}
@@ -173,7 +173,7 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 		imagerr := SaveBackground(ImageDir, user_addr, background)
 		if imagerr != nil {
 			fmt.Println("ModifyUserInfo() SaveBackground() err=", imagerr)
-			return ErrBackgroudImage
+			return ErrNftImage
 		}
 		//user.Background = background
 	}
@@ -183,8 +183,10 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 	err = nft.db.Model(&Users{}).Where("useraddr = ?", user_addr).Updates(user)
 	if err.Error != nil {
 		fmt.Println("ModifyUserInfo() update err= ", err.Error)
-		return err.Error
+		return ErrDataBase
 	}
+	GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
+
 	fmt.Println("ModifyUserInfo() Ok.")
 	return err.Error
 }

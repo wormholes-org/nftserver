@@ -52,6 +52,7 @@ const (
 	TransTypeBuyerTrans = 14
 	TransTypeMintTrans  = 16
 	WormholesVersion    = "0"
+	GasLimitTx1819      = 200000
 )
 
 type NftTx struct {
@@ -2281,7 +2282,7 @@ func ExchangerMint(seller Seller2, buyer Buyer1, fromprv string) error {
 		log.Println("ExchangerMint() err=", err)
 		return err
 	}
-	gasLimit := uint64(51000)
+	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Println("ExchangerMint() err=", err)
@@ -2350,6 +2351,7 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 		log.Println("AuthExchangerMint() err=", err)
 		return "", err
 	}
+
 	publicKey := fromKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
@@ -2367,7 +2369,7 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 		log.Println("AuthExchangerMint() err=", err)
 		return "", err
 	}
-	gasLimit := uint64(51000)
+	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Println("AuthExchangerMint() err=", err)
@@ -2536,7 +2538,7 @@ func AuthExchangeTrans(buyer Buyer, authSign, fromprv string) (string, error) {
 		log.Println("AuthExchangeTrans() err=", err)
 		return "", err
 	}
-	gasLimit := uint64(51000)
+	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Println("AuthExchangeTrans() err=", err)

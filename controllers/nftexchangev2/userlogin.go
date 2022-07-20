@@ -109,7 +109,7 @@ func (nft *NftExchangeControllerV2) UserLogin() {
 	} else {
 		httpResponseData.Code = "500"
 		httpResponseData.Data = []interface{}{}
-		httpResponseData.Msg = "Incorrect user information entered"
+		httpResponseData.Msg = ERRINPUT.Error()
 	}
 
 	responseData, _ := json.Marshal(httpResponseData)
