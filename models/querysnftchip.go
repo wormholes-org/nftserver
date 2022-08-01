@@ -85,6 +85,11 @@ func (nft NftDb) QueryOwnerSnftChip(owner, start_Index, count string) ([]SnftChi
 	}
 	startIndex, _ := strconv.Atoi(start_Index)
 	nftCount, _ := strconv.Atoi(count)
+
+	if int64(startIndex) >= recCount || recCount == 0 {
+		return nil, 0, ErrNotMore
+	}
+
 	nftInfo := []SnftChipInfo{}
 	err = nft.db.Model(Nfts{}).Where("ownaddr = ?", owner).Offset(startIndex).Limit(nftCount).Scan(&nftInfo)
 	if err.Error != nil {

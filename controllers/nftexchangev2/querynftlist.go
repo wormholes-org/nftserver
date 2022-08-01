@@ -40,7 +40,7 @@ func (nft *NftExchangeControllerV2) QueryNftList() {
 				httpResponseData.Data = nfts
 				httpResponseData.TotalCount = totalCount
 			} else {
-				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
+				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist || err == models.ErrNotMore {
 					httpResponseData.Code = "200"
 				} else {
 					httpResponseData.Code = "500"

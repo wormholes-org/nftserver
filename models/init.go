@@ -67,4 +67,5 @@ func init() {
 	DefaultCaptcha, _ = beego.AppConfig.String("captachaurl")
 	LimitWritesDatabase, _ = beego.AppConfig.Bool("limitwritesdatabase")
 	AnnouncementRequired = true
+	NftScanServer, _ = beego.AppConfig.String("NftScanServer")
 }

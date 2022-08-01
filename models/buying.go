@@ -145,11 +145,13 @@ func (nft NftDb) BuyingNft(userAddr,
 	fmt.Println("BuyingNft() price=", price)
 	fmt.Println("BuyingNft() voteStage=", voteStage)
 
-	if UserSync.LockLogic(userAddr) {
+	if UserSync.LockTran(userAddr) {
 		return ErrUserTrading
 	} else {
-		defer UserSync.UnLock(userAddr)
+		defer UserSync.UnLockTran(userAddr)
 	}
+	//UserSync.Lock(userAddr)
+	//defer UserSync.UnLock(userAddr)
 
 	var auctionRec Auction
 	err := nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&auctionRec)

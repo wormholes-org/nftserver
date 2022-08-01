@@ -38,7 +38,7 @@ func (nft *NftExchangeControllerV2) QueryPendingKYCList() {
 			httpResponseData.Msg = inputDataErr.Error()
 			httpResponseData.Data = []interface{}{}
 		} else {
-			kycData, resCount, err := nd.QueryPendingKYCList(data["start_index"], data["count"])
+			kycData, resCount, err := nd.QueryPendingKYCList(data["start_index"], data["count"], data["status"])
 			if err != nil {
 				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
 					httpResponseData.Code = "200"

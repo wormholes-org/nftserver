@@ -26,17 +26,21 @@ type MarketInfo struct {
 	Dayinfo     [24]Info       `json:"dayinfo"`     //Exchange data of the day
 	Monthinfo   [31]Info       `json:"monthinfo"`   //Exchange data for the current month
 	Yearinfo    [12]Info       `json:"yearinfo"`    //Exchange data for the year
+	Weekinfo    [7]Info        `json:"weekinfo"`
 }
 
 type NFTMarketInfo struct {
 	Dayinfo   [24]MInfo `json:"dayinfo"`   //Exchange data of the day
 	Monthinfo [31]MInfo `json:"monthinfo"` //Exchange data for the current month
 	Yearinfo  [12]MInfo `json:"yearinfo"`  //Exchange data for the year
+	Weekinfo  [7]MInfo  `json:"weekinfo"`
 }
 
 type MInfo struct {
-	Tindex   string `json:"tindex"`   //Time interval, hours, days, months
-	Nfttrans int    `json:"nfttrans"` //Transaction Information List (Number of Transactions)
+	Tindex     string `json:"tindex"`   //Time interval, hours, days, months
+	Nfttrans   int    `json:"nfttrans"` //Transaction Information List (Number of Transactions)
+	NewUser    int    `json:"new_user"`
+	ActiveUser int    `json:"active_user"`
 }
 
 //Get market data
@@ -83,6 +87,36 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 			}
 		}
 	}
+	t = time.Now()
+	t = t.AddDate(0, 0, -7)
+	for i := 0; i < 7; i++ {
+		//mInfo.Monthinfo[i].Tindex = t.Day()
+		t = t.AddDate(0, 0, 1)
+		mInfo.Weekinfo[i].Tindex = t.Format("01-02")
+	}
+	eInft = []Info{}
+	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * 0.025) as nftearings, " +
+		"round(avg(price)) as nftavprice, max(price) as nfthighprice, min(price) as nftlowprice " +
+		"from (select id, updated_at, DATE_FORMAT(updated_at,\"%m-%d\") as tindex, (price) " +
+		"from trans " +
+		"where updated_at > subdate(sysdate(), 7) and (selltype != \"MintNft\" and selltype != \"Error\")  " +
+		"ORDER BY id )as mm group by tindex"
+	err = nft.db.Raw(rsql).Scan(&eInft)
+	if err.Error != nil {
+		fmt.Println("QueryMarketInfo() Weekinfo err=", err)
+		return nil, ErrDataBase
+	}
+	j = 0
+	for _, info := range eInft {
+		for i := j; i < 7; i++ {
+			if mInfo.Weekinfo[i].Tindex == info.Tindex {
+				mInfo.Weekinfo[i] = info
+				j = i + 1
+				break
+			}
+		}
+	}
+
 	t = time.Now()
 	t = t.AddDate(0, 0, -31)
 	for i := 0; i < 31; i++ {
@@ -141,6 +175,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 			}
 		}
 	}
+
 	var nftcount int64
 	err = nft.db.Model(Nfts{}).Count(&nftcount)
 	if err.Error != nil {
@@ -233,16 +268,36 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 		mInfo.Monthinfo[i].Tindex = t.Format("01-02")
 	}
 	mInft := []MInfo{}
-	rsql := "select tindex,count(*) as nfttrans " +
-		"from (select id, created_at, DATE_FORMAT(created_at,\"%m-%d\") as tindex " +
-		"from nfts where created_at >= subdate(sysdate(), 31)  and snft =\"\" and deleted_at is null " +
-		"ORDER BY id ) as mm group by tindex"
+	//rsql := "select tindex,count(*) as nfttrans " +
+	//	"from (select id, created_at, DATE_FORMAT(created_at,\"%m-%d\") as tindex " +
+	//	"from nfts where created_at >= subdate(sysdate(), 31)  and snft =\"\" and deleted_at is null " +
+	//	"ORDER BY id ) as mm group by tindex"
+	//err := nft.db.Raw(rsql).Scan(&mInft)
+	//if err.Error != nil {
+	//	fmt.Println("QueryMarketInfo() Monthinfo nfts err=", err)
+	//	return nil, ErrDataBase
+	//}
+	rsql := `select tindex,sum(nfttrans) as nfttrans,sum( active_user) as active_user,sum( new_user) as new_user
+ 		from (select tindex,count(*) as nfttrans ,null as active_user,null as new_user
+		from (select id, created_at, DATE_FORMAT(created_at,"%m-%d") as tindex 
+		from nfts where created_at >= subdate(sysdate(), 31)  and snft ="" and deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		Union
+		select tindex,null as nfttrans,count(*) as active_user ,null as new_user
+		from (select id, updated_at, DATE_FORMAT(updated_at,"%m-%d") as tindex 
+		from users where updated_at >= subdate(sysdate(), 31)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		union 
+		select tindex,null as nfttrans,null as active_user, count(*) as  new_user 
+		from (select id, created_at, DATE_FORMAT(created_at,"%m-%d") as tindex 
+		from users where created_at >= subdate(sysdate(), 31)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		) as dd GROUP BY tindex`
 	err := nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
-		fmt.Println("QueryMarketInfo() Monthinfo err=", err)
+		fmt.Println("QueryMarketInfo() Monthinfo  err=", err)
 		return nil, ErrDataBase
 	}
-
 	j := 0
 	for _, info := range mInft {
 		for i := j; i < 31; i++ {
@@ -253,8 +308,57 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 			}
 		}
 	}
-	mInft = []MInfo{}
 
+	t = time.Now()
+	t = t.AddDate(0, 0, -7)
+	for i := 0; i < 7; i++ {
+		t = t.AddDate(0, 0, 1)
+		mInfo.Weekinfo[i].Tindex = t.Format("01-02")
+	}
+	mInft = []MInfo{}
+	//rsql = "select tindex,count(*) as nfttrans " +
+	//	"from (select id, created_at, DATE_FORMAT(created_at,\"%m-%d\") as tindex " +
+	//	"from nfts where created_at >= subdate(sysdate(), 7)  and snft =\"\" and deleted_at is null " +
+	//	"ORDER BY id ) as mm group by tindex"
+	//err = nft.db.Raw(rsql).Scan(&mInft)
+	//if err.Error != nil {
+	//	fmt.Println("QueryMarketInfo() Monthinfo nfts err=", err)
+	//	return nil, ErrDataBase
+	//}
+
+	rsql = `select tindex,sum(nfttrans) as nfttrans,sum( active_user) as active_user,sum( new_user) as new_user
+ 		from (select tindex,count(*) as nfttrans ,null as active_user,null as new_user
+		from (select id, created_at, DATE_FORMAT(created_at,"%m-%d") as tindex 
+		from nfts where created_at >= subdate(sysdate(), 7)  and snft ="" and deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		Union
+		select tindex,null as nfttrans,count(*) as active_user ,null as new_user
+		from (select id, updated_at, DATE_FORMAT(updated_at,"%m-%d") as tindex 
+		from users where updated_at >= subdate(sysdate(), 7)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		union 
+		select tindex,null as nfttrans,null as active_user, count(*) as  new_user 
+		from (select id, created_at, DATE_FORMAT(created_at,"%m-%d") as tindex 
+		from users where created_at >= subdate(sysdate(), 7)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		) as dd GROUP BY tindex`
+	err = nft.db.Raw(rsql).Scan(&mInft)
+	if err.Error != nil {
+		fmt.Println("QueryMarketInfo() Monthinfo active user err=", err)
+		return nil, ErrDataBase
+	}
+	j = 0
+	for _, info := range mInft {
+		for i := j; i < 7; i++ {
+			if mInfo.Weekinfo[i].Tindex == info.Tindex {
+				mInfo.Weekinfo[i] = info
+				j = i + 1
+				break
+			}
+		}
+	}
+
+	mInft = []MInfo{}
 	t = time.Now()
 	t = t.AddDate(0, 0, -1)
 	for i := 0; i < 24; i++ {
@@ -263,13 +367,35 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 		mInfo.Dayinfo[i].Tindex = t.Format("02/15:00")
 
 	}
-	rsql = "select tindex,count(*) as nfttrans " +
-		"from (select id, created_at, DATE_FORMAT(created_at,\"%d/%H:00\") as tindex " +
-		"from nfts where created_at >= subdate(sysdate(), 1)  and snft =\"\" and deleted_at is null " +
-		"ORDER BY id ) as mm group by tindex"
+	//rsql = "select tindex,count(*) as nfttrans " +
+	//	"from (select id, created_at, DATE_FORMAT(created_at,\"%d/%H:00\") as tindex " +
+	//	"from nfts where created_at >= subdate(sysdate(), 1)  and snft =\"\" and deleted_at is null " +
+	//	"ORDER BY id ) as mm group by tindex"
+	//err = nft.db.Raw(rsql).Scan(&mInft)
+	//if err.Error != nil {
+	//	fmt.Println("QueryMarketInfo() Dayinfo err=", err)
+	//	return nil, ErrDataBase
+	//}
+
+	rsql = `select tindex,sum(nfttrans) as nfttrans,sum( active_user) as active_user,sum( new_user) as new_user
+ 		from (select tindex,count(*) as nfttrans ,null as active_user,null as new_user
+		from (select id, created_at, DATE_FORMAT(created_at,"%d/%H:00") as tindex 
+		from nfts where created_at >= subdate(sysdate(), 1)  and snft ="" and deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		Union
+		select tindex,null as nfttrans,count(*) as active_user ,null as new_user
+		from (select id, updated_at, DATE_FORMAT(updated_at,"%d/%H:00") as tindex 
+		from users where updated_at >= subdate(sysdate(), 1)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		union 
+		select tindex,null as nfttrans,null as active_user, count(*) as  new_user 
+		from (select id, created_at, DATE_FORMAT(created_at,"%d/%H:00") as tindex 
+		from users where created_at >= subdate(sysdate(), 1)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		) as dd GROUP BY tindex`
 	err = nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
-		fmt.Println("QueryMarketInfo() Dayinfo err=", err)
+		fmt.Println("QueryMarketInfo() Dayinfo  err=", err)
 		return nil, ErrDataBase
 	}
 	j = 0
@@ -292,13 +418,35 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 
 	}
 
-	rsql = "select tindex,count(*) as nfttrans " +
-		"from (select id, created_at, DATE_FORMAT(created_at,\"%Y-%m\") as tindex " +
-		"from nfts where created_at >= subdate(sysdate(), 365)  and snft =\"\" and deleted_at is null " +
-		"ORDER BY id ) as mm group by tindex"
+	//rsql = "select tindex,count(*) as nfttrans " +
+	//	"from (select id, created_at, DATE_FORMAT(created_at,\"%Y-%m\") as tindex " +
+	//	"from nfts where created_at >= subdate(sysdate(), 365)  and snft =\"\" and deleted_at is null " +
+	//	"ORDER BY id ) as mm group by tindex"
+	//err = nft.db.Raw(rsql).Scan(&mInft)
+	//if err.Error != nil {
+	//	fmt.Println("QueryMarketInfo() Dayinfo err=", err)
+	//	return nil, ErrDataBase
+	//}
+
+	rsql = `select tindex,sum(nfttrans) as nfttrans,sum( active_user) as active_user,sum( new_user) as new_user
+ 		from (select tindex,count(*) as nfttrans ,null as active_user,null as new_user
+		from (select id, created_at, DATE_FORMAT(created_at,"%Y-%m") as tindex 
+		from nfts where created_at >= subdate(sysdate(), 365)  and snft ="" and deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		Union
+		select tindex,null as nfttrans,count(*) as active_user ,null as new_user
+		from (select id, updated_at, DATE_FORMAT(updated_at,"%Y-%m") as tindex 
+		from users where updated_at >= subdate(sysdate(), 365)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		union 
+		select tindex,null as nfttrans,null as active_user, count(*) as  new_user 
+		from (select id, created_at, DATE_FORMAT(created_at,"%Y-%m") as tindex 
+		from users where created_at >= subdate(sysdate(), 365)  and  deleted_at is null 
+		ORDER BY id ) as mm group by tindex
+		) as dd GROUP BY tindex`
 	err = nft.db.Raw(rsql).Scan(&mInft)
 	if err.Error != nil {
-		fmt.Println("QueryMarketInfo() Dayinfo err=", err)
+		fmt.Println("QueryMarketInfo() Yearinfo  err=", err)
 		return nil, ErrDataBase
 	}
 	j = 0

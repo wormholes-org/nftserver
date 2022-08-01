@@ -185,8 +185,55 @@ func (nft NftDb) ModifyUserInfo(user_addr, user_name, portrait, background, user
 		fmt.Println("ModifyUserInfo() update err= ", err.Error)
 		return ErrDataBase
 	}
-	GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
 
 	fmt.Println("ModifyUserInfo() Ok.")
 	return err.Error
+}
+
+func (nft NftDb) UserSubmitCertify(user_addr, user_name, certify, certify_img1, certify_img2, nationality, nation_code string) error {
+	user_addr = strings.ToLower(user_addr)
+	if len(user_name) > LenName {
+		return ErrLenName
+	}
+	fmt.Println("UserSubmitCertify() start.")
+	user := Users{}
+	err := nft.db.Model(&user).Where("useraddr = ?", user_addr).First(&user)
+	if err.Error != nil {
+		fmt.Println("UserSubmitCertify() err= not find user.")
+		return ErrNotFound
+	}
+	if user_name != "" {
+		user.Realname = user_name
+	}
+	if certify != "" {
+		user.Certificate = certify
+	}
+	if certify_img1 != "" {
+		user.Certifyimg = certify_img1
+	}
+	//if certify_img2 != "" {
+	//}
+	user.Certifyimgs = certify_img2
+
+	if nationality != "" {
+		user.Country = nationality
+	}
+	if nation_code != "" {
+		user.Countrycode = nation_code
+	}
+	if KYCUploadAuditRequired {
+		user.Verified = NoVerify.String()
+	} else {
+		user.Verified = Passed.String()
+		user.Certifycheck = "false"
+	}
+	user.Desc = ""
+	err = nft.db.Model(&Users{}).Where("useraddr = ?", user_addr).Updates(user)
+	if err.Error != nil {
+		fmt.Println("ModifyUserInfo() update err= ", err.Error)
+		return ErrDataBase
+	}
+
+	fmt.Println("UserSubmitCertify() Ok.")
+	return nil
 }

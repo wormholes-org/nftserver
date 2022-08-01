@@ -67,7 +67,7 @@ func (nft *NftExchangeControllerV2) IsValidVerifyAddr(nd *models.NftDb, adminTyp
 		if models.AdminAuthType(auth) == models.AdminAudit || models.AdminAuthType(auth) == models.AdminBrowseEditAudit {
 			return true, nil
 		} else {
-			return false, errors.New("address not permission.")
+			return false, errors.New("552,address not permission.")
 		}
 	case models.AdminBrowseEditAudit:
 		auth, _ := strconv.Atoi(admin.AdminAuth)

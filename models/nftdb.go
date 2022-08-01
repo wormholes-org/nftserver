@@ -78,6 +78,8 @@ var (
 	ErrDataInsuff           = errors.New("564,data insufficient.")
 	ErrDeleteNft            = errors.New("565,nft not delete.")
 	ErrNotMore              = errors.New("566,not more.")
+	ErrUserTrading          = errors.New("567,User in trading.")
+	ErrDeleteImg            = errors.New("568,Delete image error.")
 )
 
 //const (
@@ -182,24 +184,29 @@ func (this SellType) String() string {
 }
 
 type Userrec struct {
-	Useraddr    string `json:"useraddr" gorm:"type:char(42) NOT NULL;comment:'User address'"`
-	Signdata    string `json:"sig" gorm:"type:longtext NOT NULL;comment:'Signature data'"`
-	Username    string `json:"user_name" gorm:"type:char(200) CHARACTER SET utf8mb4 NOT NULL;comment:'user name'"`
-	Country     string `json:"country" gorm:"type:char(200) CHARACTER SET utf8mb4 NOT NULL;comment:'Country of Citizenship'"`
-	Countrycode string `json:"countrycode" gorm:"type:char(20)  DEFAULT NULL;comment:'country code'"`
-	Bio         string `json:"user_info" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'User Profile'"`
-	Portrait    string `json:"portrait" gorm:"type:longtext NOT NULL;comment:'profile picture'"`
-	Background  string `json:"background" gorm:"type:longtext NOT NULL;comment:'background'"`
-	Kycpic      string `json:"kycpic" gorm:"type:longtext NOT NULL;comment:'kyc review photo'"`
-	Email       string `json:"user_mail" gorm:"type:longtext NOT NULL;comment:'User mailbox'"`
-	Link        string `json:"link" gorm:"type:longtext NOT NULL;comment:'User social account'"`
-	Userregd    int64  `json:"userregd" gorm:"type:bigint DEFAULT NULL;comment:'User registration time'"`
-	Userlogin   int64  `json:"userlogin" gorm:"type:bigint DEFAULT NULL;comment:'User login time'"`
-	Userlogout  int64  `json:"userlogout" gorm:"type:bigint DEFAULT NULL;comment:'User logout time'"`
-	Verified    string `json:"verified" gorm:"type:char(20)  DEFAULT NULL;comment:'Whether it passed the audit'"`
-	Verifyaddr  string `json:"vrf_addr" gorm:"type:char(42) NOT NULL;comment:'Validator address'"`
-	Desc        string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'Review description: Failed review description'"`
-	Favorited   int    `json:"favorited" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'Follow count'"`
+	Useraddr     string `json:"useraddr" gorm:"type:char(42) NOT NULL;comment:'User address'"`
+	Signdata     string `json:"sig" gorm:"type:longtext NOT NULL;comment:'Signature data'"`
+	Username     string `json:"user_name" gorm:"type:char(200) CHARACTER SET utf8mb4 NOT NULL;comment:'user name'"`
+	Country      string `json:"country" gorm:"type:char(200) CHARACTER SET utf8mb4 NOT NULL;comment:'Country of Citizenship'"`
+	Countrycode  string `json:"countrycode" gorm:"type:char(20)  DEFAULT NULL;comment:'country code'"`
+	Bio          string `json:"user_info" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'User Profile'"`
+	Portrait     string `json:"portrait" gorm:"type:longtext NOT NULL;comment:'profile picture'"`
+	Background   string `json:"background" gorm:"type:longtext NOT NULL;comment:'background'"`
+	Kycpic       string `json:"kycpic" gorm:"type:longtext NOT NULL;comment:'kyc review photo'"`
+	Email        string `json:"user_mail" gorm:"type:longtext NOT NULL;comment:'User mailbox'"`
+	Link         string `json:"link" gorm:"type:longtext NOT NULL;comment:'User social account'"`
+	Userregd     int64  `json:"userregd" gorm:"type:bigint DEFAULT NULL;comment:'User registration time'"`
+	Userlogin    int64  `json:"userlogin" gorm:"type:bigint DEFAULT NULL;comment:'User login time'"`
+	Userlogout   int64  `json:"userlogout" gorm:"type:bigint DEFAULT NULL;comment:'User logout time'"`
+	Verified     string `json:"verified" gorm:"type:char(20)  DEFAULT NULL;comment:'Whether it passed the audit'"`
+	Verifyaddr   string `json:"vrf_addr" gorm:"type:char(42) NOT NULL;comment:'Validator address'"`
+	Desc         string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'Review description: Failed review description'"`
+	Favorited    int    `json:"favorited" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'Follow count'"`
+	Realname     string `json:"realname" gorm:"type:varchar(200) CHARACTER SET utf8mb4;comment:'user real name'"`
+	Certificate  string `json:"certificate" gorm:"type:char(20) NOT NULL;comment:'User certificate type'"`
+	Certifyimg   string `json:"certifyimg" gorm:"type:longtext NOT NULL;comment:'User certificate image'"`
+	Certifyimgs  string `json:"certifyimgs" gorm:"type:longtext NOT NULL;comment:'User certificate image'"`
+	Certifycheck string `json:"certifycheck" gorm:"type:char(10) NOT NULL;comment:'User kyc audit check'"`
 }
 
 type Users struct {
@@ -282,7 +289,7 @@ type NftRecord struct {
 	Transcnt       int    `json:"transcnt" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'The number of transactions, plus one for each transaction'"`
 	Transamt       uint64 `json:"transamt" gorm:"type:bigint DEFAULT NULL;comment:'total transaction amount'"`
 	Verified       string `json:"verified" gorm:"type:char(20) DEFAULT NULL;comment:'Whether the nft work has passed the review'"`
-	Verifieddesc   string `json:"Verifieddesc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'Review description: Failed review description'"`
+	Verifieddesc   string `json:"verifieddesc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'Review description: Failed review description'"`
 	Verifiedtime   int64  `json:"vrf_time" gorm:"type:bigint DEFAULT NULL;comment:'Review time'"`
 	Selltype       string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft transaction type'"`
 	Mintstate      string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'minting status'"`
@@ -857,6 +864,7 @@ func getCreateTableObject() []interface{} {
 		SnftCollectPeriod{},
 		Subscribes{},
 		SysInfos{},
+		Exchangeinfos{},
 	}
 }
 
@@ -995,6 +1003,11 @@ func (nft NftDb) InitDb(sqlsvr string, dbName string) error {
 	err = nft.db.AutoMigrate(&SysInfos{})
 	if err != nil {
 		fmt.Println("create table SysInfos{} err=", err)
+		return err
+	}
+	err = nft.db.AutoMigrate(&Exchangeinfos{})
+	if err != nil {
+		fmt.Println("create table Exchangeinfos{} err=", err)
 		return err
 	}
 	err = nft.CreateIndexs()
@@ -1653,7 +1666,7 @@ type UnverifiedNftsList struct {
 }
 
 //Get the NFT pending review list
-func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, error) {
+func (nft NftDb) QueryUnverifiedNfts(start_index, count, status string) ([]Nfts, int, error) {
 
 	nfts := []Nfts{}
 	var recCount int64
@@ -1663,16 +1676,19 @@ func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, er
 	if IsIntDataValid(count) != true {
 		return nil, 0, ErrDataFormat
 	}
-	nftlist := UnverifiedNftsList{}
-	//cerr := GetRedisCatch().GetCatchData("QueryUnverifiedNfts", start_index+count, &nftlist)
-	//if cerr == nil {
-	//	log.Printf("QueryUnverifiedNfts() default  time.now=%s\n", time.Now())
-	//	return nftlist.Nftlist, nftlist.Total, nil
-	//}
-	err := nft.db.Model(Nfts{}).Where("snft=?", "").Count(&recCount)
-	if err.Error != nil {
-		fmt.Println("QueryUnverifiedNfts() recCount err=", err)
-		return nil, 0, ErrNftNotExist
+
+	if status == "" {
+		err := nft.db.Model(Nfts{}).Where("snft=?", "").Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("QueryUnverifiedNfts() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
+	} else {
+		err := nft.db.Model(Nfts{}).Where("snft=? and verified = ?", "", status).Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("QueryUnverifiedNfts() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
 	}
 	startIndex, _ := strconv.Atoi(start_index)
 	nftCount, _ := strconv.Atoi(count)
@@ -1683,47 +1699,63 @@ func (nft NftDb) QueryUnverifiedNfts(start_index, count string) ([]Nfts, int, er
 		if int64(nftCount) > temp {
 			nftCount = int(temp)
 		}
-		queryResult := nft.db.Where("snft=?", "").Order("id desc").Limit(nftCount).Offset(startIndex).Find(&nfts)
-		if queryResult.Error != nil {
-			return nil, 0, queryResult.Error
+		if status == "" {
+			queryResult := nft.db.Where("snft=?", "").Order("updated_at desc").Limit(nftCount).Offset(startIndex).Find(&nfts)
+			if queryResult.Error != nil {
+				return nil, 0, queryResult.Error
+			}
+		} else {
+			queryResult := nft.db.Where("snft=? and verified = ?", "", status).Order("updated_at desc").Limit(nftCount).Offset(startIndex).Find(&nfts)
+			if queryResult.Error != nil {
+				return nil, 0, queryResult.Error
+			}
 		}
+
 		for k, _ := range nfts {
 			nfts[k].Image = ""
 		}
-		nftlist.Nftlist = nfts
-		nftlist.Total = int(recCount)
-		//GetRedisCatch().CatchQueryData("QueryUnverifiedNfts", start_index+count, &nftlist)
-
 		return nfts, int(recCount), nil
 
 	}
 }
 
 //Audit NFT*
-func (nft NftDb) VerifyNft(vrfaddr string, owner string, contractaddr string,
-	tokenid string, desc string, verified string, sig string) error {
+func (nft NftDb) VerifyNft(vrfaddr string, tokenid string, desc string, verified string) error {
 
 	vrfaddr = strings.ToLower(vrfaddr)
-	owner = strings.ToLower(owner)
-	contractaddr = strings.ToLower(contractaddr)
+	//
+	//
+	////modify the database value of verified field if the valification address is valid.
+	//nftData := Nfts{}
+	//takeResult := nft.db.Where("contract = ? and tokenid = ?",
+	//	contractaddr, tokenid).Take(&nftData)
+	//if takeResult.Error != nil {
+	//	return ErrNotFound
+	//}
+	//updateValue := make(map[string]interface{})
+	//updateValue["verified"] = verified
+	//updateValue["verifieddesc"] = desc
+	//updateValue["signdata"] = sig
+	//updateValue["verifiedtime"] = time.Now().Unix()
+	//updateResult := nft.db.Model(&nftData).Updates(updateValue)
+	//if updateResult.Error != nil {
+	//	return ErrDataBase
+	//}
+	//GetRedisCatch().SetDirtyFlag(NftVerifiedDirtyName)
+	user := Users{}
 
-	//modify the database value of verified field if the valification address is valid.
-	nftData := Nfts{}
-	takeResult := nft.db.Where("contract = ? and tokenid = ?",
-		contractaddr, tokenid).Take(&nftData)
-	if takeResult.Error != nil {
+	err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
+	if err.Error != nil {
+		log.Println("VerifyNft vrfaddr not found")
 		return ErrNotFound
 	}
-	updateValue := make(map[string]interface{})
-	updateValue["verified"] = verified
-	updateValue["verifieddesc"] = desc
-	updateValue["signdata"] = sig
-	updateValue["verifiedtime"] = time.Now().Unix()
-	updateResult := nft.db.Model(&nftData).Updates(updateValue)
-	if updateResult.Error != nil {
+	tokenidlist := strings.Split(tokenid, ",")
+	err = nft.db.Model(&Nfts{}).Where("tokenid in ?", tokenidlist).
+		Updates(map[string]interface{}{"verifyaddr": vrfaddr, "verifieddesc": desc, "verified": verified})
+	if err.Error != nil {
+		log.Println("VerifyNft update err=", err.Error)
 		return ErrDataBase
 	}
-	//GetRedisCatch().SetDirtyFlag(NftVerifiedDirtyName)
 
 	return nil
 }
@@ -3349,8 +3381,8 @@ type QueryPendingKYCList struct {
 	Total    int
 }
 
-func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, error) {
-	users := []Users{}
+func (nft *NftDb) QueryPendingKYCList(start_index, count, status string) ([]Userrec, int, error) {
+	users := []Userrec{}
 	var recCount int64
 	if IsIntDataValid(start_index) != true {
 		return nil, 0, ErrDataFormat
@@ -3359,16 +3391,18 @@ func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, 
 		return nil, 0, ErrDataFormat
 	}
 
-	kyc := QueryPendingKYCList{}
-	//cerr := GetRedisCatch().GetCatchData("QueryPendingKYCList", start_index+count, &kyc)
-	//if cerr == nil {
-	//	log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
-	//	return kyc.Userlisr, kyc.Total, nil
-	//}
-	err := nft.db.Model(Users{}).Count(&recCount)
-	if err.Error != nil {
-		fmt.Println("QueryPendingKYCList() recCount err=", err)
-		return nil, 0, ErrNftNotExist
+	if status == "" {
+		err := nft.db.Model(Users{}).Where(" certificate <> ? ", "").Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("QueryPendingKYCList() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
+	} else {
+		err := nft.db.Model(Users{}).Where("verified = ? and certificate <> ?", status, "").Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("QueryPendingKYCList() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
 	}
 	startIndex, _ := strconv.Atoi(start_index)
 	nftCount, _ := strconv.Atoi(count)
@@ -3379,17 +3413,23 @@ func (nft *NftDb) QueryPendingKYCList(start_index, count string) ([]Users, int, 
 		if int64(nftCount) > temp {
 			nftCount = int(temp)
 		}
-		queryResult := nft.db.Order("id desc").Limit(nftCount).Offset(startIndex).Find(&users)
-		if queryResult.Error != nil {
-			return nil, 0, ErrDataBase
+		if status == "" {
+			queryResult := nft.db.Model(&Users{}).Where(" certificate <> ? ", "").Order("updated_at desc").Limit(nftCount).Offset(startIndex).Find(&users)
+			if queryResult.Error != nil {
+				return nil, 0, ErrDataBase
+			}
+		} else {
+			queryResult := nft.db.Model(&Users{}).Where("verified = ? and certificate <> ?", status, "").Order("updated_at desc").Limit(nftCount).Offset(startIndex).Find(&users)
+			if queryResult.Error != nil {
+				return nil, 0, ErrDataBase
+			}
 		}
+
 		for k, _ := range users {
 			users[k].Portrait = ""
 			users[k].Background = ""
 		}
-		kyc.Userlisr = users
-		kyc.Total = int(recCount)
-		//GetRedisCatch().CatchQueryData("QueryPendingKYCList", start_index+count, &kyc)
+
 		return users, int(recCount), nil
 
 	}
@@ -3404,19 +3444,27 @@ func (nft NftDb) UserKYC(vrfaddr string, useraddr string, desc string,
 
 	user := Users{}
 
-	takeResult := nft.db.Where("useraddr = ?", useraddr).Take(&user)
-	if takeResult.Error != nil {
+	err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
+	if err.Error != nil {
+		log.Println("UserKYC vrfaddr not found")
 		return ErrNotFound
 	}
-	updateValue := make(map[string]interface{})
-	updateValue["verifyaddr"] = vrfaddr
-	updateValue["desc"] = desc
-	updateValue["verified"] = verified
-	updateValue["signdata"] = sig
-	updateResult := nft.db.Model(&user).Updates(updateValue)
-	if updateResult.Error != nil {
+	useraddrlist := strings.Split(useraddr, ",")
+	err = nft.db.Model(&Users{}).Where("useraddr in ?", useraddrlist).
+		Updates(map[string]interface{}{"verifyaddr": vrfaddr, "desc": desc, "verified": verified, "signdata": sig})
+	if err.Error != nil {
+		log.Println("UserKYC update err=", err.Error)
 		return ErrDataBase
 	}
+	//updateValue := make(map[string]interface{})
+	//updateValue["verifyaddr"] = vrfaddr
+	//updateValue["desc"] = desc
+	//updateValue["verified"] = verified
+	//updateValue["signdata"] = sig
+	//updateResult := nft.db.Model(&user).Updates(updateValue)
+	//if updateResult.Error != nil {
+	//	return ErrDataBase
+	//}
 	//GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
 
 	return nil
@@ -3469,9 +3517,9 @@ func (nft NftDb) AskForApprove(nft_contract_addr, nft_token_id string) (UserNft,
 }
 
 func (nft *NftDb) IsValidCategory(category string) bool {
-	sysParams := SysParams{}
+	sysParams := Exchangeinfos{}
 
-	result := nft.db.Model(&SysParams{}).Select("categories").Last(&sysParams)
+	result := nft.db.Model(&Exchangeinfos{}).Select("categories").Last(&sysParams)
 	if result.Error != nil {
 		return false
 	}

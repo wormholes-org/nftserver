@@ -33,7 +33,7 @@ func TestGetSnftInfo(t *testing.T) {
 	models.NftIpfsServerIP = "http://api.wormholestest.com"
 	models.NftstIpfsServerPort = "8666"
 	models.RoyaltyLimit = 1000
-	models.TransferNFT = true
+	models.TransferSNFT = true
 	SyncWorkerNft(sqldsnT)
 }
 

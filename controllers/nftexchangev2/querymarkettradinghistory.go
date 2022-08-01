@@ -42,7 +42,7 @@ func (nft *NftExchangeControllerV2) QueryMarketTradingHistory() {
 		} else {
 			userTradings, totalCount, err := nd.QueryMarketTradingHistory(data.Filter, data.Sort, data.StartIndex, data.Count)
 			if err != nil {
-				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
+				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist || err == models.ErrNotMore {
 					httpResponseData.Code = "200"
 				} else {
 					httpResponseData.Code = "500"

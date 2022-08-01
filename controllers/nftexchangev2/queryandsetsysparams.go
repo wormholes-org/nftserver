@@ -14,7 +14,6 @@ import (
 )
 
 func (nft *NftExchangeControllerV2) GetSysParams() {
-	sysParams := &models.SysParamsInfo{}
 	fmt.Println("GetSysParams()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
@@ -25,7 +24,7 @@ func (nft *NftExchangeControllerV2) GetSysParams() {
 	defer nd.Close()
 
 	defer nft.Ctx.Request.Body.Close()
-	sysParams, err = nd.QuerySysParams()
+	sysParams, err := nd.QueryExchangeInfo()
 	if err != nil {
 		if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
 			httpResponseData.Code = "200"
@@ -146,7 +145,7 @@ func (nft *NftExchangeControllerV2) verifyInputData_SetSysParams(data map[string
 func (nft *NftExchangeControllerV2) SetSysParams() {
 	fmt.Println("SetSysParams()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
-	sysParams := models.SysParamsInfo{}
+	sysParams := models.ExchangeInfo{}
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
 		fmt.Printf("SetSysParams() connect database err = %s\n", err)
@@ -183,7 +182,7 @@ func (nft *NftExchangeControllerV2) SetSysParams() {
 					if err != nil {
 						nft.Ctx.ResponseWriter.Write([]byte("Failed to update data！"))
 					} else {
-						inputDatarr := nd.SetSysParams(sysParams)
+						inputDatarr := nd.SetExchangeInfo(sysParams)
 						if inputDatarr == nil {
 							httpResponseData.Code = "200"
 							httpResponseData.Data = []interface{}{}
@@ -406,4 +405,53 @@ func (nft *NftExchangeControllerV2) verifyInputData_SetExchangeSig(data map[stri
 	}
 
 	return nil
+}
+
+func (nft *NftExchangeControllerV2) DelPartnersLogo() {
+	fmt.Println("DelPartnersLogo()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+	if err != nil {
+		fmt.Printf("SetExchangeSig() connect database err = %s\n", err)
+		return
+	}
+	defer nd.Close()
+
+	var data map[string]string
+	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
+	defer nft.Ctx.Request.Body.Close()
+	err = json.Unmarshal(bytes, &data)
+	if err == nil {
+		inputDataErr := nft.verifyInputData_SetExchangeSig(data)
+		if inputDataErr != nil {
+			httpResponseData.Code = "500"
+			httpResponseData.Msg = inputDataErr.Error()
+			httpResponseData.Data = []interface{}{}
+		} else {
+			rawData := signature.RemoveSignData(string(bytes))
+			_, err := nft.IsValidVerifyAddr(nd, models.AdminTypeAdmin, models.AdminEdit, rawData, data["sig"])
+			if err != nil {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			} else {
+				inputDatarr := nd.DelPartnerLogo(data["logo"])
+				if inputDatarr == nil {
+					httpResponseData.Code = "200"
+					httpResponseData.Data = []interface{}{}
+				} else {
+					httpResponseData.Code = "500"
+					httpResponseData.Msg = inputDatarr.Error()
+					httpResponseData.Data = []interface{}{}
+				}
+			}
+		}
+	} else {
+		httpResponseData.Code = "500"
+		httpResponseData.Msg = ERRINPUT.Error()
+		httpResponseData.Data = []interface{}{}
+	}
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("DelPartnersLogo()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }

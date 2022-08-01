@@ -8,6 +8,7 @@ import (
 	"github.com/nftexchange/nftserver/models"
 	"gorm.io/gorm"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"time"
@@ -409,7 +410,6 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 		} else {
 			rawData := signature.RemoveSignData(string(bytes))
 			_, err := nft.IsValidVerifyAddr(nd, models.AdminTypeAdmin, models.AdminEdit, rawData, data["sig"])
-
 			if err != nil {
 				httpResponseData.Code = "500"
 				httpResponseData.Msg = err.Error()
@@ -421,7 +421,7 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 					httpResponseData.Msg = err.Error()
 					httpResponseData.Data = []interface{}{}
 				} else {
-					err = nd.SetPeriodEth(data["param"])
+					err = nd.SetPeriodToEth(data["user_addr"], data["param"])
 					if err == nil {
 						httpResponseData.Code = "200"
 						httpResponseData.Data = []interface{}{}
@@ -444,11 +444,137 @@ func (nft *NftExchangeControllerV2) SetPeriodEth() {
 	fmt.Println("SetPeriodEth()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-func sayHelloTimeout(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("path", r.URL.Path)
-	fmt.Println(w, "hello world")
-	time.Sleep(5 * time.Second)
+func (nft *NftExchangeControllerV2) SNftCollectionSearch() {
+	fmt.Println("SNftCollectionSearch()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+	if err != nil {
+		fmt.Printf("CreateCollection() connect database err = %s\n", err)
+		return
+	}
+	defer nd.Close()
 
+	var data map[string]string
+	defer nft.Ctx.Request.Body.Close()
+	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
+	//fmt.Printf("receive data = %s\n", string(bytes))
+	err = json.Unmarshal(bytes, &data)
+	if err != nil {
+		httpResponseData.Code = "500"
+		httpResponseData.Msg = ERRINPUT.Error()
+		httpResponseData.Data = []interface{}{}
+	} else {
+
+		inputDataErr := nft.verifyInputData_QueryNftCollectionList(data)
+		if inputDataErr != nil {
+			httpResponseData.Code = "500"
+			httpResponseData.Msg = inputDataErr.Error()
+			httpResponseData.Data = []interface{}{}
+		} else {
+			nftCollections, totalCount, err := nd.SNftCollectionSearch(data["categories"], data["param"], data["start_index"], data["count"])
+			if err != nil {
+				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist || err == models.ErrNotMore {
+					httpResponseData.Code = "200"
+				} else {
+					httpResponseData.Code = "500"
+				}
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			} else {
+				httpResponseData.Code = "200"
+				httpResponseData.Data = nftCollections
+				httpResponseData.TotalCount = uint64(totalCount)
+			}
+		}
+	}
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("SNftCollectionSearch()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+}
+
+func (nft *NftExchangeControllerV2) SetPeriod() {
+	fmt.Println("SetPeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+
+	defer nd.Close()
+
+	var data map[string]string
+	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
+	defer nft.Ctx.Request.Body.Close()
+	err = json.Unmarshal(bytes, &data)
+	if err == nil {
+		inputDataErr := nft.verifyInputData_SnftCollection(data)
+		if inputDataErr != nil {
+			httpResponseData.Code = "500"
+			httpResponseData.Msg = inputDataErr.Error()
+			httpResponseData.Data = []interface{}{}
+		} else {
+			log.Println(data)
+			rawData := signature.RemoveSignData(string(bytes))
+			_, err := nft.IsValidVerifyAddr(nd, models.AdminTypeAdmin, models.AdminEdit, rawData, data["sig"])
+			if err != nil {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			} else {
+				err = nd.InsertSigData(data["sig"], rawData)
+				if err != nil {
+					httpResponseData.Code = "500"
+					httpResponseData.Msg = err.Error()
+					httpResponseData.Data = []interface{}{}
+				} else {
+					err = nd.SetPeriod(data["user_addr"], data["param"], data["collection"])
+					if err == nil {
+						httpResponseData.Code = "200"
+						httpResponseData.Data = []interface{}{}
+					} else {
+						httpResponseData.Code = "500"
+						httpResponseData.Msg = err.Error()
+						httpResponseData.Data = []interface{}{}
+					}
+				}
+			}
+		}
+	} else {
+		httpResponseData.Code = "500"
+		httpResponseData.Msg = ERRINPUT.Error()
+		httpResponseData.Data = []interface{}{}
+	}
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("SetPeriod()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+}
+
+func (nft *NftExchangeControllerV2) GetPeriod() {
+	fmt.Println("GetPeriod()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+	if err != nil {
+		fmt.Printf("CreateCollection() connect database err = %s\n", err)
+		return
+	}
+	defer nd.Close()
+
+	homePageData, err := nd.GetPeriod()
+	if err != nil {
+		if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
+			httpResponseData.Code = "200"
+		} else {
+			httpResponseData.Code = "500"
+		}
+
+		httpResponseData.Msg = err.Error()
+		httpResponseData.Data = []interface{}{}
+	} else {
+		httpResponseData.Code = "200"
+		httpResponseData.Data = homePageData
+		httpResponseData.TotalCount = 0
+	}
+
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("GetPeriod()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
 func (nft *NftExchangeControllerV2) verifyInputData_NewPeriod(data map[string]string) error {
@@ -476,14 +602,14 @@ func (nft *NftExchangeControllerV2) verifyInputData_NewPeriod(data map[string]st
 }
 
 func (nft *NftExchangeControllerV2) verifyInputData_Tokenid(data map[string]string) error {
-	regString, _ := regexp.Compile(PattenString)
+	//regString, _ := regexp.Compile(PattenString)
 
-	if data["param"] != "" {
-		match := regString.MatchString(data["param"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
+	//if data["param"] != "" {
+	//	match := regString.MatchString(data["param"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
 	//if data["name"] != "" {
 	//	match := regString.MatchString(data["name"])
 	//	if !match {

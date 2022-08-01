@@ -43,13 +43,15 @@ func (nft *NftExchangeControllerV2) QueryNftCollectionList() {
 			nftCollections, totalCount, err := nd.QueryNFTCollectionList(data["start_index"],
 				data["count"])
 			if err != nil {
-				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
+				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist || err == models.ErrNotMore {
 					httpResponseData.Code = "200"
+					httpResponseData.Msg = ""
+					httpResponseData.Data = []interface{}{}
 				} else {
 					httpResponseData.Code = "500"
+					httpResponseData.Msg = err.Error()
+					httpResponseData.Data = []interface{}{}
 				}
-				httpResponseData.Msg = err.Error()
-				httpResponseData.Data = []interface{}{}
 			} else {
 				httpResponseData.Code = "200"
 				httpResponseData.Data = nftCollections

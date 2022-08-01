@@ -53,8 +53,8 @@ func (nft *NftExchangeControllerV2) VerifyNft() {
 					httpResponseData.Data = []interface{}{}
 				} else {
 					//modify the database value of verified field if the verification address is valid.
-					err = nd.VerifyNft(data["vrf_addr"], data["owner"], data["nft_contract_addr"],
-						data["nft_token_id"], data["desc"], data["vrf_res"], data["sig"])
+					err = nd.VerifyNft(data["vrf_addr"], data["nft_token_id"], data["desc"],
+						data["vrf_res"])
 					if err != nil {
 						httpResponseData.Code = "500"
 						httpResponseData.Msg = err.Error()
@@ -87,12 +87,12 @@ func (nft *NftExchangeControllerV2) verifyInputData_VerifyNft(data map[string]st
 			return ERRINPUTINVALID
 		}
 	}
-	if data["nft_token_id"] != "" {
-		match := regString.MatchString(data["nft_token_id"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
+	//if data["nft_token_id"] != "" {
+	//	match := regString.MatchString(data["nft_token_id"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
 	if data["owner"] != "" {
 		match := regString.MatchString(data["owner"])
 		if !match {

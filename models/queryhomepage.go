@@ -132,7 +132,7 @@ func (nft *NftDb) QueryHomePage(flashFlag bool) ([]HomePageResp, error) {
 		for _, v := range homePageReq.NftLoop {
 			nftData := Nfts{}
 			result := nft.db.Model(&Nfts{}).Select([]string{"contract", "tokenid", "collectcreator", "Collections", "desc", "name",
-				"ownaddr", "createaddr", "url", "snft"}).Where("contract = ? and tokenid = ?", v.Contract, v.Tokenid).
+				"ownaddr", "createaddr", "url", "snft", "transprice"}).Where("contract = ? and tokenid = ?", v.Contract, v.Tokenid).
 				First(&nftData)
 			if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
 				log.Println("QueryHomePage() NftLoop select err =", result.Error)

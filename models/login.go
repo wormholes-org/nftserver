@@ -11,6 +11,7 @@ import (
 type UserSyncMapList struct {
 	Mux   sync.Mutex
 	Users map[string]*sync.Mutex
+	Trans map[string]*sync.Mutex
 }
 
 func (u *UserSyncMapList) Lock(userAddr string) {
@@ -27,24 +28,30 @@ func (u *UserSyncMapList) Lock(userAddr string) {
 	user.Lock()
 }
 
-func (u *UserSyncMapList) LockLogic(userAddr string) bool {
+func (u *UserSyncMapList) LockTran(userAddr string) bool {
 	u.Mux.Lock()
 	defer u.Mux.Unlock()
-	if len(u.Users) == 0 {
-		u.Users = make(map[string]*sync.Mutex)
+	if len(u.Trans) == 0 {
+		u.Trans = make(map[string]*sync.Mutex)
 	}
-	user, ok := u.Users[userAddr]
-	if ok {
-		return true
-	} else {
-		u.Users[userAddr] = new(sync.Mutex)
-		user, _ = u.Users[userAddr]
+	user, ok := u.Trans[userAddr]
+	if !ok {
+		u.Trans[userAddr] = new(sync.Mutex)
+		user, _ = u.Trans[userAddr]
 		user.Lock()
 		return false
+	} else {
+		return true
 	}
 
 }
-
+func (u *UserSyncMapList) UnLockTran(userAddr string) {
+	user, ok := u.Trans[userAddr]
+	if ok {
+		user.Unlock()
+		delete(u.Trans, userAddr)
+	}
+}
 func (u *UserSyncMapList) UnLock(userAddr string) {
 	user, ok := u.Users[userAddr]
 	if ok {

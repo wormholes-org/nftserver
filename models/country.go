@@ -697,8 +697,8 @@ const CountryList = `[
     "telecode": "504"
   },
   {
-    "regioncn": "香港",
-    "regionen": "Hong Kong",
+    "regioncn": "中国香港",
+    "regionen": "Hong Kong,Province of China",
     "domain": "HK",
     "telecode": "852"
   },
@@ -883,8 +883,8 @@ const CountryList = `[
     "telecode": "352"
   },
   {
-    "regioncn": "澳门",
-    "regionen": "Macao",
+    "regioncn": "中国澳门",
+    "regionen": "Macao,Province of China",
     "domain": "MO",
     "telecode": "853"
   },
@@ -1387,7 +1387,7 @@ const CountryList = `[
     "telecode": "963"
   },
   {
-    "regioncn": "台湾",
+    "regioncn": "中国台湾",
     "regionen": "Taiwan,Province of China",
     "domain": "TW",
     "telecode": "886"

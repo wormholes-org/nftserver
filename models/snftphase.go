@@ -60,6 +60,11 @@ type ToSnftPeriodCollect struct {
 	Extend    string `json:"extend"`
 }
 
+type PeriodData struct {
+	CollectImage string `json:"collect_image"`
+	NftTokenid   string `json:"nft_tokenid"`
+}
+
 func (nft NftDb) NewSnftPhase(useraddr, name, desc string) error {
 	useraddr = strings.ToLower(useraddr)
 	fmt.Println("NewCollections() user_addr=", useraddr, "      time=", time.Now().String())
@@ -696,7 +701,7 @@ func saveIpfsjpgImage(name, image_base64 string) (string, error) {
 		for _, c := range name {
 			hexname += fmt.Sprintf("%02x", c)
 		}
-		file = newPath + hexname + "." + imagetype
+		file = newPath + hexname + "." + "jpg"
 	} else {
 		fmt.Println("SaveCollectionsImage() image_base64==0 error.")
 		return "", err
@@ -738,22 +743,22 @@ func base64tofile(file, data string) error {
 		fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
 		return err
 	}
-	i := strings.LastIndex(file, "jpeg")
-	if i != -1 {
-		file = file[:i] + "jpg"
-	} else {
-		file = file[:i] + "jpeg"
-	}
-	f, err = os.OpenFile(file, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
-	if err != nil {
-		fmt.Println("base64toJpeg() OpenFile() err=", err)
-		return err
-	}
-	err = jpeg.Encode(f, m, nil)
-	if err != nil {
-		fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
-		return err
-	}
+	//i := strings.LastIndex(file, "jpeg")
+	//if i != -1 {
+	//	file = file[:i] + "jpg"
+	//} else {
+	//	file = file[:i] + "jpeg"
+	//}
+	//f, err = os.OpenFile(file, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
+	//if err != nil {
+	//	fmt.Println("base64toJpeg() OpenFile() err=", err)
+	//	return err
+	//}
+	//err = jpeg.Encode(f, m, nil)
+	//if err != nil {
+	//	fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
+	//	return err
+	//}
 
 	return nil
 }
@@ -926,4 +931,557 @@ func AutoPeriodEth(sqldsn string) {
 
 		}
 	}
+}
+
+type SNftCollection struct {
+	Collection CollectRec  `json:"collection"`
+	NftList    []NftRecord `json:"nftlist"`
+}
+
+func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count string) ([]SNftCollection, int64, error) {
+	snftcollectlist := []SNftCollection{}
+	snftcollect := SNftCollection{}
+	collectsearch := []CollectRec{}
+	var recCount int64
+	//cerr := GetRedisCatch().GetCatchData("CollectSearch", categories+param, &snftsearch)
+	//if cerr == nil {
+	//	log.Printf("CollectSearch() cache default  time.now=%s\n", time.Now())
+	//	return snftsearch, nil
+	//}
+	if IsIntDataValid(start_index) != true {
+		return nil, 0, ErrDataFormat
+	}
+	if IsIntDataValid(count) != true {
+		return nil, 0, ErrDataFormat
+	}
+
+	if param == "" && categories == "" {
+
+		err := nft.db.Model(Collects{}).Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("SNftCollectionSearch() recCount err=", err)
+			return nil, 00, ErrNftNotExist
+		}
+		startIndex, _ := strconv.Atoi(start_index)
+		nftCount, _ := strconv.Atoi(count)
+		if int64(startIndex) >= recCount || recCount == 0 {
+			return nil, 0, ErrNotMore
+		} else {
+			temp := recCount - int64(startIndex)
+			if int64(nftCount) > temp {
+				nftCount = int(temp)
+			}
+			err = nft.db.Model(Collects{}).Limit(nftCount).Offset(startIndex).Find(&collectsearch)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find record err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+		}
+		for _, value := range collectsearch {
+			nftrec := []NftRecord{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+			snftcollect.Collection = value
+			snftcollect.NftList = nftrec
+			snftcollectlist = append(snftcollectlist, snftcollect)
+		}
+		return snftcollectlist, recCount, nil
+	}
+
+	if categories == "" {
+		//err := nft.db.Model(&SnftCollect{}).Where("name like ?", "%"+param+"%").Find(&snftsearch)
+		//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+		//	fmt.Printf("search nft err=%s", err.Error)
+		//	return nil, ErrDataBase
+		//}
+		//for i, _ := range snftsearch {
+		//	snftsearch[i].Img = ""
+		//}
+		////GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
+		//
+		//return snftsearch, nil
+
+		err := nft.db.Model(Collects{}).Where("name like ?", "%"+param+"%").Count(&recCount)
+		if err.Error != nil {
+			fmt.Println("SNftCollectionSearch() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
+		startIndex, _ := strconv.Atoi(start_index)
+		nftCount, _ := strconv.Atoi(count)
+		if int64(startIndex) >= recCount || recCount == 0 {
+			return nil, 0, ErrNotMore
+		} else {
+			temp := recCount - int64(startIndex)
+			if int64(nftCount) > temp {
+				nftCount = int(temp)
+			}
+			err = nft.db.Model(Collects{}).Where("name like ?", "%"+param+"%").Limit(nftCount).Offset(startIndex).Find(&collectsearch)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find record err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+		}
+		for _, value := range collectsearch {
+			nftrec := []NftRecord{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+			snftcollect.Collection = value
+			snftcollect.NftList = nftrec
+			snftcollectlist = append(snftcollectlist, snftcollect)
+		}
+		return snftcollectlist, recCount, nil
+	} else {
+		catestr := strings.Split(categories, ",")
+		catesql := " from collects where deleted_at IS NULL and ( "
+		for i, str := range catestr {
+			if i < len(catestr)-1 {
+				catesql = catesql + " categories = " + "'" + str + "'" + " or "
+			}
+			if i == len(catestr)-1 {
+				catesql = catesql + " categories =  " + "'" + str + "'"
+			}
+		}
+		catesql += " ) and name like ?"
+
+		selesql := "select *  " + catesql
+		countsql := "select count(*) " + catesql
+		//err := nft.db.Raw(catesql, "%"+param+"%").Scan(&snftsearch)
+		//if err.Error != nil {
+		//	fmt.Println("CollectSearch() search err=", err)
+		//	return nil, ErrDataBase
+		//}
+		//for i, _ := range snftsearch {
+		//	snftsearch[i].Img = ""
+		//}
+		////GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
+		//
+		//return snftsearch, nil
+
+		err := nft.db.Model(Collects{}).Raw(countsql, "%"+param+"%").Scan(&recCount)
+		if err.Error != nil {
+			fmt.Println("SNftCollectionSearch() recCount err=", err)
+			return nil, 0, ErrNftNotExist
+		}
+		startIndex, _ := strconv.Atoi(start_index)
+		nftCount, _ := strconv.Atoi(count)
+		if int64(startIndex) >= recCount || recCount == 0 {
+			return nil, 0, ErrNotMore
+		} else {
+			temp := recCount - int64(startIndex)
+			if int64(nftCount) > temp {
+				nftCount = int(temp)
+			}
+			err = nft.db.Model(Collects{}).Raw(selesql, "%"+param+"%").Limit(nftCount).Offset(startIndex).Scan(&collectsearch)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find record err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+		}
+		for _, value := range collectsearch {
+			nftrec := []NftRecord{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			if err.Error != nil {
+				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
+				return nil, 0, ErrNftNotExist
+			}
+			snftcollect.Collection = value
+			snftcollect.NftList = nftrec
+			snftcollectlist = append(snftcollectlist, snftcollect)
+		}
+		return snftcollectlist, recCount, nil
+
+	}
+}
+
+type PeriodCollection struct {
+	Collectimg string `json:"collect"`
+	//Local      string     `json:"local"`
+	NftList []NftLocal `json:"nftlist"`
+}
+
+type NftLocal struct {
+	Tokenid string `json:"tokenid"`
+	//Local   string `json:"local"`
+}
+
+func (nft NftDb) SetPeriod(useraddr, param, collection string) error {
+
+	period := []PeriodCollection{}
+	whethereth := true
+	colletcstr := ""
+	uerr := json.Unmarshal([]byte(param), &period)
+	if uerr != nil {
+		log.Println("input data err = ", period)
+		return ErrDataFormat
+	}
+
+	//createuser := Users{}
+	//aerr := nft.db.Model(&Users{}).Where("useraddr = ?", useraddr).First(&createuser)
+	//if aerr != nil {
+	//	log.Println("SetPeriod useraddr err =", aerr.Error)
+	//	return ErrNotFound
+	//}
+
+	return nft.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&Snfts{}).Unscoped().Where("1 = 1").Delete(&Snfts{})
+		if err.Error != nil {
+			fmt.Println(" SetPeriod  delete snft err= ", err.Error)
+			return ErrDataBase
+		}
+		err = tx.Model(&SnftCollect{}).Where("1 = 1").Delete(&SnftCollect{})
+		if err.Error != nil {
+			fmt.Println(" SetPeriod  delete snftcollect err= ", err.Error)
+			return ErrDataBase
+		}
+		delerr := DelSnftDirAllImage(ImageDir)
+		if delerr != nil {
+			log.Println("SetPeriod() DelSnftDirAllImage delete image err=", delerr)
+			return ErrDeleteImg
+		}
+		//stop := make(chan string)
+		//collectch := make(chan SnftCollect, 16)
+		collectch := []SnftCollect{}
+		if len(period) != 16 {
+			whethereth = false
+		}
+		num := 0
+		for _, value := range period {
+			//wg.Add(1)
+			//defer wg.Done()
+			num++
+			collectRec := SnftCollect{}
+			collectRec.Createaddr = useraddr
+			collectRec.Name = "collection" + strconv.Itoa(num)
+			collectRec.Img = value.Collectimg
+			collectRec.Contract = strings.ToLower(ExchangeOwer)
+			collectRec.Contracttype = "NFT1155"
+			collectRec.Categories = ""
+			//collectRec.Local = value.Local
+			snftstr := ""
+			for i, snft := range value.NftList {
+				if len(value.NftList) != 16 {
+					whethereth = false
+				}
+
+				existnft := Nfts{}
+				err = tx.Model(&Nfts{}).Where("tokenid = ? ", snft.Tokenid).First(&existnft)
+				if err.Error != nil {
+					log.Println("input nft err=", err.Error)
+					return err.Error
+				}
+				firstsnft := Snfts{}
+				err = tx.Model(&Snfts{}).Where("tokenid = ?", existnft.Tokenid).First(&firstsnft)
+				//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+				//	log.Printf("SetPeriod()  duplicate nft data")
+				//	stop <- ErrData.Error()
+				//}
+				if err.Error == nil || err.Error != gorm.ErrRecordNotFound {
+					log.Println("SetPeriod()  duplicate nft data = ", existnft)
+					return ErrData
+				}
+				insnft := Snfts{}
+				insnft.Name = existnft.Name
+				insnft.Desc = existnft.Desc
+				insnft.Ownaddr = existnft.Ownaddr
+				insnft.Image = existnft.Image
+				insnft.Md5 = existnft.Md5
+				insnft.Meta = existnft.Meta
+				insnft.Nftmeta = existnft.Nftmeta
+				insnft.Url = existnft.Url
+				insnft.Contract = existnft.Contract
+				insnft.Tokenid = existnft.Tokenid
+				insnft.Nftaddr = existnft.Nftaddr
+				insnft.Count = 1
+				insnft.Approve = existnft.Approve
+				insnft.Categories = existnft.Categories
+				insnft.Hide = existnft.Hide
+				insnft.Signdata = existnft.Signdata
+				insnft.Createaddr = existnft.Createaddr
+				insnft.Verifyaddr = existnft.Verifyaddr
+				insnft.Currency = existnft.Currency
+				insnft.Price = existnft.Price
+				insnft.Royalty = existnft.Royalty
+				//insnft.Local = snft.Local
+
+				err = tx.Model(&Snfts{}).Create(&insnft)
+				if err.Error != nil {
+					fmt.Printf("SetPeriod() create  snft err=%v", err.Error)
+					return ErrDataBase
+					//stop <- ErrDataBase.Error()
+				}
+				snftstr += strconv.Itoa(int(insnft.ID))
+				if i < len(value.NftList)-1 {
+					snftstr += ","
+				}
+			}
+			collectRec.Snft = snftstr
+			//collectch <- collectRec
+			collectch = append(collectch, collectRec)
+		}
+		for _, v := range collectch {
+			newcoll := v
+			file, serr := saveIpfsjpgImage(strconv.Itoa(int(v.ID)), newcoll.Img)
+			if serr != nil {
+				fmt.Println("saveIpfsjpgImage() save collection image err=", serr)
+				return ErrNftImage
+			}
+			collectImageUrl, serr := SaveToIpfs(file)
+			if serr != nil {
+				fmt.Println("SaveToIpfs() save collection image err=", serr)
+				return ErrIpfsImage
+			}
+			//if serr != nil {
+			//	fmt.Println("SaveToIpfs() save collection image err=", serr)
+			//	return ErrIpfsImage
+			//}
+			v.Img = "/ipfs/" + collectImageUrl
+			err = tx.Create(&v)
+			if err.Error != nil {
+				log.Println("SetPeriod create collection err =", err.Error)
+				//stop <- ErrDataBase.Error()
+				return ErrDataBase
+			}
+			//result := SaveSnftCollectionImage(ImageDir, strconv.Itoa(int(v.ID)), newcoll.Img)
+			//if result != nil {
+			//	log.Println("SetPeriod SaveSnftCollectionImage save collection image err =", err)
+			//	//stop <- ErrIpfsImage.Error()
+			//	return ErrNftImage
+			//}
+			colletcstr += strconv.Itoa(int(v.ID)) + ","
+		}
+
+		newperiod := SnftPhase{}
+		err = tx.Model(&SnftPhase{}).Last(&newperiod)
+		if err.Error != nil {
+			if err.Error == gorm.ErrRecordNotFound {
+				newperiod.Collect = ""
+				newperiod.Accedvote = ""
+				err = nft.db.Create(&newperiod)
+				if err.Error != nil {
+					log.Println("SetPeriod create period err =", err.Error)
+					return ErrDataBase
+				}
+			} else {
+				log.Println("SetPeriod database err=", err.Error)
+				return ErrDataBase
+			}
+		}
+		colletcstr = colletcstr[:len(colletcstr)-1]
+		newperiod.Collect = colletcstr
+		newperiod.Accedvote = strconv.FormatBool(whethereth)
+		if collection != "" {
+			newperiod.Collect = collection
+		}
+		err = tx.Where("id = ? ", newperiod.ID).Updates(&newperiod)
+		if err.Error != nil {
+			log.Println("SetPeriod update period err =", err.Error)
+			//stop <- ErrDataBase.Error()
+			return ErrDataBase
+		}
+		return nil
+	})
+
+}
+
+type PeriodCollectionSnft struct {
+	Accedvote      string           `json:"accedvote"`
+	Collection     string           `json:"collection"`
+	CollectionList []CollectionSnft `json:"collectionlist"`
+}
+
+type CollectionSnft struct {
+	Local    string    `json:"local"`
+	SnftList []SnftRec `json:"snftlist"`
+}
+
+func (nft NftDb) GetPeriod() (PeriodCollectionSnft, error) {
+	periodcollectsnft := PeriodCollectionSnft{}
+	period := SnftPhase{}
+	collection := []SnftCollect{}
+	snft := []SnftRec{}
+	err := nft.db.Model(&SnftPhase{}).Last(&period)
+	if err.Error != nil {
+		if err.Error == gorm.ErrRecordNotFound {
+			newperiod := SnftPhase{}
+			newperiod.Collect = ""
+			newperiod.Accedvote = ""
+			err = nft.db.Create(&newperiod)
+			if err.Error != nil {
+				log.Println("GetPeriod create period err =", err.Error)
+				//stop <- ErrDataBase.Error()
+				return PeriodCollectionSnft{}, ErrDataBase
+			}
+		} else {
+			log.Println("GetPeriod database err=", err.Error)
+			return PeriodCollectionSnft{}, ErrDataBase
+		}
+	}
+	periodcollectsnft.Accedvote = period.Accedvote
+	periodcollectsnft.Collection = period.Collect
+	err = nft.db.Model(&SnftCollect{}).Find(&collection)
+	if err.Error != nil {
+		log.Println("GetPeriod get collection err=", err.Error)
+		return PeriodCollectionSnft{}, ErrDataBase
+	}
+	for _, value := range collection {
+		snftlist := strings.Split(value.Snft, ",")
+		err = nft.db.Model(&Snfts{}).Where("id in ? ", snftlist).Find(&snft)
+		if err.Error != nil {
+			log.Println("GetPeriod get snft err=", err.Error)
+			return PeriodCollectionSnft{}, ErrDataBase
+		}
+		collectlocal := CollectionSnft{}
+		collectlocal.Local = value.Local
+		collectlocal.SnftList = snft
+		periodcollectsnft.CollectionList = append(periodcollectsnft.CollectionList, collectlocal)
+	}
+	return periodcollectsnft, nil
+}
+
+func (nft NftDb) SetPeriodToEth(useraddr, param string) error {
+
+	seterr := nft.SetPeriod(useraddr, param, "")
+	if seterr != nil {
+		log.Println("SetPeriodToEth SetPeriod err=", seterr)
+		return seterr
+	}
+
+	percoll := SnftPhase{}
+	uerr := nft.db.Model(&SnftPhase{}).Last(&percoll)
+	if uerr.Error != nil {
+		fmt.Println("SetPeriodEth() find err=", uerr.Error)
+		return ErrNotFound
+	}
+
+	if percoll.Accedvote != "true" {
+		log.Println("SetPeriodToEth() not injection to eth")
+		return ErrDataInsuff
+	}
+	return nft.db.Transaction(func(tx *gorm.DB) error {
+
+		collect := []*SnftCollect{}
+		err := tx.Model(&SnftCollect{}).Find(&collect)
+		if err.Error != nil {
+			fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
+			return ErrDataBase
+		}
+		var total *int
+		num := 0
+		total = &num
+		if len(collect) != 16 {
+			fmt.Println("collect data less than 16")
+			return ErrDataInsuff
+		}
+
+		os.Mkdir("./snft", 0777)
+		stop := make(chan string)
+		collectch := make(chan SnftCollect, 16)
+		go savecollect(stop, collect, collectch)
+
+	FOR:
+		for {
+			select {
+			case v, ok := <-collectch:
+				if ok {
+					snftlist := strings.Split(v.Snft, ",")
+					if len(snftlist) != 16 {
+						fmt.Println("colletion.snft data less than 16")
+						return ErrDataInsuff
+					}
+					snfts := []*Snfts{}
+					err = tx.Model(&Snfts{}).Where("id in ?", snftlist).Find(&snfts)
+					if err.Error != nil {
+						fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
+						return ErrDataBase
+					}
+					if len(snfts) != 16 {
+						fmt.Println("snft data less than 16")
+						return ErrDataInsuff
+					}
+					fmt.Println("savemeta")
+					for _, snft := range snfts {
+						wg.Add(1)
+						go nft.savemeta(snft, &v, *total)
+						num++
+					}
+				} else {
+					break FOR
+				}
+			case v, ok := <-stop:
+				if ok {
+					return errors.New(v)
+				}
+			}
+		}
+
+		wg.Wait()
+
+		meta, derr := SaveDirToIpfs("./snft")
+		if derr != nil {
+			fmt.Println("SetPeriodEth() save nftmeta info err=", derr)
+			return derr
+		}
+		dmeta := "/ipfs/" + meta
+		fmt.Println("meta=", dmeta)
+
+		if err.Error != nil {
+			fmt.Println("SetPeriodEth() update eth err=", err.Error)
+			return ErrDataBase
+		}
+		serr := contracts.SendSnftTrans(dmeta, ExchangerAuth)
+		if serr != nil {
+			fmt.Println("SetPeriodEth() SendSnftTrans() err=", serr)
+			return errors.New(ErrTransExist.Error() + serr.Error())
+		}
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&Snfts{}).Unscoped().Where("1 = 1").Delete(&Snfts{})
+			if err.Error != nil {
+				fmt.Println(" SetPeriod  delete snft err= ", err.Error)
+				return ErrDataBase
+			}
+			err = tx.Model(&SnftCollect{}).Where("1 = 1").Delete(&SnftCollect{})
+			if err.Error != nil {
+				fmt.Println(" SetPeriod  delete snftcollect err= ", err.Error)
+				return ErrDataBase
+			}
+			delerr := DelSnftDirAllImage(ImageDir)
+			if delerr != nil {
+				log.Println("SetPeriod() DelSnftDirAllImage delete image err=", delerr)
+				return ErrDeleteImg
+			}
+			newperiod := SnftPhase{}
+			err = tx.Model(&SnftPhase{}).Last(&newperiod)
+			if err.Error != nil {
+				if err.Error == gorm.ErrRecordNotFound {
+					newperiod.Collect = ""
+					newperiod.Accedvote = ""
+					err = nft.db.Create(&newperiod)
+					if err.Error != nil {
+						log.Println("SetPeriod create period err =", err.Error)
+						return ErrDataBase
+					}
+				} else {
+					log.Println("SetPeriod database err=", err.Error)
+					return ErrDataBase
+				}
+			}
+			newperiod.Collect = ""
+			newperiod.Accedvote = ""
+			err = tx.Where("id = ? ", newperiod.ID).Updates(&newperiod)
+			if err.Error != nil {
+				log.Println("SetPeriod update period err =", err.Error)
+				//stop <- ErrDataBase.Error()
+				return ErrDataBase
+			}
+			return nil
+		})
+
+		return nil
+	})
 }

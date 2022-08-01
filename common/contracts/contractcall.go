@@ -2674,8 +2674,8 @@ func SendSnftTrans(dir, authSign string) error {
 	}
 	fmt.Println("SendTrans() nonce=", nonce)
 	p, _ := strconv.ParseUint("0", 10, 64)
-	value := big.NewInt(int64(p)) // in wei (1 eth)
-	gasLimit := uint64(51000)     // in units
+	value := big.NewInt(int64(p))      // in wei (1 eth)
+	gasLimit := uint64(GasLimitTx1819) // in units
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		fmt.Println("SendTrans() SuggestGasPrice err=", err)

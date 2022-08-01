@@ -86,7 +86,7 @@ func (nft *NftExchangeControllerV2) QueryOwnerSnftChip() {
 		} else {
 			singleNft, count, err := nd.QueryOwnerSnftChip(data["owner_addr"], data["start_index"], data["count"])
 			if err != nil {
-				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
+				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist || err == models.ErrNotMore {
 					httpResponseData.Code = "200"
 				} else {
 					httpResponseData.Code = "500"

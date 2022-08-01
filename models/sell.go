@@ -376,11 +376,13 @@ func (nft NftDb) Sell(ownAddr,
 	}
 	fmt.Println("Sell() ownAddr=", ownAddr, "      time=", time.Now().String())
 
-	if UserSync.LockLogic(ownAddr) {
+	if UserSync.LockTran(ownAddr) {
 		return ErrUserTrading
 	} else {
-		defer UserSync.UnLock(ownAddr)
+		defer UserSync.UnLockTran(ownAddr)
 	}
+	//UserSync.Lock(ownAddr)
+	//defer UserSync.UnLock(ownAddr)
 	if !nft.UserKYCAduit(ownAddr) {
 		return ErrUserNotVerify
 	}

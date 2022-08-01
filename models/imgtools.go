@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 )
@@ -292,8 +294,8 @@ func SaveNftImage(path, contract_addr, token_id, image_base64 string) error {
 	return err
 }
 
-func SaveSNftImage(path, contract_addr, token_id, image_base64 string) error {
-	newPath := path + "/snft/" + strings.ToLower(contract_addr) + "/image/"
+func SavePartnerslogoImage(path, token_id, image_base64 string) error {
+	newPath := path + "/partnerslogo/" + "image/"
 	_, err := os.Stat(newPath)
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(newPath, os.ModePerm)
@@ -309,7 +311,7 @@ func SaveSNftImage(path, contract_addr, token_id, image_base64 string) error {
 			fmt.Println("SaveImage() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + token_id + "." + imagetype
+		file = newPath + token_id + "." + "jpg"
 	} else {
 		fmt.Println("SaveImage() image_base64==0 error.")
 		return err
@@ -319,8 +321,8 @@ func SaveSNftImage(path, contract_addr, token_id, image_base64 string) error {
 		return err
 	}
 	switch imagetype {
-	case "jpeg", "jpg":
-		err = base64toJpeg(file, img)
+	case "jpg", "jpeg":
+		err = base64toJpg(file, img)
 		if err != nil {
 			fmt.Println("SaveImage() base64toJpeg() err=", err)
 			return err
@@ -329,5 +331,100 @@ func SaveSNftImage(path, contract_addr, token_id, image_base64 string) error {
 		fmt.Println("SaveImage() imagetype error.")
 		return errors.New("SaveImage() imagetype error.")
 	}
+	return err
+}
+
+func DelPartnerslogoImage(path, name string) error {
+	newPath := path + "/partnerslogo/" + "image/"
+	_, err := os.Stat(newPath)
+	if os.IsNotExist(err) {
+		fmt.Println("DelPartnerslogoImage() create dir err=", err)
+		return err
+	}
+	err = os.Remove(newPath + name + ".jpg")
+	if err != nil {
+		fmt.Println("DelPartnerslogoImage del file err=", err)
+	}
+	return err
+}
+func SaveSnftCollectionImage(path, token_id, image_base64 string) error {
+	newPath := path + "/snft/" + "image/"
+	_, err := os.Stat(newPath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(newPath, os.ModePerm)
+		if err != nil {
+			log.Println("SaveImage() create dir err=", err)
+			return err
+		}
+	}
+	var file, imagetype, img string
+	if image_base64 != "" {
+		imagetype, img, err = ParseBase64Type(image_base64)
+		if err != nil {
+			log.Println("SaveImage() ParseBase64Type() err=", err)
+			return err
+		}
+		file = newPath + token_id + "." + "jpg"
+	} else {
+		log.Println("SaveImage() image_base64==0 error.")
+		return err
+	}
+	if img == "" || imagetype == "" {
+		log.Println("SaveImage() imagetype error.")
+		return err
+	}
+	switch imagetype {
+	case "jpg", "jpeg":
+		err = base64toJpg(file, img)
+		if err != nil {
+			fmt.Println("SaveImage() base64toJpeg() err=", err)
+			return err
+		}
+	default:
+		fmt.Println("SaveImage() imagetype error.")
+		return errors.New("SaveImage() imagetype error.")
+	}
+	return err
+}
+
+func DelSnftDirAllImage(path string) error {
+	//newPath := path + "/snft/" + "image/"
+	newPath := "./snftcollect/"
+	_, err := os.Stat(newPath)
+	if os.IsNotExist(err) {
+		fmt.Println("DelPartnerslogoImage() create dir err=", err)
+		return nil
+	}
+	dir, err := ioutil.ReadDir(newPath)
+	for _, d := range dir {
+		err = os.RemoveAll(newPath + d.Name())
+		if err != nil {
+			fmt.Println("DelSnftDirAllImage del file err=", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func base64toJpg(file, data string) error {
+	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
+	m, formatString, err := image.Decode(reader)
+	if err != nil {
+		fmt.Println("base64toJpg() Decode() err=", err)
+		return err
+	}
+	bounds := m.Bounds()
+	fmt.Println("base64toJpg", bounds, formatString)
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		fmt.Println("base64toJpg() OpenFile() err=", err)
+		return err
+	}
+	err = jpeg.Encode(f, m, nil)
+	if err != nil {
+		fmt.Println("base64toJpg() jpg.Encode() err=", err)
+		return err
+	}
+
 	return err
 }

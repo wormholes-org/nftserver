@@ -31,21 +31,24 @@ const (
 	initNFT1155 = "0x53d76f1988B50674089e489B5ad1217AaC08CC85"
 	initTrade   = "0x3dE836C28a578da26D846f27353640582761909f"
 
-	initLowprice      = 1000000000
-	initRoyaltylimit  = 50 * 100
-	SysRoyaltylimit   = 50 * 100
-	ZeroAddr          = "0x0000000000000000000000000000000000000000"
-	genTokenIdRetry   = 20
-	initCategories    = "art,music,domain_names,virtual_worlds,trading_cards,collectibles,sports,utility"
-	LenName           = 60
-	LenEmail          = 60
-	LenLink           = 2000
-	LenPriceStr       = 9
-	LowPrice          = 0
-	ToolongAuciton    = 365
-	HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"}]}"
+	initLowprice     = 1000000000
+	initRoyaltylimit = 50 * 100
+	SysRoyaltylimit  = 50 * 100
+	ZeroAddr         = "0x0000000000000000000000000000000000000000"
+	genTokenIdRetry  = 20
+	initCategories   = "art,music,domain_names,virtual_worlds,trading_cards,collectibles,sports,utility"
+	LenName          = 60
+	LenEmail         = 60
+	LenLink          = 2000
+	LenPriceStr      = 9
+	LowPrice         = 0
+	ToolongAuciton   = 365
+	//HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"}]}"
+	HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}]}"
+	DefExchangeLink   = "{\"github\":\"https://discord.gg/AbmTrrAmuN\",\"discord\":\"https://discord.com/invite/AbmTrrAmuN\",\"twitter\":\"https://twitter.com/WormholesChain\"}"
 	DefAutoFlag       = "true"
 	DefAutoSnft       = "false"
+	DefAudit          = "false"
 	DefUploadSize     = 100 * 1024 * 1024
 	DefCatchTime      = 15
 	DefNftloopcount   = 5
@@ -85,7 +88,7 @@ var (
 	ExchangeName            string
 	ExchangeBlocknumber     uint64
 	AnnouncementRequired    bool
-	TransferNFT             bool
+	TransferSNFT            bool
 	AutocommitSnft          bool
 	ExchangerPrv            *ecdsa.PrivateKey
 	ExchangerAddr           string
@@ -106,6 +109,8 @@ var (
 	DefaultMaskFrame        string
 	DefaultCaptchaNum       int
 	LimitWritesDatabase     bool
+	NftScanServer           string
+	SysparamHomePage        string
 )
 
 type ExchangerAuthrize struct {
@@ -129,28 +134,28 @@ type SysParamsRec struct {
 	Royaltylimit   int    `json:"royaltylimit" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
 	Signdata       string `json:"sig" gorm:"type:longtext ;comment:'sign data'"`
 	Homepage       string `json:"homepage" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'homepage data'"`
-	Exchangerinfo  string `json:"exchangerInfo" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange information data'"`
-	Icon           string `json:"icon" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'picture data'"`
-	Data           string `json:"data" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'slideshow, Kanban, etc.'"`
-	Categories     string `json:"categories" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'nft category'"`
-	Extend         string `json:"extend" gorm:"type:longtext ;comment:'extend'"`
-	Nftaudit       string `json:"nftaudit" gorm:"type:varchar(10) ;comment:'Does nft upload need to be reviewed?'"`
-	Userkyc        string `json:"userkyc" gorm:"type:varchar(10) ;comment:'Does kyc need to be audited?'"`
-	Deflanguage    string `json:"def_language" gorm:"type:varchar(50) CHARACTER SET utf8mb4 ;comment:'Exchange default language'"`
-	Restrictcode   string `json:"restrictcode" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange country code restrictions'"`
-	Autoflag       string `json:"autoflag" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Automatically extract flag from data such as carousel and kanban'"`
-	Catchtime      int    `json:"catchtime" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'HomePage fetch interval'"`
-	Nftloopcount   int    `json:"nftloopcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'The number of nfts selected by the carousel'"`
-	Collectcount   int    `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular Collection Picks'"`
-	Nftcount       int    `json:"nftcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular nft Picks'"`
-	Exchangerprv   string `json:"exchangerprv" gorm:"type:longtext;COMMENT:'Exchange private key'"`
-	Exchangerauth  string `json:"exchangerauth" gorm:"type:longtext;COMMENT:'Exchange signature'"`
-	Transfersnft   string `json:"transfersnft" gorm:"type:varchar(10) ;comment:'Whether snft is automatically imported'"`
-	Allownft       string `json:"allownft" gorm:"type:varchar(10) ;comment:'Does nft allow to create'"`
-	Autocommitsnft string `json:"autocommitsnft" gorm:"type:varchar(10) ;comment:'snft automatically injects chain'"`
-	Allowusermint  string `json:"allowusermint" gorm:"type:varchar(10);comment:'Whether to allow users to mint coins'"`
-	Uploadsize     uint64 `json:"uploadsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit size'"`
-	Backupipfs     string `json:"backupipfs" gorm:"type:varchar(10) ;comment:'whether to backup to ipfs'"`
+	//Exchangerinfo  string `json:"exchangerInfo" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange information data'"`
+	//Icon           string `json:"icon" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'picture data'"`
+	//Data           string `json:"data" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'slideshow, Kanban, etc.'"`
+	//Categories     string `json:"categories" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'nft category'"`
+	Extend string `json:"extend" gorm:"type:longtext ;comment:'extend'"`
+	//Nftaudit       string `json:"nftaudit" gorm:"type:varchar(10) ;comment:'Does nft upload need to be reviewed?'"`
+	//Userkyc        string `json:"userkyc" gorm:"type:varchar(10) ;comment:'Does kyc need to be audited?'"`
+	//Deflanguage    string `json:"def_language" gorm:"type:varchar(50) CHARACTER SET utf8mb4 ;comment:'Exchange default language'"`
+	//Restrictcode  string `json:"restrictcode" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange country code restrictions'"`
+	Autoflag      string `json:"autoflag" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Automatically extract flag from data such as carousel and kanban'"`
+	Catchtime     int    `json:"catchtime" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'HomePage fetch interval'"`
+	Nftloopcount  int    `json:"nftloopcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'The number of nfts selected by the carousel'"`
+	Collectcount  int    `json:"collectcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular Collection Picks'"`
+	Nftcount      int    `json:"nftcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'Popular nft Picks'"`
+	Exchangerprv  string `json:"exchangerprv" gorm:"type:longtext;COMMENT:'Exchange private key'"`
+	Exchangerauth string `json:"exchangerauth" gorm:"type:longtext;COMMENT:'Exchange signature'"`
+	//Transfersnft   string `json:"transfersnft" gorm:"type:varchar(10) ;comment:'Whether snft is automatically imported'"`
+	//Allownft       string `json:"allownft" gorm:"type:varchar(10) ;comment:'Does nft allow to create'"`
+	//Autocommitsnft string `json:"autocommitsnft" gorm:"type:varchar(10) ;comment:'snft automatically injects chain'"`
+	//Allowusermint  string `json:"allowusermint" gorm:"type:varchar(10);comment:'Whether to allow users to mint coins'"`
+	//Uploadsize     uint64 `json:"uploadsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit size'"`
+	//Backupipfs string `json:"backupipfs" gorm:"type:varchar(10) ;comment:'whether to backup to ipfs'"`
 
 	//Nftlush                int    `json:"nftlush" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'热门nft提取时间间隔'"`
 }
@@ -214,14 +219,65 @@ type SysParamsInfo struct {
 	Backupipfs     string `json:"backupipfs"`
 }
 
+type ExchangeinfoRec struct {
+	Exchangerinfo  string `json:"exchangerInfo" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange information data'"`
+	Icon           string `json:"icon" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'picture data'"`
+	Data           string `json:"data" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'slideshow, Kanban, etc.'"`
+	Categories     string `json:"categories" gorm:"type:longtext CHARACTER SET utf8mb4 NOT NULL;comment:'nft category'"`
+	Restrictcode   string `json:"restrictcode" gorm:"type:longtext CHARACTER SET utf8mb4 ;comment:'Exchange country code restrictions'"`
+	Extend         string `json:"extend" gorm:"type:longtext ;comment:'extend'"`
+	Nftaudit       string `json:"nftaudit" gorm:"type:varchar(10) ;comment:'Does nft upload need to be reviewed?'"`
+	Userkyc        string `json:"userkyc" gorm:"type:varchar(10) ;comment:'Does kyc need to be audited?'"`
+	Deflanguage    string `json:"def_language" gorm:"type:varchar(50) CHARACTER SET utf8mb4 ;comment:'Exchange default language'"`
+	Transfersnft   string `json:"transfersnft" gorm:"type:varchar(10) ;comment:'Whether snft is automatically imported'"`
+	Allownft       string `json:"allownft" gorm:"type:varchar(10) ;comment:'Does nft allow to create'"`
+	Autocommitsnft string `json:"autocommitsnft" gorm:"type:varchar(10) ;comment:'snft automatically injects chain'"`
+	Allowusermint  string `json:"allowusermint" gorm:"type:varchar(10);comment:'Whether to allow users to mint coins'"`
+	Uploadsize     uint64 `json:"uploadsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit size'"`
+	Backupipfs     string `json:"backupipfs" gorm:"type:varchar(10) ;comment:'whether to backup to ipfs'"`
+	Announcements  string `json:"announcements" gorm:"type:varchar(10) ;comment:'announcement whether to open'"`
+	Link           string `json:"link" gorm:"type:longtext NOT NULL;comment:'exchange social account'"`
+	Partnerslogo   string `json:"partnerslogo" gorm:"type:longtext NOT NULL;comment:'exchange partnerslogo'"`
+	Desc           string `json:"desc" gorm:"type:longtext ;comment:'exchange desc'"`
+}
+
+type Exchangeinfos struct {
+	gorm.Model
+	ExchangeinfoRec
+}
+
+func (v Exchangeinfos) TableName() string {
+	return "exchangeinfo"
+}
+
+type ExchangeInfo struct {
+	Adminaddr      string   `json:"adminaddr"`
+	Exchangerinfo  string   `json:"exchangerinfo"`
+	Icon           string   `json:"icon"`
+	Data           string   `json:"data"`
+	Categories     string   `json:"categories"`
+	Nftaudit       string   `json:"nftaudit"`
+	Userkyc        string   `json:"userkyc"`
+	Restrictcode   string   `json:"restrictcode"`
+	TransferNFT    string   `json:"transfernft"`
+	AllowNft       string   `json:"allownft"`
+	AutocommitSnft string   `json:"autocommitsnft"`
+	AllowUserMint  string   `json:"allowusermint"`
+	Uploadsize     string   `json:"uploadsize"`
+	Backupipfs     string   `json:"backupipfs"`
+	Link           string   `json:"link"`
+	Partnerslogo   string   `json:"partnerslogo"`
+	ExchangerAddr  string   `json:"exchangeraddr"`
+	Announcement   string   `json:"announcement"`
+	Deflanguage    string   `json:"def_language"`
+	ExtendLogo     []string `json:"extend_logo"`
+	Homepage       string   `json:"homepage"`
+	Desc           string   `json:"desc"`
+}
+
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	var params SysParams
 	var paraminfo SysParamsInfo
-	//cerr := GetRedisCatch().GetCatchData("QuerySysParams", "QuerySysParams", &paraminfo)
-	//if cerr == nil {
-	//	log.Printf("QuerySysParams() default  time.now=%s\n", time.Now())
-	//	return &paraminfo, nil
-	//}
 	err := nft.db.Last(&params)
 	log.Println(params)
 	if err.Error != nil {
@@ -231,14 +287,14 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			params.Adminaddr = strings.ToLower(AdminAddr)
 			params.Lowprice = initLowprice
 			params.Royaltylimit = initRoyaltylimit
-			params.Categories = initCategories
+			//params.Categories = initCategories
 			//params.Blocknumber = contracts.GetCurrentBlockNumber()
 			params.Blocknumber = ExchangeBlocknumber
 			params.Scannumber = params.Blocknumber
 			params.Scansnftnumber = DefSNftStartBlock
 			params.Homepage = HomePages
-			params.Deflanguage = Deflanguage
-			params.Exchangerinfo = ExchangeName
+			//params.Deflanguage = Deflanguage
+			//params.Exchangerinfo = ExchangeName
 			params.Autoflag = DefAutoFlag
 			params.Catchtime = DefCatchTime
 			params.Nftloopcount = DefNftloopcount
@@ -246,12 +302,12 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			params.Collectcount = DefCollectcount
 			//params.Collectflush = DefCollectflush
 			params.Nftcount = DefNftcount
-			params.Transfersnft = DefAutoSnft
-			params.Autocommitsnft = DefAutoSnft
-			params.Allownft = DefAutoSnft
-			params.Allowusermint = DefAutoSnft
-			params.Uploadsize = DefUploadSize
-			params.Backupipfs = DefAutoSnft
+			//params.Transfersnft = DefAutoSnft
+			//params.Autocommitsnft = DefAutoSnft
+			//params.Allownft = DefAutoSnft
+			//params.Allowusermint = DefAutoSnft
+			//params.Uploadsize = DefUploadSize
+			//params.Backupipfs = DefAutoSnft
 			//params.Exchangerprv = key
 			//params.Nftlush = DefNftlush
 			err = nft.db.Model(&SysParams{}).Create(&params)
@@ -264,6 +320,36 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			return nil, ErrDataBase
 		}
 	}
+	//err = nft.db.Model(&Exchangeinfos{}).Select("icon", "exchangerInfo", "data", "categories", "restrictcode",
+	//	"extend", "nftaudit", "userkyc", "transfersnft", "allownft", "allownft", "autocommitsnft", "allowusermint", "uploadsize",
+	//	"announcements", "link", "partnerslogo").First(&params)
+	var exchangeinfo Exchangeinfos
+	err = nft.db.Last(&exchangeinfo)
+	if err.Error != nil {
+		if err.Error == gorm.ErrRecordNotFound {
+			exchange := Exchangeinfos{}
+			exchange.Link = DefExchangeLink
+			exchange.Categories = initCategories
+			exchange.Userkyc = DefAutoSnft
+			exchange.Nftaudit = DefAutoSnft
+			exchange.Exchangerinfo = ExchangeName
+			exchange.Transfersnft = DefAutoSnft
+			exchange.Autocommitsnft = DefAutoSnft
+			exchange.Allownft = DefAutoSnft
+			exchange.Allowusermint = DefAutoSnft
+			exchange.Uploadsize = DefUploadSize
+			exchange.Backupipfs = DefAutoSnft
+			err = nft.db.Model(&Exchangeinfos{}).Create(&exchange)
+			if err.Error != nil {
+				fmt.Println("QuerySysParams() create Exchangeinfos err= ", err.Error)
+				return nil, ErrDataBase
+			}
+		} else {
+			fmt.Println("QuerySysParams() not find  Exchangeinfos err=", err.Error)
+			return nil, ErrDataBase
+		}
+	}
+	log.Println("params =", params)
 	paraminfo.NFT1155addr = params.NFT1155addr
 	paraminfo.Adminaddr = params.Adminaddr
 	paraminfo.Lowprice = strconv.FormatUint(params.Lowprice, 10)
@@ -271,14 +357,15 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.Scannumber = strconv.FormatUint(params.Scannumber, 10)
 	paraminfo.Royaltylimit = strconv.Itoa(params.Royaltylimit)
 	paraminfo.Homepage = params.Homepage
-	paraminfo.Exchangerinfo = params.Exchangerinfo
-	paraminfo.Icon = params.Icon
-	paraminfo.Data = params.Data
-	paraminfo.Categories = params.Categories
-	paraminfo.Nftaudit = params.Nftaudit
-	paraminfo.Deflanguage = params.Deflanguage
-	paraminfo.Restrictcode = params.Restrictcode
-	paraminfo.Userkyc = params.Userkyc
+	SysparamHomePage = params.Homepage
+	paraminfo.Exchangerinfo = exchangeinfo.Exchangerinfo
+	paraminfo.Icon = exchangeinfo.Icon
+	paraminfo.Data = exchangeinfo.Data
+	paraminfo.Categories = exchangeinfo.Categories
+	paraminfo.Nftaudit = exchangeinfo.Nftaudit
+	paraminfo.Deflanguage = exchangeinfo.Deflanguage
+	paraminfo.Restrictcode = exchangeinfo.Restrictcode
+	paraminfo.Userkyc = exchangeinfo.Userkyc
 	paraminfo.AutoFlag = params.Autoflag
 	paraminfo.Catchtime = strconv.Itoa(params.Catchtime)
 	paraminfo.Nftloopcount = strconv.Itoa(params.Nftloopcount)
@@ -289,26 +376,19 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.Announcement = strconv.FormatBool(AnnouncementRequired)
 	paraminfo.ExchangerAddr = ExchangerAddr
 	ExchangerAuth = params.Exchangerauth
-	paraminfo.AutocommitSnft = params.Autocommitsnft
-	AutocommitSnft, _ = strconv.ParseBool(params.Autocommitsnft)
-	paraminfo.TransferNFT = params.Transfersnft
-	TransferNFT, _ = strconv.ParseBool(params.Transfersnft)
-	paraminfo.AllowNft = params.Allownft
-	AllowNft, _ = strconv.ParseBool(params.Allownft)
-	paraminfo.AllowUserMint = params.Allowusermint
-	AllowUserMinit, _ = strconv.ParseBool(params.Allowusermint)
-	paraminfo.Backupipfs = params.Backupipfs
-	Backupipfs, _ = strconv.ParseBool(params.Backupipfs)
-	if params.Uploadsize != 0 {
-		UploadSize = params.Uploadsize
-		beego.BConfig.MaxMemory = int64(params.Uploadsize)
-	} else {
-		UploadSize = DefUploadSize
-		beego.BConfig.MaxMemory = DefUploadSize
-	}
-	paraminfo.Uploadsize = strconv.FormatUint(params.Uploadsize, 10)
-	//GetRedisCatch().CatchQueryData("QuerySysParams", "QuerySysParams", &paraminfo)
-	//paraminfo.Nftlush 		= strconv.Itoa(params.Nftlush)
+	paraminfo.AutocommitSnft = exchangeinfo.Autocommitsnft
+	AutocommitSnft, _ = strconv.ParseBool(exchangeinfo.Autocommitsnft)
+	paraminfo.TransferNFT = exchangeinfo.Transfersnft
+	TransferSNFT, _ = strconv.ParseBool(exchangeinfo.Transfersnft)
+	paraminfo.AllowNft = exchangeinfo.Allownft
+	AllowNft, _ = strconv.ParseBool(exchangeinfo.Allownft)
+	paraminfo.AllowUserMint = exchangeinfo.Allowusermint
+	AllowUserMinit, _ = strconv.ParseBool(exchangeinfo.Allowusermint)
+	paraminfo.Backupipfs = exchangeinfo.Backupipfs
+	Backupipfs, _ = strconv.ParseBool(exchangeinfo.Backupipfs)
+	UploadSize = exchangeinfo.Uploadsize
+	beego.BConfig.MaxMemory = int64(exchangeinfo.Uploadsize)
+	paraminfo.Uploadsize = strconv.FormatUint(exchangeinfo.Uploadsize, 10)
 	return &paraminfo, nil
 }
 
@@ -324,11 +404,11 @@ func (nft NftDb) GetSysParam(parameter string) (string, error) {
 			params.Adminaddr = strings.ToLower(AdminAddr)
 			params.Lowprice = initLowprice
 			params.Royaltylimit = initRoyaltylimit
-			params.Categories = initCategories
+			//params.Categories = initCategories
 			params.Blocknumber = contracts.GetCurrentBlockNumber()
 			params.Scannumber = params.Blocknumber
 			params.Homepage = HomePages
-			params.Deflanguage = Deflanguage
+			//params.Deflanguage = Deflanguage
 			params.Autoflag = DefAutoFlag
 			params.Catchtime = DefCatchTime
 			params.Nftloopcount = DefNftloopcount
@@ -364,7 +444,7 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			updateP.Adminaddr = AdminAddr
 			updateP.Lowprice = initLowprice
 			updateP.Royaltylimit = initRoyaltylimit
-			updateP.Categories = initCategories
+			//updateP.Categories = initCategories
 			updateP.Homepage = HomePages
 			//key, _ := ExchangeGenerate()
 			//updateP.Exchangerprv = key
@@ -384,35 +464,35 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			low, _ := strconv.ParseUint(param.Lowprice, 10, 64)
 			updateP.Lowprice = low
 		}
-		if param.Nftaudit != "" {
-			updateP.Nftaudit = param.Nftaudit
-			audit, err := strconv.ParseBool(updateP.Nftaudit)
-			if err != nil {
-				log.Println("NftAudit input  error.")
-				return ErrData
-			}
-			NFTUploadAuditRequired = audit
-		}
-		if param.TransferNFT != "" {
-			updateP.Transfersnft = param.TransferNFT
-			audit, err := strconv.ParseBool(param.TransferNFT)
-			if err != nil {
-				log.Println("TransferNFT input  error.")
-				return ErrData
-			}
-			log.Println("TransferNFT =", param.TransferNFT)
-			TransferNFT = audit
-		}
-		if param.Userkyc != "" {
-			updateP.Userkyc = param.Userkyc
-			audit, err := strconv.ParseBool(updateP.Userkyc)
-			if err != nil {
-				log.Println("Userkyc input  error.")
-				return ErrData
-
-			}
-			KYCUploadAuditRequired = audit
-		}
+		//if param.Nftaudit != "" {
+		//	updateP.Nftaudit = param.Nftaudit
+		//	audit, err := strconv.ParseBool(updateP.Nftaudit)
+		//	if err != nil {
+		//		log.Println("NftAudit input  error.")
+		//		return ErrData
+		//	}
+		//	NFTUploadAuditRequired = audit
+		//}
+		//if param.TransferNFT != "" {
+		//	updateP.Transfersnft = param.TransferNFT
+		//	audit, err := strconv.ParseBool(param.TransferNFT)
+		//	if err != nil {
+		//		log.Println("TransferNFT input  error.")
+		//		return ErrData
+		//	}
+		//	log.Println("TransferNFT =", param.TransferNFT)
+		//	TransferSNFT = audit
+		//}
+		//if param.Userkyc != "" {
+		//	updateP.Userkyc = param.Userkyc
+		//	audit, err := strconv.ParseBool(updateP.Userkyc)
+		//	if err != nil {
+		//		log.Println("Userkyc input  error.")
+		//		return ErrData
+		//
+		//	}
+		//	KYCUploadAuditRequired = audit
+		//}
 		if param.Announcement != "" {
 			audit, err := strconv.ParseBool(param.Announcement)
 			if err != nil {
@@ -421,56 +501,57 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 			}
 			AnnouncementRequired = audit
 		}
-		if param.AutocommitSnft != "" {
-			updateP.Autocommitsnft = param.AutocommitSnft
-			audit, err := strconv.ParseBool(param.AutocommitSnft)
-			if err != nil {
-				log.Println("AutocommitSnft input  error.")
-				return ErrData
-			}
-			AutocommitSnft = audit
-		}
-		if param.AllowNft != "" {
-			updateP.Allownft = param.AllowNft
-			audit, err := strconv.ParseBool(param.AllowNft)
-			if err != nil {
-				log.Println("AllowNft input  error.")
-				return ErrData
-			}
-			AllowNft = audit
-		}
-		if param.AllowUserMint != "" {
-			updateP.Allowusermint = param.AllowUserMint
-			audit, err := strconv.ParseBool(param.AllowUserMint)
-			if err != nil {
-				log.Println("AllowUserMint input  error.")
-				return ErrData
-			}
-			AllowUserMinit = audit
-		}
-		if param.Backupipfs != "" {
-			updateP.Backupipfs = param.Backupipfs
-			audit, err := strconv.ParseBool(param.Backupipfs)
-			if err != nil {
-				log.Println("Backupipfs input  error.")
-				return ErrData
-			}
-			Backupipfs = audit
-		}
-		if param.Uploadsize != "" {
-			low, _ := strconv.ParseUint(param.Uploadsize, 10, 64)
-			updateP.Uploadsize = low
-			UploadSize = low
-			beego.BConfig.MaxMemory = int64(low)
-		}
-		if param.Deflanguage != "" {
-			updateP.Deflanguage = param.Deflanguage
-		}
-		if param.Restrictcode != "" {
-			updateP.Restrictcode = param.Restrictcode
-		}
+		//if param.AutocommitSnft != "" {
+		//	updateP.Autocommitsnft = param.AutocommitSnft
+		//	audit, err := strconv.ParseBool(param.AutocommitSnft)
+		//	if err != nil {
+		//		log.Println("AutocommitSnft input  error.")
+		//		return ErrData
+		//	}
+		//	AutocommitSnft = audit
+		//}
+		//if param.AllowNft != "" {
+		//	updateP.Allownft = param.AllowNft
+		//	audit, err := strconv.ParseBool(param.AllowNft)
+		//	if err != nil {
+		//		log.Println("AllowNft input  error.")
+		//		return ErrData
+		//	}
+		//	AllowNft = audit
+		//}
+		//if param.AllowUserMint != "" {
+		//	updateP.Allowusermint = param.AllowUserMint
+		//	audit, err := strconv.ParseBool(param.AllowUserMint)
+		//	if err != nil {
+		//		log.Println("AllowUserMint input  error.")
+		//		return ErrData
+		//	}
+		//	AllowUserMinit = audit
+		//}
+		//if param.Backupipfs != "" {
+		//	updateP.Backupipfs = param.Backupipfs
+		//	audit, err := strconv.ParseBool(param.Backupipfs)
+		//	if err != nil {
+		//		log.Println("Backupipfs input  error.")
+		//		return ErrData
+		//	}
+		//	Backupipfs = audit
+		////}
+		//if param.Uploadsize != "" {
+		//	low, _ := strconv.ParseUint(param.Uploadsize, 10, 64)
+		//	updateP.Uploadsize = low
+		//	UploadSize = low
+		//	beego.BConfig.MaxMemory = int64(low)
+		//}
+		//if param.Deflanguage != "" {
+		//	updateP.Deflanguage = param.Deflanguage
+		//}
+		//if param.Restrictcode != "" {
+		//	updateP.Restrictcode = param.Restrictcode
+		//}
 		if param.Homepage != "" {
 			updateP.Homepage = param.Homepage
+			SysparamHomePage = param.Homepage
 		}
 		//if IsUint64DataValid(param.Scannumber) {
 		//	updateP.Scannumber, _ = strconv.ParseUint(param.Scannumber, 10, 64)
@@ -478,24 +559,24 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		if IsIntDataValid(param.Royaltylimit) {
 			updateP.Royaltylimit, _ = strconv.Atoi(param.Royaltylimit)
 		}
-		if param.Exchangerinfo != "" {
-			updateP.Exchangerinfo = param.Exchangerinfo
-		}
-		if param.Deflanguage != "" {
-			updateP.Deflanguage = param.Deflanguage
-		}
-		if param.Restrictcode != "" {
-			updateP.Restrictcode = param.Restrictcode
-		}
-		if param.Icon != "" {
-			updateP.Icon = param.Icon
-		}
-		if param.Data != "" {
-			updateP.Data = param.Data
-		}
-		if param.Categories != "" {
-			updateP.Categories = param.Categories
-		}
+		//if param.Exchangerinfo != "" {
+		//	updateP.Exchangerinfo = param.Exchangerinfo
+		//}
+		//if param.Deflanguage != "" {
+		//	updateP.Deflanguage = param.Deflanguage
+		//}
+		//if param.Restrictcode != "" {
+		//	updateP.Restrictcode = param.Restrictcode
+		//}
+		//if param.Icon != "" {
+		//	updateP.Icon = param.Icon
+		//}
+		//if param.Data != "" {
+		//	updateP.Data = param.Data
+		//}
+		//if param.Categories != "" {
+		//	updateP.Categories = param.Categories
+		//}
 		if param.Sig != "" {
 			updateP.Signdata = param.Sig
 		}
@@ -561,15 +642,239 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		fmt.Println("SetSysParams() create SysParams err= ", err.Error)
 		return ErrDataBase
 	}
-	//if param.Homepage != "" {
-	//	GetRedisCatch().SetDirtyFlag([]string{"QueryHomePage"})
-	//HomePageCatchs.HomePageFlashLock()
-	//HomePageCatchs.HomePageFlashFlag = true
-	//HomePageCatchs.HomePageFlashUnLock()
-	//}
-	//GetRedisCatch().SetDirtyFlag(SysParamsDirtyName)
 	log.Println("SetSysParams =", updateP)
 	return nil
+}
+
+func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
+	var params Exchangeinfos
+	var paraminfo ExchangeInfo
+
+	err := nft.db.First(&params)
+	log.Println(params)
+	if err.Error != nil {
+		if err.Error == gorm.ErrRecordNotFound {
+			exchange := Exchangeinfos{}
+			exchange.Categories = initCategories
+			exchange.Userkyc = DefAutoSnft
+			exchange.Nftaudit = DefAutoSnft
+			exchange.Exchangerinfo = ExchangeName
+			exchange.Transfersnft = DefAutoSnft
+			exchange.Autocommitsnft = DefAutoSnft
+			exchange.Allownft = DefAutoSnft
+			exchange.Allowusermint = DefAutoSnft
+			exchange.Uploadsize = DefUploadSize
+			exchange.Backupipfs = DefAutoSnft
+			params.Link = DefExchangeLink
+			err = nft.db.Model(&Exchangeinfos{}).Create(&exchange)
+			if err.Error != nil {
+				fmt.Println("QueryExchangeInfo() create exchange err= ", err.Error)
+				return nil, ErrDataBase
+			}
+		} else {
+			fmt.Println("QueryExchangeInfo() not find err=", err.Error)
+			return nil, ErrDataBase
+		}
+	}
+	paraminfo.Adminaddr = ExchangerAddr
+	paraminfo.Exchangerinfo = params.Exchangerinfo
+	paraminfo.Icon = params.Icon
+	paraminfo.Data = params.Data
+	paraminfo.Categories = params.Categories
+	paraminfo.Nftaudit = params.Nftaudit
+	paraminfo.Restrictcode = params.Restrictcode
+	paraminfo.Userkyc = params.Userkyc
+	paraminfo.Announcement = strconv.FormatBool(AnnouncementRequired)
+	paraminfo.ExchangerAddr = ExchangerAddr
+	paraminfo.AutocommitSnft = params.Autocommitsnft
+	AutocommitSnft, _ = strconv.ParseBool(params.Autocommitsnft)
+	paraminfo.TransferNFT = params.Transfersnft
+	TransferSNFT, _ = strconv.ParseBool(params.Transfersnft)
+	paraminfo.AllowNft = params.Allownft
+	AllowNft, _ = strconv.ParseBool(params.Allownft)
+	paraminfo.AllowUserMint = params.Allowusermint
+	AllowUserMinit, _ = strconv.ParseBool(params.Allowusermint)
+	paraminfo.Backupipfs = params.Backupipfs
+	Backupipfs, _ = strconv.ParseBool(params.Backupipfs)
+	partnerlogo := strings.Split(params.Partnerslogo, ",")
+	paraminfo.ExtendLogo = partnerlogo
+	if params.Uploadsize != 0 {
+		UploadSize = params.Uploadsize
+		beego.BConfig.MaxMemory = int64(params.Uploadsize)
+	} else {
+		UploadSize = DefUploadSize
+		beego.BConfig.MaxMemory = DefUploadSize
+	}
+	paraminfo.Uploadsize = strconv.FormatUint(params.Uploadsize, 10)
+	paraminfo.Homepage = SysparamHomePage
+	paraminfo.Link = params.Link
+	paraminfo.Deflanguage = params.Deflanguage
+	paraminfo.Desc = params.Desc
+	//paraminfo.Nftlush 		= strconv.Itoa(params.Nftlush)
+	return &paraminfo, nil
+}
+
+func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
+	var updateP Exchangeinfos
+	err := nft.db.First(&updateP)
+	if err.Error != nil {
+		if nft.db.Error == gorm.ErrRecordNotFound {
+			//updateP.NFT1155addr = NFT1155Addr
+			//updateP.Adminaddr = AdminAddr
+			//updateP.Lowprice = initLowprice
+			//updateP.Royaltylimit = initRoyaltylimit
+			//updateP.Categories = initCategories
+			//updateP.Homepage = HomePages
+			//key, _ := ExchangeGenerate()
+			//updateP.Exchangerprv = key
+			return ErrNotFound
+		} else {
+			fmt.Println("Exchangeinfos() not find err=", err.Error)
+			return ErrDataBase
+		}
+	} else {
+		if param.Nftaudit != "" {
+			updateP.Nftaudit = param.Nftaudit
+			audit, err := strconv.ParseBool(updateP.Nftaudit)
+			if err != nil {
+				log.Println("NftAudit input  error.")
+				return ErrData
+			}
+			NFTUploadAuditRequired = audit
+		}
+		if param.TransferNFT != "" {
+			updateP.Transfersnft = param.TransferNFT
+			audit, err := strconv.ParseBool(param.TransferNFT)
+			if err != nil {
+				log.Println("TransferNFT input  error.")
+				return ErrData
+			}
+			log.Println("TransferNFT =", param.TransferNFT)
+			TransferSNFT = audit
+		}
+		if param.Userkyc != "" {
+			updateP.Userkyc = param.Userkyc
+			audit, err := strconv.ParseBool(updateP.Userkyc)
+			if err != nil {
+				log.Println("Userkyc input  error.")
+				return ErrData
+
+			}
+			KYCUploadAuditRequired = audit
+		}
+		if param.Announcement != "" {
+			audit, err := strconv.ParseBool(param.Announcement)
+			if err != nil {
+				log.Println("Announcement input  error.")
+				return ErrData
+			}
+			AnnouncementRequired = audit
+		}
+		if param.AutocommitSnft != "" {
+			updateP.Autocommitsnft = param.AutocommitSnft
+			audit, err := strconv.ParseBool(param.AutocommitSnft)
+			if err != nil {
+				log.Println("AutocommitSnft input  error.")
+				return ErrData
+			}
+			AutocommitSnft = audit
+		}
+		if param.AllowNft != "" {
+			updateP.Allownft = param.AllowNft
+			audit, err := strconv.ParseBool(param.AllowNft)
+			if err != nil {
+				log.Println("AllowNft input  error.")
+				return ErrData
+			}
+			AllowNft = audit
+		}
+		if param.AllowUserMint != "" {
+			updateP.Allowusermint = param.AllowUserMint
+			audit, err := strconv.ParseBool(param.AllowUserMint)
+			if err != nil {
+				log.Println("AllowUserMint input  error.")
+				return ErrData
+			}
+			AllowUserMinit = audit
+		}
+		if param.Backupipfs != "" {
+			updateP.Backupipfs = param.Backupipfs
+			audit, err := strconv.ParseBool(param.Backupipfs)
+			if err != nil {
+				log.Println("Backupipfs input  error.")
+				return ErrData
+			}
+			Backupipfs = audit
+		}
+		if param.Uploadsize != "" {
+			low, _ := strconv.ParseUint(param.Uploadsize, 10, 64)
+			updateP.Uploadsize = low
+			UploadSize = low
+			beego.BConfig.MaxMemory = int64(low)
+		}
+
+		if param.Restrictcode != "" {
+			updateP.Restrictcode = param.Restrictcode
+		}
+
+		if param.Exchangerinfo != "" {
+			updateP.Exchangerinfo = param.Exchangerinfo
+		}
+		if param.Restrictcode != "" {
+			updateP.Restrictcode = param.Restrictcode
+		}
+		if param.Icon != "" {
+			updateP.Icon = param.Icon
+		}
+		if param.Data != "" {
+			updateP.Data = param.Data
+		}
+		if param.Categories != "" {
+			updateP.Categories = param.Categories
+		}
+		if param.Desc != "" {
+			updateP.Desc = param.Desc
+		}
+		if param.Partnerslogo != "" {
+			tokenid := time.Now().UnixNano()
+			name := strconv.Itoa(int(tokenid))
+			err := SavePartnerslogoImage(ImageDir, name, param.Partnerslogo)
+			if err != nil {
+				fmt.Println("SetExchangeInfo() save image err=", err)
+				return ErrNftImage
+			}
+			if updateP.Partnerslogo == "" {
+				updateP.Partnerslogo = name
+			} else {
+				updateP.Partnerslogo = updateP.Partnerslogo + "," + name
+			}
+		}
+		if param.Link != "" {
+			updateP.Link = param.Link
+		}
+		if param.Deflanguage != "" {
+			updateP.Deflanguage = param.Deflanguage
+		}
+
+	}
+
+	return nft.db.Transaction(func(tx *gorm.DB) error {
+		err = tx.Model(&Exchangeinfos{}).Where("id = ? ", "1").Updates(&updateP)
+		if err.Error != nil {
+			fmt.Println("Exchangeinfos() update  err= ", err.Error)
+			return ErrDataBase
+		}
+		if param.Homepage != "" {
+			err = tx.Last(&SysParams{}).Updates(map[string]interface{}{"homepage": param.Homepage, "autoflag": "false"})
+			if err.Error != nil {
+				fmt.Println("Exchangeinfos() update SysParams err= ", err.Error)
+				return ErrDataBase
+			}
+		}
+		log.Println("Exchangeinfos =", updateP)
+		return nil
+	})
+
 }
 
 func (nft NftDb) SetAnnouncementParam(param string) error {
@@ -595,30 +900,82 @@ func (nft NftDb) SetExchageSig(exchange string) error {
 }
 
 func (nft NftDb) TranSnft() error {
-	if TransferNFT == true {
+	if TransferSNFT == true {
 		return nil
 	}
-	log.Println("update blocknumber,transferNFT=", TransferNFT)
+	log.Println("update blocknumber,transferNFT=", TransferSNFT)
+	//
+	//err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1, "transfersnft": "true"})
+	//if err.Error != nil {
+	//	fmt.Println("TranSnft() update Blocknumber err= ", err.Error)
+	//	return err.Error
+	//}
+	return nft.db.Transaction(func(tx *gorm.DB) error {
+		//err := tx.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1})
+		//if err.Error != nil {
+		//	fmt.Println("TranSnft() update SysParams Blocknumber err= ", err.Error)
+		//	return err.Error
+		//}
+		err := nft.db.Last(&Exchangeinfos{}).Updates(map[string]interface{}{"transfersnft": "true"})
+		if err.Error != nil {
+			fmt.Println("TranSnft() update Exchangeinfos transfersnft err= ", err.Error)
+			return err.Error
+		}
+		return nil
+	})
+}
 
-	err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1, "transfersnft": "true"})
+func (nft NftDb) TranNft() error {
+	if TransferSNFT == false {
+		return nil
+	}
+	log.Println("update transfersnft,transferNFT=", TransferSNFT)
+
+	err := nft.db.Last(&Exchangeinfos{}).Updates(map[string]interface{}{"transfersnft": "false"})
 	if err.Error != nil {
-		fmt.Println("TranSnft() update Blocknumber err= ", err.Error)
+		fmt.Println("TranNft() update Blocknumber err= ", err.Error)
 		return err.Error
 	}
 
 	return nil
 }
 
-func (nft NftDb) TranNft() error {
-	if TransferNFT == false {
-		return nil
+func (nft NftDb) DelPartnerLogo(name string) error {
+	if name == "" {
+		fmt.Println("input data error")
+		return ErrData
 	}
-	log.Println("update transfersnft,transferNFT=", TransferNFT)
-
-	err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"transfersnft": "false"})
+	var exchange Exchangeinfos
+	err := nft.db.First(&exchange)
 	if err.Error != nil {
-		fmt.Println("TranNft() update Blocknumber err= ", err.Error)
-		return err.Error
+		log.Println("DelPartnerLogo Exchangeinfos not found")
+		return ErrNotFound
+	}
+	logolist := strings.Split(exchange.Partnerslogo, ",")
+	partner := []string{}
+	for i, j := range logolist {
+		if j == name {
+			partner = append(logolist[:i], logolist[i+1:]...)
+			break
+		}
+		continue
+	}
+	partnerstr := ""
+	for i, value := range partner {
+		partnerstr = partnerstr + value
+		if i != len(partner)-1 {
+			partnerstr = partnerstr + ","
+		}
+	}
+	err = nft.db.Model(&Exchangeinfos{}).Where("id = ? ", "1").Update("partnerslogo", partnerstr)
+	if err.Error != nil {
+		fmt.Println("DelPartnerLogo() update  err= ", err.Error)
+		return ErrDataBase
+	}
+	delerr := DelPartnerslogoImage(ImageDir, name)
+	if delerr != nil {
+		fmt.Println("DelPartnerLogo() delete image err=", err)
+		return ErrDeleteImg
 	}
 
 	return nil
@@ -639,6 +996,7 @@ func (nft NftDb) GetExchageSig() (bool, error) {
 	}
 	return auth, nil
 }
+
 func InitSysParams(Sqldsndb string) error {
 	fmt.Println("InitSysParams() TradeAddr=", TradeAddr)
 	fmt.Println("InitSysParams() NFT1155Addr=", NFT1155Addr)
@@ -930,7 +1288,8 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 						homepage.Nfts = append(homepage.Nfts, homenft)
 					}
 				} else {
-					homepage.Nfts = []HomePageNft{{"", ""}}
+					//homepage.Nfts = []HomePageNft{{"", ""}}
+					homepage.Nfts = []HomePageNft{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
 				}
 			}
 			collects := make([]Collects, 0, 20)
@@ -951,7 +1310,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 						homepage.Collections = append(homepage.Collections, hcollect)
 					}
 				} else {
-					homepage.Collections = []HomePageCollections{{"", ""}}
+					homepage.Collections = []HomePageCollections{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
 				}
 			}
 			var recCount int64
@@ -999,7 +1358,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 					homepage.NftLoop = append(homepage.NftLoop, hpnft)
 				}
 			} else {
-				homepage.NftLoop = []HomePageNft{{"", ""}}
+				homepage.NftLoop = []HomePageNft{{"", ""}, {"", ""}, {"", ""}}
 			}
 			homestr, err := json.Marshal(&homepage)
 			if err != nil {

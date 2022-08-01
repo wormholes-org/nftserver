@@ -125,6 +125,20 @@ func registRouterV2() {
 		beego.Router("/v2/groupcancelsell", &nftexchangev2.NftExchangeControllerV2{}, "post:GroupCancelSell")
 		//modify nft
 		beego.Router("/v2/modifynft", &nftexchangev2.NftExchangeControllerV2{}, "post:SetNft")
+		//user certify
+		beego.Router("/v2/usercertify", &nftexchangev2.NftExchangeControllerV2{}, "post:UserSubmitCertify")
+		//delete partnerslogo
+		beego.Router("/v2/delpartnerslogo", &nftexchangev2.NftExchangeControllerV2{}, "post:DelPartnersLogo")
+		//query expired nft
+		beego.Router("/v2/queryexpirednft", &nftexchangev2.NftExchangeControllerV2{}, "post:GetExpiredNft")
+		//delete expired nft
+		beego.Router("/v2/delexpirednft", &nftexchangev2.NftExchangeControllerV2{}, "post:DelExpiredNft")
+		//query collection and under nft
+		beego.Router("/v2/querycollectionnft", &nftexchangev2.NftExchangeControllerV2{}, "post:SNftCollectionSearch")
+		//modify snftcollection snft
+		beego.Router("/v2/setperiod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetPeriod")
+		//query period collection snft
+		beego.Router("/v2/queryperiod", &nftexchangev2.NftExchangeControllerV2{}, "get:GetPeriod")
 
 	}
 	//User login
@@ -247,7 +261,8 @@ func registFilters() {
 	//beego.InsertFilter("/v2/queryUserInfo", beego.BeforeRouter, nftexchangev2.CheckToken)
 	beego.InsertFilter("/v2/modifyUserInfo", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/queryNFT", beego.BeforeRouter, nftexchangev2.CheckToken)
-	beego.InsertFilter("/v2/sell", beego.BeforeRouter, nftexchangev2.CheckToken)
+	//TODO token
+	//beego.InsertFilter("/v2/sell", beego.BeforeRouter, nftexchangev2.CheckToken)
 	beego.InsertFilter("/v2/cancelSell", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/queryPendingVrfList", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/vrfNFT", beego.BeforeRouter, nftexchangev2.CheckToken)

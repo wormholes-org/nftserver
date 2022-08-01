@@ -239,10 +239,11 @@ func (nft *NftExchangeControllerV2) verifyInputData_Sell(data map[string]string,
 	//		return ERRINPUTINVALID
 	//	}
 	//}
-	getToken, _ := tokenMap.GetToken(data["user_addr"])
-	if getToken != token {
-		return ERRTOKEN
-	}
+	//TODO token
+	//getToken, _ := tokenMap.GetToken(data["user_addr"])
+	//if getToken != token {
+	//	return ERRTOKEN
+	//}
 
 	return nil
 }

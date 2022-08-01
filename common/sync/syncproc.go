@@ -178,7 +178,7 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 
 func InitSyncBlockTs(sqldsn string) error {
 	if !models.LimitWritesDatabase {
-		if models.TransferNFT {
+		if models.TransferSNFT {
 			/*syncBlocks, err := models.GetDbBlockNumber(sqldsn)
 			if err != nil {
 				fmt.Println("InitSyncBlockTs() get scan block num err=", err)
@@ -545,7 +545,7 @@ func SyncWorkerNft(sqldsn string) error {
 		return err
 	}
 	for {
-		if !models.TransferNFT {
+		if !models.TransferSNFT {
 			time.Sleep(ScanSnftBlockTime)
 			continue
 		}
