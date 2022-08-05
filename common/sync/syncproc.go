@@ -178,43 +178,49 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 
 func InitSyncBlockTs(sqldsn string) error {
 	if !models.LimitWritesDatabase {
-		if models.TransferSNFT {
-			/*syncBlocks, err := models.GetDbBlockNumber(sqldsn)
-			if err != nil {
-				fmt.Println("InitSyncBlockTs() get scan block num err=", err)
-				return err
-			}*/
-			snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
-			if err != nil {
-				fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
-				return err
-			}
-			for snftBlockS < contracts.GetCurrentBlockNumber() {
-				fmt.Println("InitSyncBlockTs() call ScanWorkerNft() blockNum=", snftBlockS)
-				err := ScanWorkerNft(sqldsn, snftBlockS)
-				if err != nil {
-					log.Println("InitSyncBlockTs() call SyncWorkerNft() err=", err)
-					continue
-					//return err
-				}
-				snftBlockS = snftBlockS + 1
-			}
-			go SyncWorkerNft(sqldsn)
-		}
-		err := SyncBlockNew(sqldsn)
-		if err != nil {
-			fmt.Println("InitSyncBlockTs() SyncBlockNew err=", err)
-			return err
-		}
-		go func() {
-			ticker := time.NewTicker(ScanBlockTime)
+		if models.NftScanServer != "" {
 			for {
-				select {
-				case <-ticker.C:
-					SyncBlockNew(models.Sqldsndb)
+				err := models.SyncBlock(sqldsn)
+				if err == nil {
+					break
 				}
 			}
-		}()
+			go models.SyncChain(sqldsn)
+		} else {
+			if models.TransferSNFT {
+				snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
+				if err != nil {
+					fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
+					return err
+				}
+				for snftBlockS < contracts.GetCurrentBlockNumber() {
+					fmt.Println("InitSyncBlockTs() call ScanWorkerNft() blockNum=", snftBlockS)
+					err := ScanWorkerNft(sqldsn, snftBlockS)
+					if err != nil {
+						log.Println("InitSyncBlockTs() call SyncWorkerNft() err=", err)
+						continue
+						//return err
+					}
+					snftBlockS = snftBlockS + 1
+				}
+				fmt.Println("InitSyncBlockTs() sync ScanWorkerNft ok.  blockNum=", snftBlockS)
+				go SyncWorkerNft(sqldsn)
+			}
+			err := SyncBlockNew(sqldsn)
+			if err != nil {
+				fmt.Println("InitSyncBlockTs() SyncBlockNew err=", err)
+				return err
+			}
+			go func() {
+				ticker := time.NewTicker(ScanBlockTime)
+				for {
+					select {
+					case <-ticker.C:
+						SyncBlockNew(models.Sqldsndb)
+					}
+				}
+			}()
+		}
 	}
 
 	go BackupIpfsSnft(sqldsn)
@@ -457,33 +463,29 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 			fmt.Println("ScanWorkerNft() metaHash=", metaHash)
 			var snftinfo *models.SnftInfo
 			if snftinfo = ScanIpfsCatch.GetByHash(metaHash); snftinfo == nil {
-				timecount := time.Duration(1)
+				retry := 0
 				for {
 					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
 					if err != nil {
-						timecount = timecount * 2
-						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
+						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=", retry, " err =", err, "ipfs hash=", metaHash)
 						errflag := strings.Index(err.Error(), "context deadline exceeded")
 						if errflag != -1 {
-							time.Sleep(WaitIpfsFailTime * timecount)
+							time.Sleep(WaitIpfsFailTime)
 							continue
 						}
 						errflag = strings.Index(err.Error(), "connection refused")
 						if errflag != -1 {
-							log.Println("ScanWorkerNft() GetSnftInfoFromIPFS retry count=", timecount)
-							time.Sleep(WaitIpfsFailTime * timecount)
+							time.Sleep(WaitIpfsFailTime)
 							continue
 						}
 						errflag = strings.Index(err.Error(), "502 Bad Gateway")
 						if errflag != -1 {
-							log.Println("ScanWorkerNft() GetSnftInfoFromIPFS retry count=", timecount)
-							time.Sleep(WaitIpfsFailTime * timecount)
+							time.Sleep(WaitIpfsFailTime)
 							continue
 						}
 						errflag = strings.Index(err.Error(), "403 Forbidden")
 						if errflag != -1 {
-							log.Println("ScanWorkerNft() GetSnftInfoFromIPFS retry count=", timecount)
-							time.Sleep(WaitIpfsFailTime * timecount)
+							time.Sleep(WaitIpfsFailTime)
 							continue
 						}
 					}
@@ -603,13 +605,11 @@ func SaveIpfsMeta(sqldsn string) error {
 			continue
 			return errors.New("ScanWorkerNft(): MetaUrl error.")
 		}
-		timecount := time.Duration(1)
 		for {
 			fmt.Println("SaveIpfsMeta() backup to ipfs main hash=", nftData.Meta[:index])
 			err := SaveIpfsToLocal(nftData.Meta[:index])
 			if err != nil {
-				time.Sleep(WaitIpfsFailTime * timecount)
-				timecount = timecount * 2
+				time.Sleep(WaitIpfsFailTime)
 				continue
 			}
 			break
@@ -618,13 +618,12 @@ func SaveIpfsMeta(sqldsn string) error {
 			metaHash := nftData.Meta[:index] + "/" + hex.EncodeToString([]byte{byte(i)})
 			fmt.Println("SaveIpfsMeta() backup to ipfs chip hash=", metaHash)
 			var snftinfo *models.SnftInfo
-			timecount := time.Duration(1)
+			retry := 0
 			for {
 				snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
 				if err != nil {
-					timecount = timecount * 2
-					log.Println("SaveIpfsMeta() GetSnftInfoFromIPFS count=", timecount, " err =", err, "ipfs hash=", metaHash)
-					time.Sleep(WaitIpfsFailTime * timecount)
+					log.Println("SaveIpfsMeta() GetSnftInfoFromIPFS count=", retry, " err =", err, "ipfs hash=", metaHash)
+					time.Sleep(WaitIpfsFailTime)
 					continue
 				}
 				break
@@ -633,8 +632,7 @@ func SaveIpfsMeta(sqldsn string) error {
 			for {
 				err := SaveIpfsToLocal(metaHash)
 				if err != nil {
-					time.Sleep(WaitIpfsFailTime * timecount)
-					timecount = timecount * 2
+					time.Sleep(WaitIpfsFailTime)
 					continue
 				}
 				break
@@ -643,8 +641,7 @@ func SaveIpfsMeta(sqldsn string) error {
 			for {
 				err := SaveIpfsToLocal(metaHash)
 				if err != nil {
-					time.Sleep(WaitIpfsFailTime * timecount)
-					timecount = timecount * 2
+					time.Sleep(WaitIpfsFailTime)
 					continue
 				}
 				break

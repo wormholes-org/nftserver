@@ -2,14 +2,18 @@ package models
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"gorm.io/gorm"
+	"io/ioutil"
 	"log"
 	"math/big"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,7 +25,7 @@ func UpdateBlockNumber(sqldsn string) {
 	var client *ethclient.Client
 	var err error
 	for {
-		for  {
+		for {
 			client, err = ethclient.Dial(InfuraWssPoint)
 			if err != nil {
 				log.Println("UpdateBlockNumber() connect err=", err)
@@ -82,10 +86,10 @@ func UpdateBlockNumber(sqldsn string) {
 	}
 }
 
-func GetCurrentBlockNumber() uint64{
+func GetCurrentBlockNumber() uint64 {
 	var client *ethclient.Client
 	var err error
-	for  {
+	for {
 		client, err = ethclient.Dial(InfuraWssPoint)
 		if err != nil {
 			log.Println("GetCurrentBlockNumber() connect err=", err)
@@ -109,7 +113,7 @@ func GetCurrentBlockNumber() uint64{
 	}
 }
 
-func GetDbBlockNumber(sqldsn string) (uint64, error){
+func GetDbBlockNumber(sqldsn string) (uint64, error) {
 	nd, err := NewNftDb(sqldsn)
 	if err != nil {
 		fmt.Printf("GetDbBlockNumber() connect database err = %s\n", err)
@@ -125,7 +129,7 @@ func GetDbBlockNumber(sqldsn string) (uint64, error){
 	return params.Scannumber, nil
 }
 
-func GetDbSnftBlockNumber(sqldsn string) (uint64, error){
+func GetDbSnftBlockNumber(sqldsn string) (uint64, error) {
 	nd, err := NewNftDb(sqldsn)
 	if err != nil {
 		fmt.Printf("GetDbBlockNumber() connect database err = %s\n", err)
@@ -141,7 +145,7 @@ func GetDbSnftBlockNumber(sqldsn string) (uint64, error){
 	return params.Scansnftnumber, nil
 }
 
-func GetDbSavedSnft(sqldsn string) (string, error){
+func GetDbSavedSnft(sqldsn string) (string, error) {
 	nd, err := NewNftDb(sqldsn)
 	if err != nil {
 		fmt.Printf("GetDbSavedSnft() connect database err = %s\n", err)
@@ -157,7 +161,7 @@ func GetDbSavedSnft(sqldsn string) (string, error){
 	return params.Savedsnft, nil
 }
 
-func SetDbSavedSnft(sqldsn, snft string) (error){
+func SetDbSavedSnft(sqldsn, snft string) error {
 	nd, err := NewNftDb(sqldsn)
 	if err != nil {
 		fmt.Printf("SetDbSavedSnft() connect database err = %s\n", err)
@@ -170,7 +174,7 @@ func SetDbSavedSnft(sqldsn, snft string) (error){
 		log.Println("SetDbSavedSnft() params err=", dbErr.Error)
 		return dbErr.Error
 	}
-	dbErr = nd.GetDB().Model(&SysParams{}).Where("id = ?", params.ID).Update("savedsnft", snft )
+	dbErr = nd.GetDB().Model(&SysParams{}).Where("id = ?", params.ID).Update("savedsnft", snft)
 	if dbErr.Error != nil {
 		log.Println("SetDbSavedSnft() update savedsnft err=", dbErr.Error)
 		return dbErr.Error
@@ -179,7 +183,7 @@ func SetDbSavedSnft(sqldsn, snft string) (error){
 	return nil
 }
 
-func MintProc(tx *gorm.DB, to, royalty, contractAddr, tokenId, txhash, ts string) error  {
+func MintProc(tx *gorm.DB, to, royalty, contractAddr, tokenId, txhash, ts string) error {
 	fmt.Println("MintProc() Start.")
 	t, _ := strconv.ParseUint(ts, 10, 64)
 	transTime := time.Unix(int64(t), 0)
@@ -311,7 +315,7 @@ func TransProc(tx *gorm.DB, from, to, price, contractAddr, tokenId, txhash, ts s
 					return err.Error
 				}
 			}
-			fmt.Println("TransProc() OK" )
+			fmt.Println("TransProc() OK")
 			return nil
 		})
 	} else {
@@ -383,7 +387,7 @@ func TransProc(tx *gorm.DB, from, to, price, contractAddr, tokenId, txhash, ts s
 				fmt.Println("TransProc() delete bid record err=", err.Error)
 				return err.Error
 			}
-			fmt.Println("TransProc() OK" )
+			fmt.Println("TransProc() OK")
 			return nil
 		})
 	}
@@ -513,7 +517,7 @@ func AmountValid(Price uint64, addr string) (bool, string, error) {
 	if authAmount.Cmp(pricet) < 0 {
 		return false, ErrAuthorizeLess.Error(), nil
 	}
-	return true, "",  nil
+	return true, "", nil
 }
 
 func WormsAmountValid(Price uint64, addr string) (bool, string, error) {
@@ -530,7 +534,7 @@ func WormsAmountValid(Price uint64, addr string) (bool, string, error) {
 	if balance < Price {
 		return false, ErrBalanceLess.Error(), nil
 	}
-	return true, "",  nil
+	return true, "", nil
 }
 
 /*func OwnAndAprove(owner, contract, tokenId string) (bool, error) {
@@ -620,7 +624,6 @@ loop:
 	return BlockTxs, wethTransfers, wethApproves
 }*/
 
-
 //func SyncProc(sqldsn string, syncCh chan uint64) chan struct{}{
 //	var procEnd = make(chan struct{}, 1)
 //	go func() {
@@ -691,3 +694,32 @@ loop:
 //	}
 //	return nil
 //}
+
+func HttpSendRev(url string, data string, token string) ([]byte, error) {
+	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	if strings.Index(url, "https") != -1 {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client = &http.Client{Transport: tr}
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("token", token)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	//client.CloseIdleConnections()
+	return b, nil
+}

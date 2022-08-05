@@ -95,7 +95,13 @@ func AuthWormTrans(mintState, sellerSig, buyerSig, authSign string) (string, err
 			log.Println("AuthWormTrans() Minted Buyer Unmarshal() err=", err)
 			return "", err
 		}
-		txhash, err = contracts.AuthExchangeTrans(buyer, authSign, contracts.SuperAdminAddr)
+		seller := contracts.Seller1{}
+		err = json.Unmarshal([]byte(sellerSig), &seller)
+		if err != nil {
+			log.Println("AuthWormTrans() Minted Buyer Unmarshal() err=", err)
+			return "", err
+		}
+		txhash, err = contracts.AuthExchangeTrans(seller, buyer, authSign, contracts.SuperAdminAddr)
 		if err != nil {
 			log.Println("AuthWormTrans() ExchangeTrans() err=", err)
 			return "", err
@@ -190,6 +196,7 @@ func (nft NftDb) BuyingNft(userAddr,
 			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
 		txhash, err := AuthWormTrans(nftrecord.Mintstate, auctionRec.Tradesig, buyerSig, ExchangerAuth)
+		log.Println("auctRec Price= ", auctRec.Price)
 		if err != nil {
 			log.Println("BuyingNft() AuthWormTrans err=", err)
 			auctRec = Auction{}
@@ -253,6 +260,7 @@ func (nft NftDb) BuyingNft(userAddr,
 			log.Println("BuyingNft() update auction record err=", dberr.Error)
 			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
+		log.Println("auctRec Price= ", auctRec.Price)
 		txhash, err := AuthWormTrans(nftrecord.Mintstate, sellerSig, bidRec.Tradesig, ExchangerAuth)
 		if err != nil {
 			fmt.Println("BuyingNft() WormTrans err=", err)

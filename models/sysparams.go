@@ -45,7 +45,7 @@ const (
 	ToolongAuciton   = 365
 	//HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"}]}"
 	HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}]}"
-	DefExchangeLink   = "{\"github\":\"https://discord.gg/AbmTrrAmuN\",\"discord\":\"https://discord.com/invite/AbmTrrAmuN\",\"twitter\":\"https://twitter.com/WormholesChain\"}"
+	DefExchangeLink   = "{\"github\":\"https://github.com/wormholes-org\",\"discord\":\"https://discord.com/invite/AbmTrrAmuN\",\"twitter\":\"https://twitter.com/WormholesChain\"}"
 	DefAutoFlag       = "true"
 	DefAutoSnft       = "false"
 	DefAudit          = "false"
@@ -110,7 +110,6 @@ var (
 	DefaultCaptchaNum       int
 	LimitWritesDatabase     bool
 	NftScanServer           string
-	SysparamHomePage        string
 )
 
 type ExchangerAuthrize struct {
@@ -357,7 +356,6 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.Scannumber = strconv.FormatUint(params.Scannumber, 10)
 	paraminfo.Royaltylimit = strconv.Itoa(params.Royaltylimit)
 	paraminfo.Homepage = params.Homepage
-	SysparamHomePage = params.Homepage
 	paraminfo.Exchangerinfo = exchangeinfo.Exchangerinfo
 	paraminfo.Icon = exchangeinfo.Icon
 	paraminfo.Data = exchangeinfo.Data
@@ -551,7 +549,6 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		//}
 		if param.Homepage != "" {
 			updateP.Homepage = param.Homepage
-			SysparamHomePage = param.Homepage
 		}
 		//if IsUint64DataValid(param.Scannumber) {
 		//	updateP.Scannumber, _ = strconv.ParseUint(param.Scannumber, 10, 64)
@@ -676,6 +673,13 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 			return nil, ErrDataBase
 		}
 	}
+	sysparam := SysParams{}
+	err = nft.db.Model(&SysParams{}).Select("homepage").Last(&sysparam)
+	if err.Error != nil {
+		fmt.Println("QueryExchangeInfo() SysParams not find err=", err.Error)
+		return nil, ErrDataBase
+	}
+
 	paraminfo.Adminaddr = ExchangerAddr
 	paraminfo.Exchangerinfo = params.Exchangerinfo
 	paraminfo.Icon = params.Icon
@@ -698,18 +702,14 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	Backupipfs, _ = strconv.ParseBool(params.Backupipfs)
 	partnerlogo := strings.Split(params.Partnerslogo, ",")
 	paraminfo.ExtendLogo = partnerlogo
-	if params.Uploadsize != 0 {
-		UploadSize = params.Uploadsize
-		beego.BConfig.MaxMemory = int64(params.Uploadsize)
-	} else {
-		UploadSize = DefUploadSize
-		beego.BConfig.MaxMemory = DefUploadSize
-	}
+	UploadSize = params.Uploadsize
+	beego.BConfig.MaxMemory = int64(params.Uploadsize)
 	paraminfo.Uploadsize = strconv.FormatUint(params.Uploadsize, 10)
-	paraminfo.Homepage = SysparamHomePage
+	paraminfo.Homepage = sysparam.Homepage
 	paraminfo.Link = params.Link
 	paraminfo.Deflanguage = params.Deflanguage
 	paraminfo.Desc = params.Desc
+
 	//paraminfo.Nftlush 		= strconv.Itoa(params.Nftlush)
 	return &paraminfo, nil
 }

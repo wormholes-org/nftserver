@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func TimeProc(sqldsn string)  {
+func TimeProc(sqldsn string) {
 	ticker := time.NewTicker(time.Second * 10)
 	for {
 		select {
@@ -27,8 +27,8 @@ func TimeProc(sqldsn string)  {
 	}
 }
 
-func CallContracts(nft *models.NftDb)  {
-	fmt.Println(time.Now().String()[:20],"TimeProc begin+++++++++++++++++++++++++.")
+func CallContracts(nft *models.NftDb) {
+	fmt.Println(time.Now().String()[:20], "TimeProc begin+++++++++++++++++++++++++.")
 	rows, err := nft.GetDB().Model(&models.Auction{}).Rows()
 	if err != nil {
 		fmt.Println("TimeProc() Rows err=", err)
@@ -41,7 +41,7 @@ func CallContracts(nft *models.NftDb)  {
 		if auctionRec.Selltype == models.SellTypeHighestBid.String() &&
 			auctionRec.SellState == models.SellStateStart.String() &&
 			time.Now().Unix() >= auctionRec.Enddate {
-			var bidRecs[] models.Bidding
+			var bidRecs []models.Bidding
 			err := nft.GetDB().Order("price desc").Where("Auctionid = ?", auctionRec.ID).Find(&bidRecs)
 			if err.Error != nil || err.RowsAffected == 0 {
 				if err.Error == gorm.ErrRecordNotFound || err.RowsAffected == 0 {
@@ -90,9 +90,9 @@ func CallContracts(nft *models.NftDb)  {
 			if bidRec.Price >= models.Lowprice && bidRec.Price >= auctionRec.Startprice {
 				var nftrecord models.Nfts
 				err := nft.GetDB().Where("contract = ? AND tokenid = ? AND ownaddr = ?",
-										auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).First(&nftrecord)
+					auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).First(&nftrecord)
 				if err.Error != nil {
-					fmt.Println("TimeProc() get nftrecord err= ", err.Error )
+					fmt.Println("TimeProc() get nftrecord err= ", err.Error)
 					continue
 				}
 				if nftrecord.Mintstate == models.Minted.String() {
@@ -114,7 +114,13 @@ func CallContracts(nft *models.NftDb)  {
 						fmt.Println("TimeProc() ethhelper.Auction() err=", err)
 						continue
 					}
-					txhash, err := contracts.AuthExchangeTrans(buyer, models.ExchangerAuth,  contracts.SuperAdminAddr)
+					seller := contracts.Seller1{}
+					err = json.Unmarshal([]byte(auctionRec.Tradesig), &seller)
+					if err != nil {
+						fmt.Println("TimeProc() ethhelper.Auction() err=", err)
+						continue
+					}
+					txhash, err := contracts.AuthExchangeTrans(seller, buyer, models.ExchangerAuth, contracts.SuperAdminAddr)
 					if err != nil {
 						fmt.Println("TimeProc() contracts.AuthExchangeTrans() err=", err)
 						continue
@@ -298,7 +304,7 @@ func CallContracts(nft *models.NftDb)  {
 							fmt.Println("TimeProc() update record err=", err.Error)
 							return err.Error
 						}
-						err = tx.Model(&models.Auction{}).Where("id = ?",	auctionRec.ID).Delete(&models.Auction{})
+						err = tx.Model(&models.Auction{}).Where("id = ?", auctionRec.ID).Delete(&models.Auction{})
 						if err.Error != nil {
 							fmt.Println("TimeProc() delete auction record err=", err.Error)
 							return err.Error
@@ -310,5 +316,5 @@ func CallContracts(nft *models.NftDb)  {
 		}
 	}
 	fmt.Println()
-	fmt.Println(time.Now().String()[:20],"TimeProc() end +++++++++++++++++++" )
+	fmt.Println(time.Now().String()[:20], "TimeProc() end +++++++++++++++++++")
 }
