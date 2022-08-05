@@ -1,4 +1,4 @@
-package main
+package models
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-type SnftInfo struct {
+/*type SnftInfo struct {
 	CreatorAddr          string  `json:"creator_addr"`
 	Ownaddr              string  `json:"ownaddr"`
 	Contract             string  `json:"nft_contract_addr"`
@@ -25,6 +25,7 @@ type SnftInfo struct {
 	CollectionsImgUrl    string  `json:"collections_img_url"`
 	CollectionsDesc      string  `json:"collections_desc"`
 }
+*/
 
 type ResponseGetBlockSnfts struct {
 	Code       string     `json:"code"`
@@ -33,10 +34,8 @@ type ResponseGetBlockSnfts struct {
 	TotalCount uint64     `json:"total_count"`
 }
 
-func GetBlockSnfts(blocknumber string) (*[]SnftInfo, error) {
-	url := "http://192.168.56.128:8081/" + "/v1/getBlockSnfts"
-	//url := "https://www.wormholestest.com/nftscan" + "/v1/getBlockSnfts"
-	//url := "http://192.168.1.237:8089" + "/v1/getBlockSnfts"
+func GetBlockSnfts(blocknumber string) ([]SnftInfo, error) {
+	url := NftScanServer + "/v1/getBlockSnfts"
 	datam := make(map[string]string)
 	datam["blocknumber"] = blocknumber
 	datas, _ := json.Marshal(&datam)
@@ -54,20 +53,5 @@ func GetBlockSnfts(blocknumber string) (*[]SnftInfo, error) {
 	if revData.Code != "200" {
 		return nil, errors.New(revData.Msg)
 	}
-	return &revData.Data, nil
+	return revData.Data, nil
 }
-
-/*func main()  {
-	for i := 0; i < 1000; i++ {
-		nu := models.GetCurrentBlockNumber()
-		fmt.Println("block number nu=", nu)
-		fmt.Println("get block number=", i)
-		_, err :=GetBlockSnfts(strconv.Itoa(i))
-		if err != nil {
-			fmt.Println(err)
-			time.Sleep(time.Second)
-		}
-		fmt.Println("get snft OK.")
-		time.Sleep(time.Second)
-	}
-}*/

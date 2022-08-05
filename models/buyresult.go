@@ -454,9 +454,8 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 	//	fmt.Println("BuyResultWithWAmount() price err")
 	//	return ErrPrice
 	//}
-	fmt.Println(time.Now().String()[:25], "BuyResultWithWAmount() Begin", "from=", from, "to=", to, "price=", nftTx.Price,
-		"contractAddr=", contractAddr, "tokenId=", tokenId, "txhash=", txhash,
-		/*, "sig=", sig, "trade_sig=", trade_sig*/)
+	fmt.Println(time.Now().String()[:25], "BuyResultWithWAmount() Begin", " from=", from, " to=", to, " price=", nftTx.Price,
+		" contractAddr=", contractAddr, " tokenId=", tokenId, " txhash=", txhash, " nftaddr=", nftaddr)
 	trans := Trans{}
 	err := nft.db.Select("id").Where("nftaddr = ? AND txhash = ? AND (selltype = ? or selltype = ? or selltype = ?)",
 		nftaddr, txhash, SellTypeFixPrice.String(), SellTypeBidPrice.String(), SellTypeHighestBid.String()).First(&trans)
@@ -503,7 +502,11 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		}
 		return nft.db.Transaction(func(tx *gorm.DB) error {
 			trans := Trans{}
-			trans.Contract = nftRec.Contract
+			if nftaddr[:3] != "0x8" {
+				trans.Contract = nftRec.Contract
+			} else {
+				trans.Contract = contractAddr
+			}
 			trans.Createaddr = nftRec.Createaddr
 			trans.Url = nftRec.Url
 			trans.Count = count
@@ -900,7 +903,7 @@ func (nft NftDb) BuyResultWRoyalty(mintTx *contracts.NftTx) error {
 					fmt.Println("BuyResultWRoyalty() royalty create nfts record err=", err.Error)
 					return err.Error
 				}
-				fmt.Println("BuyResultWRoyalty() royalty!=Null Ok")
+				fmt.Println("BuyResultWRoyalty() royalty Ok", " to=", to, " nftaddr=", nftaddr)
 				return nil
 			})
 		}
@@ -915,12 +918,15 @@ func (nft NftDb) BuyResultWTransfer(mintTx *contracts.NftTx) error {
 	//tokenId := strings.ToLower(mintTx.TokenId)
 	txhash := strings.ToLower(mintTx.TxHash)
 	nftaddr := strings.ToLower(mintTx.NftAddr)
+	fmt.Println("BuyResultWTransfer() to=", to)
+	fmt.Println("BuyResultWTransfer() nftaddr=", nftaddr)
+	fmt.Println("BuyResultWTransfer() txhash=", txhash)
 	if nftaddr == "" {
 		fmt.Println("BuyResultWTransfer() error nftaddr equal null.")
 		return nil
 	}
 
-	fmt.Println(time.Now().String()[:25], "BuyResultWTransfer() Begin", "to=", to, "price=", mintTx.Price, "txhash=", mintTx.TxHash)
+	fmt.Println(time.Now().String()[:25], "BuyResultWTransfer() Begin", "to=", to, "nftaddr=", nftaddr, "block=", mintTx.BlockNumber)
 	/*trans := Trans{}
 	err := nft.db.Select("id").Where("txhash = ? AND selltype = ?", txhash, SellTypeTransfer.String()).First(&trans)
 	if err.Error == nil {
@@ -963,7 +969,7 @@ func (nft NftDb) BuyResultWTransfer(mintTx *contracts.NftTx) error {
 				fmt.Println("BuyResultWTransfer() create nfts record err=", err.Error)
 				return err.Error
 			}
-			fmt.Println("BuyResultWTransfer() Ok")
+			fmt.Println("BuyResultWTransfer() Ok blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
 			return nil
 		})
 	}
@@ -983,18 +989,27 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 	case 42:
 		nftaddress = nftaddr
 	}
+	fmt.Println("BuyResultExchange() beging. nftaddr=", nftaddr)
 	nftRec := Nfts{}
 	err := nft.db.Select([]string{"collectcreator", "Collections"}).Where("nftaddr = ?", nftaddress).First(&nftRec)
 	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 		log.Println("BuyResultExchange() dbase error.")
-		return err.Error
+		return ErrDataBase
+	}
+	if err.Error == gorm.ErrRecordNotFound {
+		log.Println("BuyResultExchange() snft not find error.")
+		return nil
 	}
 	collectRec := Collects{}
 	err = nft.db.Where("createaddr = ? AND  name=?",
 		nftRec.Collectcreator, nftRec.Collections).First(&collectRec)
 	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 		log.Println("BuyResultExchange() database err=", err.Error)
-		return ErrCollectionNotExist
+		return ErrDataBase
+	}
+	if err.Error == gorm.ErrRecordNotFound {
+		log.Println("BuyResultExchange() snft not find error.")
+		return nil
 	}
 	sysInfo := SysInfos{}
 	err = nft.db.Model(&SysInfos{}).Last(&sysInfo)

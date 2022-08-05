@@ -109,6 +109,7 @@ func TestSyncBlockTxsNew(t *testing.T) {
 	contracts.ExchangeOwer = "0x57ed0c503c40308e802414405ce3d399fe3a42c6"
 	blockS := uint64(18351)
 	blockS = uint64(52384)
+	blockS = uint64(87736)
 	for blockS <= contracts.GetCurrentBlockNumber() {
 		txs, err := contracts.GetBlockTxsNew(blockS)
 		if err != nil {

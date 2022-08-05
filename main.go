@@ -30,12 +30,11 @@ func main() {
 	}
 
 	err := models.InitSysParams(models.Sqldsndb)
-	fmt.Println(models.NFTUploadAuditRequired)
-
 	if err != nil {
 		fmt.Println("InitSysParams err=", err)
 		return
 	}
+	fmt.Println(models.NFTUploadAuditRequired)
 	//err = models.InitSyncBlockTs(models.Sqldsndb)
 	err = sync.InitSyncBlockTs(models.Sqldsndb)
 	if err != nil {

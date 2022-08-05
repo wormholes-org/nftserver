@@ -175,6 +175,7 @@ type WormholesAuthFixTrans struct {
 	Version       string `json:"version"`
 	Type          uint8  `json:"type"`
 	Buyer         `json:"buyer"`
+	Seller1       `json:"seller1"`
 	Exchangerauth ExchangerAuth `json:"exchanger_auth"`
 }
 
@@ -182,7 +183,7 @@ type ExchangerAuthTrans struct {
 	Worm WormholesAuthFixTrans `json:"wormholes"`
 }
 
-type seller1 struct {
+type Seller1 struct {
 	Price       string `json:"price"`
 	Nftaddress  string `json:"nft_address"`
 	Exchanger   string `json:"exchanger"`
@@ -193,7 +194,7 @@ type seller1 struct {
 type WormholesBuyFromSellTrans struct {
 	Version string `json:"version"`
 	Type    uint8  `json:"type"` //15
-	seller1 `json:"seller"`
+	Seller1 `json:"seller"`
 }
 
 type Seller2 struct {
@@ -558,7 +559,6 @@ func GetCurrentBlockNumber() uint64 {
 				time.Sleep(ReDialDelyTime * time.Second)
 			} else {
 				//log.Println("GetCurrentBlockNumber() connect OK!")
-				//log.Println("GetCurrentBlockNumber() connect OK!")
 				break
 			}
 		}
@@ -569,6 +569,7 @@ func GetCurrentBlockNumber() uint64 {
 			time.Sleep(ReDialDelyTime * time.Second)
 		} else {
 			log.Println("GetCurrentBlockNumber() header.Number=", header.Number.String())
+			client.Close()
 			return header.Number.Uint64()
 		}
 	}
@@ -2346,6 +2347,7 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 		log.Println("AuthExchangerMint() err=", err)
 		return "", err
 	}
+	defer client.Close()
 	fromKey, err := crypto.HexToECDSA(fromprv)
 	if err != nil {
 		log.Println("AuthExchangerMint() err=", err)
@@ -2410,7 +2412,7 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 	sstr := strings.Replace(string(str), "\"wormholes\"", "wormholes", -1)
 	sstr = sstr[1 : len(sstr)-1]
 	data := []byte(sstr)
-	//log.Println("AuthExchangerMint() value=", value.String())
+	log.Println("AuthExchangerMint() value=", value.String())
 	tx := types.NewTransaction(nonce, *toAddress, value, gasLimit, gasPrice, data)
 
 	log.Println("AuthExchangerMint() data=", sstr)
@@ -2510,12 +2512,13 @@ func ExchangeTrans(buyer Buyer, fromprv string) error {
 	return nil
 }
 
-func AuthExchangeTrans(buyer Buyer, authSign, fromprv string) (string, error) {
+func AuthExchangeTrans(sell Seller1, buyer Buyer, authSign, fromprv string) (string, error) {
 	client, err := ethclient.Dial(EthNode)
 	if err != nil {
 		log.Println("AuthExchangeTrans() err=", err)
 		return "", err
 	}
+	defer client.Close()
 	privateKey, err := crypto.HexToECDSA(fromprv)
 	if err != nil {
 		log.Println("AuthExchangeTrans() err=", err)
@@ -2545,6 +2548,7 @@ func AuthExchangeTrans(buyer Buyer, authSign, fromprv string) (string, error) {
 		return "", err
 	}
 	//p, _ := strconv.ParseUint(buyer.Price, 10, 64)
+	log.Println("buyer price = ", buyer.Price)
 	value, err := hexutil.DecodeBig(buyer.Price)
 	if err != nil {
 		log.Println("AuthExchangeTrans() DecodeBig err=", err)
@@ -2558,6 +2562,7 @@ func AuthExchangeTrans(buyer Buyer, authSign, fromprv string) (string, error) {
 		log.Println("AuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
 		return "", err
 	}
+	trans.Worm.Seller1 = sell
 	trans.Worm.Buyer.Price = buyer.Price
 	trans.Worm.Buyer.Exchanger = buyer.Exchanger
 	trans.Worm.Buyer.Nftaddress = buyer.Nftaddress

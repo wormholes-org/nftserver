@@ -1723,8 +1723,6 @@ func (nft NftDb) QueryUnverifiedNfts(start_index, count, status string) ([]Nfts,
 func (nft NftDb) VerifyNft(vrfaddr string, tokenid string, desc string, verified string) error {
 
 	vrfaddr = strings.ToLower(vrfaddr)
-	//
-	//
 	////modify the database value of verified field if the valification address is valid.
 	//nftData := Nfts{}
 	//takeResult := nft.db.Where("contract = ? and tokenid = ?",
@@ -1742,15 +1740,14 @@ func (nft NftDb) VerifyNft(vrfaddr string, tokenid string, desc string, verified
 	//	return ErrDataBase
 	//}
 	//GetRedisCatch().SetDirtyFlag(NftVerifiedDirtyName)
-	user := Users{}
-
-	err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
-	if err.Error != nil {
-		log.Println("VerifyNft vrfaddr not found")
-		return ErrNotFound
-	}
+	//user := Users{}
+	//err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
+	//if err.Error != nil {
+	//	log.Println("VerifyNft vrfaddr not found")
+	//	return ErrNotFound
+	//}
 	tokenidlist := strings.Split(tokenid, ",")
-	err = nft.db.Model(&Nfts{}).Where("tokenid in ?", tokenidlist).
+	err := nft.db.Model(&Nfts{}).Where("tokenid in ?", tokenidlist).
 		Updates(map[string]interface{}{"verifyaddr": vrfaddr, "verifieddesc": desc, "verified": verified})
 	if err.Error != nil {
 		log.Println("VerifyNft update err=", err.Error)
@@ -3442,15 +3439,15 @@ func (nft NftDb) UserKYC(vrfaddr string, useraddr string, desc string,
 	vrfaddr = strings.ToLower(vrfaddr)
 	useraddr = strings.ToLower(useraddr)
 
-	user := Users{}
-
-	err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
-	if err.Error != nil {
-		log.Println("UserKYC vrfaddr not found")
-		return ErrNotFound
-	}
+	//user := Users{}
+	//
+	//err := nft.db.Where("useraddr = ?", vrfaddr).Take(&user)
+	//if err.Error != nil {
+	//	log.Println("UserKYC vrfaddr not found")
+	//	return ErrNotFound
+	//}
 	useraddrlist := strings.Split(useraddr, ",")
-	err = nft.db.Model(&Users{}).Where("useraddr in ?", useraddrlist).
+	err := nft.db.Model(&Users{}).Where("useraddr in ?", useraddrlist).
 		Updates(map[string]interface{}{"verifyaddr": vrfaddr, "desc": desc, "verified": verified, "signdata": sig})
 	if err.Error != nil {
 		log.Println("UserKYC update err=", err.Error)

@@ -11,6 +11,7 @@ import (
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"log"
+	"math/big"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -22,9 +23,9 @@ import (
 )
 
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
-const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.56.128:3306)/"
 //
@@ -36,8 +37,10 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 //const dbNameT = "tnftdb"
 //const dbNameT = "nftdb"
 //const dbNameT = "snftdb8012"
+const dbNameT = "nftdb8011"
+
 //const dbNameT = "tttt"
-const dbNameT = "c0xbacd84846337bf50532cd3a32fe48bbeded102b3"
+//const dbNameT = "c0xbacd84846337bf50532cd3a32fe48bbeded102b3"
 
 //const dbNameT = "c0x655b762461ba84b9c55de7346729594ce6361ac7"
 
@@ -941,6 +944,35 @@ func TestQueryNftByFilterNew(t *testing.T) {
 		t.Fatalf("err = %v\n", err)
 	}
 	t.Logf("nft = %v %v\n", nftByFilter, count)
+}
+
+func TestNftDb_BuyingNft(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	defer nd.Close()
+	contracts.EthNode = "http://43.129.181.130:8561"
+	contracts.SuperAdminAddr = "501bbf00179b7e626d8983b7d7c9e1b040c8a5d9a0f5da649bf38e10b2dbfb8d"
+	ExchangerAuth = "{\"exchanger_owner\":\"0x01842a2cf56400a245a56955dc407c2c4137321e\",\"to\":\"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900\",\"block_number\":\"0x2540be400\",\"sig\":\"0x7f1ca96714208959c5a75bdbf4770893b76b13c0bca26da2086c3365e537d57444f79b31498301c5c1d55400eec4b469c83a88a527159112f27ff934c222e4191b\"}"
+	price, _ := strconv.ParseUint("11000000000", 10, 64)
+	buyerSig := `"buyer_sig":"{\"price\":\"0x98a7d9b8314c0000\",\"exchanger\":\"0x01842a2cf56400a245a56955dc407c2c4137321e\",\"block_number\":\"0x603f87\",\"sig\":\"0x53f3c8018682637d73414b416fe62c825af97e6b2cbe1390ed4d34bc33c136162285b117087fdad81352cf9da7a2edc11d5be093255cb3e847862e95853ad0c21c\"}"`
+	sellerSig := `"{\"price\":\"0x98a7d9b8314c0000\",\"royalty\":\"0xc8\",\"meta_url\":\"7b226d657461223a222f697066732f516d6445736b6968627a7a53626f6a3843693845395147707a5833507378316363694e6b47505739505051716d66222c22746f6b656e5f6964223a2239353734323632373430333136227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0x01842a2cf56400a245a56955dc407c2c4137321e\",\"block_number\":\"0x603f3a\",\"sig\":\"0x57e167bffd120f88a3563c19a809553de7454f3775da1fcb4c09ff99ee3397df554722cdbffc27d649d744d333edb9427e02f6199d6bd046b2787c443a7b5ba81b\"}"`
+	//_ = nd.BuyingNft("0x0109CC44df1C9ae44Bac132eD96f146Da9A26B88",
+	//	"0x0109CC44df1C9ae44Bac132eD96f146Da9A26B88",
+	//	"0x01842a2cf56400a245a56955dc407c2c4137321e",
+	//	"9574262740316", price,
+	//	buyerSig, "", sellerSig)
+	buyerSig = "{\"price\":\"0x98a7d9b8314c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0x01842a2cf56400a245a56955dc407c2c4137321e\",\"block_number\":\"0x6040d0\",\"seller\":\"0x0109cc44df1c9ae44bac132ed96f146da9a26b88\",\"sig\":\"0xe0864c8fd9a6929639d4b41e22f1f8296e420a8e162f61f197402c4f346ccf2d02a47ed9ce757bcd5c1a77b9f1051b31641447c79d473bd8fbd9f0495af6070e1b\"}"
+	sellerSig = "{\"price\":\"0x98a7d9b8314c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0x01842a2cf56400a245a56955dc407c2c4137321e\",\"block_number\":\"0x60470c\",\"sig\":\"0x3b372442331a620ff98055d3c647ec23df2872cb0e08067a655c13fa5d5d4c5e373600af52398442940e6f51300b77c9921534fff8bb0d636e9b5f20a71afddd1b\"}"
+
+	_ = nd.BuyingNft("0x7fbc8ad616177c6519228fca4a7d9ec7d1804900",
+		"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900",
+		"0x01842a2cf56400a245a56955dc407c2c4137321e",
+		"9574262740316", price,
+		buyerSig, "", sellerSig)
+
 }
 
 func TestQueryStageList(t *testing.T) {
@@ -2414,4 +2446,25 @@ func TestNftDb_ExpiredNft(t *testing.T) {
 		fmt.Println(uerr)
 	}
 	fmt.Println("ok")
+}
+
+func TestSyncChain(t *testing.T) {
+	contracts.EthNode = "http://43.129.181.130:8561"
+	NftScanServer = "http://192.168.1.237:8089"
+	NewQueryCatch("192.168.56.128:6379", "")
+	TransferSNFT = true
+	RoyaltyLimit = 10000
+	SyncBlock(sqldsnT)
+}
+
+func TestBigData(t *testing.T) {
+	b := big.NewInt(10000000)
+	g := big.NewInt(1000000000000000000)
+	b = b.Mul(b, g)
+	fmt.Println(b.String())
+	fmt.Println(b.Bytes())
+	h := hexutil.EncodeBig(b)
+	fmt.Println(h)
+	b, _ = b.SetString(h[2:], 16)
+	fmt.Println(b.String())
 }
