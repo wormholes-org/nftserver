@@ -218,7 +218,7 @@ func (nft NftDb) DelCollection(useraddr, contract, name string) error {
 			fmt.Println("DelCollection() delete subscribe record err=", err.Error)
 			return errors.New(ErrDataBase.Error() + err.Error.Error())
 		}
-		return nft.db.Transaction(func(tx *gorm.DB) error {
+		rerr := nft.db.Transaction(func(tx *gorm.DB) error {
 			err := tx.Model(&Collects{}).Where("name =? and contract=? and createaddr=?", name, contract, useraddr).Delete(&Collects{})
 			if err.Error != nil {
 				fmt.Println("DelCollection() delete subscribe record err=", err.Error)
@@ -257,6 +257,16 @@ func (nft NftDb) DelCollection(useraddr, contract, name string) error {
 			GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 			return nil
 		})
+		if rerr != nil {
+			log.Println("DelNft Transaction err =", rerr)
+			return rerr
+		}
+		homeerr := HomePageRenew()
+		if homeerr != nil {
+			log.Println("DelNft() HomePageRenew err=", homeerr)
+			return homeerr
+		}
+		return nil
 	} else {
 		fmt.Println("DelCollection() nft mintstate under the collection cannot be deleted")
 		return ErrDeleteCollection

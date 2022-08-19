@@ -36,11 +36,11 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 //const dbNameT = "mynftdb"
 //const dbNameT = "tnftdb"
 //const dbNameT = "nftdb"
-//const dbNameT = "snftdb8012"
-const dbNameT = "nftdb8011"
+const dbNameT = "snftdb8012"
 
+//const dbNameT = "nftdb8011"
 //const dbNameT = "tttt"
-//const dbNameT = "c0xbacd84846337bf50532cd3a32fe48bbeded102b3"
+//const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 
 //const dbNameT = "c0x655b762461ba84b9c55de7346729594ce6361ac7"
 
@@ -2134,31 +2134,31 @@ func TestSaveDirtoipfs(t *testing.T) {
 	//HomePageCatchs.NftLoop = nfts
 	//fmt.Println(nfts)
 
-	imagexint := 220
-	imgxint, err := strconv.Atoi("222")
-	if err != nil {
-		fmt.Println("imgxint transfer int err =", err)
-
-	}
-	if imagexint <= imgxint+10 && imagexint >= imgxint-10 {
-
-		fmt.Println("captcha ok")
-
-	} else {
-		fmt.Println("captcha auth error")
-
-	}
-	fmt.Println(imgxint)
-	fmt.Println(ImageDir)
-	//CaptchaDefault()
-	data, err := GetNftInfoFromIPFSWithShell("/ipfs/QmcJQiyCuUtqboNX18ymt1UAEvihRz3DF9QGoFGf7XjovF/mask.png")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(data)
+	//imagexint := 220
+	//imgxint, err := strconv.Atoi("222")
+	//if err != nil {
+	//	fmt.Println("imgxint transfer int err =", err)
+	//
+	//}
+	//if imagexint <= imgxint+10 && imagexint >= imgxint-10 {
+	//
+	//	fmt.Println("captcha ok")
+	//
+	//} else {
+	//	fmt.Println("captcha auth error")
+	//
+	//}
+	//fmt.Println(imgxint)
+	//fmt.Println(ImageDir)
+	////CaptchaDefault()
+	//data, err := GetNftInfoFromIPFSWithShell("/ipfs/QmcJQiyCuUtqboNX18ymt1UAEvihRz3DF9QGoFGf7XjovF/mask.png")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println(data)
 	//url := NftIpfsServerIP + ":" + NftstIpfsServerPort
-	//url := "http://192.168.1.235:9006"
-	url := "https://www.wormholestest.com"
+	url := "http://192.168.1.235:9006"
+	//url := "https://www.wormholestest.com"
 	//url := "http://43.129.181.130:8561"
 	//url := "http://192.168.1.237:9006"
 	//url := "https://snft.wormholestest.com"
@@ -2451,7 +2451,8 @@ func TestNftDb_ExpiredNft(t *testing.T) {
 func TestSyncChain(t *testing.T) {
 	contracts.EthNode = "http://43.129.181.130:8561"
 	NftScanServer = "http://192.168.1.237:8089"
-	NewQueryCatch("192.168.56.128:6379", "")
+	//NewQueryCatch("192.168.56.120:6379", "")
+	NewQueryCatch("192.168.1.237:6379", "user123456")
 	TransferSNFT = true
 	RoyaltyLimit = 10000
 	SyncBlock(sqldsnT)
@@ -2467,4 +2468,53 @@ func TestBigData(t *testing.T) {
 	fmt.Println(h)
 	b, _ = b.SetString(h[2:], 16)
 	fmt.Println(b.String())
+}
+func TestBigDatass(t *testing.T) {
+	adminKey, aderr := crypto.GenerateKey()
+	if aderr != nil {
+		log.Println("InitSysParams create Agent adminkey err=", aderr)
+
+	}
+	addr := crypto.PubkeyToAddress(adminKey.PublicKey)
+	fmt.Println(addr)
+	addprv := crypto.FromECDSA(adminKey)
+	fmt.Println(hexutil.Encode(addprv))
+	//"0xbdc996a45840937b92c3bea53ab0d76664e4ecc3437958f68e86c6b99757bf78
+}
+
+func TestHomePageRenew(t *testing.T) {
+	//nd, err := NewNftDb(sqldsnT)
+	//if err != nil {
+	//	fmt.Printf("connect database err = %s\n", err)
+	//}
+	//defer nd.Close()
+	//for i := 0; i < 100 && i < 10; {
+	//	fmt.Println(i)
+	//	i++
+	//}
+	rand.Seed(time.Now().UnixNano())
+	scaned := make(map[int64]bool)
+	for i := 0; i < 5 && int64(i) < 1; {
+		index := rand.Int63()%1 + 1
+		log.Println("HomePageRenew() rand.Int63() index= ", index)
+		/*if index == 0 {
+			index = 1
+		}*/
+		flag := scaned[index]
+		if flag {
+			//i = i - 1
+			log.Println("HomePageRenew() scaned[index] index= ", index)
+			time.Sleep(time.Second)
+			continue
+		}
+		scaned[index] = true
+		if i != 2 {
+			continue
+		}
+		i++
+	}
+	//err := HomePageRenew()
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
 }

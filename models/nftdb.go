@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"os"
+
 	//"github.com/nftexchange/nftserver/ethhelper"
 	"golang.org/x/crypto/sha3"
 	"gorm.io/driver/mysql"
@@ -80,6 +82,7 @@ var (
 	ErrNotMore              = errors.New("566,not more.")
 	ErrUserTrading          = errors.New("567,User in trading.")
 	ErrDeleteImg            = errors.New("568,Delete image error.")
+	ErrFileSize             = errors.New("569,Upload file size exceeds hard drive storage.")
 )
 
 //const (
@@ -833,6 +836,22 @@ func (nft NftDb) CreateIndexs() error {
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
 			fmt.Printf("CreateIndexs() indexBiddingsContractTokenid  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsSnftstageOwnaddrDeleted ON nfts ( snftstage, ownaddr, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftstageOwnaddrDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsSnftCollectionOwnaddrDeleted ON nfts ( snftcollection, ownaddr, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftCollectionOwnaddrDeleted  err=%s\n", db.Error)
 			return db.Error
 		}
 	}
@@ -3631,4 +3650,38 @@ func TextAndHash(data []byte) ([]byte, string) {
 	hasher := sha3.NewLegacyKeccak256()
 	hasher.Write([]byte(msg))
 	return hasher.Sum(nil), msg
+}
+
+func Base64AddMemory(img string) error {
+	fi, ferr := os.Stat(img)
+	if ferr != nil {
+		log.Println("file not found ,err=", ferr)
+		return ErrData
+	}
+	fmt.Println("file Size=", fi.Size())
+	nd, nerr := NewNftDb(sqldsn)
+	if nerr != nil {
+		log.Printf("ScanLoop() connect database err = %s\n", nerr)
+		return ErrDataBase
+	}
+	var exchangeinfo Exchangeinfos
+	err := nd.db.Last(&exchangeinfo)
+	if LimitTotalSize {
+		if exchangeinfo.Totalsize+uint64(fi.Size()) > exchangeinfo.Limitsize {
+			log.Println("upload file size exceeds hard drive storage")
+			rerr := os.Remove(img)
+			if rerr != nil {
+				fmt.Println("Base64AddMemory del file err=", rerr)
+				return ErrDeleteImg
+			}
+			return ErrFileSize
+		}
+	}
+	exchangeinfo.Totalsize = exchangeinfo.Totalsize + uint64(fi.Size())
+	err = nd.db.Last(&Exchangeinfos{}).Updates(&exchangeinfo)
+	if err.Error != nil {
+		fmt.Println("Exchangeinfos() update  err= ", err.Error)
+		return ErrDataBase
+	}
+	return nil
 }

@@ -16,7 +16,7 @@ var (
 	NftCacheDirtyName    = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
 	UploadNftDirtyName   = []string{"QueryNftByFilterNftSnft", "SnftSearch", "QueryNFTCollectionList", "QueryOwnerSnftChip"}
 	SetNftDirtyName      = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
-	TradingDirtyName     = []string{"QueryMarketTradingHistory"}
+	TradingDirtyName     = []string{"QueryMarketTradingHistory", "QueryNFTCollectionList"}
 	NewSnftCollect       = []string{"CollectSearch"}
 	NewSnftPeriod        = []string{"GetSnftPeriod"}
 	ModifySnftCollect    = []string{"CollectSearch", "GetSnftCollection", "GetSnftPeriod", "GetAllVotePeriod", "GetVoteSnftPeriod"}

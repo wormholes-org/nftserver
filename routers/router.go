@@ -167,7 +167,9 @@ func registRouterV2() {
 	beego.Router("/v2/queryStageCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryStageCollection")
 	//Return snft fragments based on user address
 	beego.Router("/v2/queryOwnerSnftChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerSnftChip")
-	//
+	//Return snft data according to array
+	beego.Router("/v2/queryArraySnft", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryArraySnft")
+
 	//beego.Router("/v2/modifyNFT", &controllers.NftExchangeControllerV2{}, "post:ModifyNFT")
 	//Query the NFT pending review list
 	beego.Router("/v2/queryPendingVrfList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryPendingVerificationList")

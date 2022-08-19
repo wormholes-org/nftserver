@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"log"
 	"strconv"
 	"time"
@@ -99,4 +100,20 @@ func (nft NftDb) QueryOwnerSnftChip(owner, start_Index, count string) ([]SnftChi
 	GetRedisCatch().CatchQueryData("QueryOwnerSnftChip", queryCatchSql, &SnftChipCatch{nftInfo, uint64(recCount)})
 	log.Printf("QueryOwnerSnftChip() no catch spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	return nftInfo, uint64(recCount), nil
+}
+
+func (nft NftDb) QueryArraySnft(array string) ([]SnftChipInfo, error) {
+	snftarray := []string{}
+	uerr := json.Unmarshal([]byte(array), &snftarray)
+	if uerr != nil {
+		log.Println("input data err =", uerr)
+		return nil, ErrData
+	}
+	nftInfo := []SnftChipInfo{}
+	err := nft.db.Model(Nfts{}).Where("nftaddr  in ?", snftarray).Scan(&nftInfo)
+	if err.Error != nil {
+		log.Println("QueryArraySnft() Find(&nftInfo) err=", err.Error)
+		return nil, ErrDataBase
+	}
+	return nftInfo, nil
 }

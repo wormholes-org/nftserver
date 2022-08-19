@@ -3,6 +3,7 @@ package models
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,6 +62,8 @@ const (
 	Deflanguage       = "中文"
 	FlushTime         = time.Second * 10
 	AesKey            = "CISzdrmfuTQvFJXpLySugjzTqorIMKSZ"
+	DefPartlogo       = "wormholes"
+	DefCaptchaNum     = 16
 )
 
 var (
@@ -95,7 +98,7 @@ var (
 	ExchangerAuth           string
 	DebugPort               string
 	DebugAllowNft           string
-	AllowNft                bool
+	AllowSnft               bool
 	AllowUserMinit          bool
 	UploadSize              uint64
 	Backupipfs              bool
@@ -110,6 +113,9 @@ var (
 	DefaultCaptchaNum       int
 	LimitWritesDatabase     bool
 	NftScanServer           string
+	AgentExchangePrv        string
+	LimitTotalSize          bool
+	LimitFileSize           string
 )
 
 type ExchangerAuthrize struct {
@@ -238,6 +244,8 @@ type ExchangeinfoRec struct {
 	Link           string `json:"link" gorm:"type:longtext NOT NULL;comment:'exchange social account'"`
 	Partnerslogo   string `json:"partnerslogo" gorm:"type:longtext NOT NULL;comment:'exchange partnerslogo'"`
 	Desc           string `json:"desc" gorm:"type:longtext ;comment:'exchange desc'"`
+	Totalsize      uint64 `json:"totalsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft total size'"`
+	Limitsize      uint64 `json:"limitsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit amount size'"`
 }
 
 type Exchangeinfos struct {
@@ -338,6 +346,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			exchange.Allowusermint = DefAutoSnft
 			exchange.Uploadsize = DefUploadSize
 			exchange.Backupipfs = DefAutoSnft
+			exchange.Partnerslogo = DefPartlogo
 			err = nft.db.Model(&Exchangeinfos{}).Create(&exchange)
 			if err.Error != nil {
 				fmt.Println("QuerySysParams() create Exchangeinfos err= ", err.Error)
@@ -348,6 +357,13 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			return nil, ErrDataBase
 		}
 	}
+	//if exchangeinfo.Partnerslogo == "" {
+	//	err = nft.db.Model(&Exchangeinfos{}).Last(&exchangeinfo).Update("partnerslogo", DefPartlogo)
+	//	if err.Error != nil {
+	//		fmt.Println("QuerySysParams() update partnerslogo err= ", err.Error)
+	//		return nil, ErrDataBase
+	//	}
+	//}
 	log.Println("params =", params)
 	paraminfo.NFT1155addr = params.NFT1155addr
 	paraminfo.Adminaddr = params.Adminaddr
@@ -379,13 +395,13 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.TransferNFT = exchangeinfo.Transfersnft
 	TransferSNFT, _ = strconv.ParseBool(exchangeinfo.Transfersnft)
 	paraminfo.AllowNft = exchangeinfo.Allownft
-	AllowNft, _ = strconv.ParseBool(exchangeinfo.Allownft)
+	AllowSnft, _ = strconv.ParseBool(exchangeinfo.Allownft)
 	paraminfo.AllowUserMint = exchangeinfo.Allowusermint
 	AllowUserMinit, _ = strconv.ParseBool(exchangeinfo.Allowusermint)
 	paraminfo.Backupipfs = exchangeinfo.Backupipfs
 	Backupipfs, _ = strconv.ParseBool(exchangeinfo.Backupipfs)
 	UploadSize = exchangeinfo.Uploadsize
-	beego.BConfig.MaxMemory = int64(exchangeinfo.Uploadsize)
+	beego.BConfig.MaxUploadSize = int64(exchangeinfo.Uploadsize)
 	paraminfo.Uploadsize = strconv.FormatUint(exchangeinfo.Uploadsize, 10)
 	return &paraminfo, nil
 }
@@ -662,7 +678,7 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 			exchange.Allowusermint = DefAutoSnft
 			exchange.Uploadsize = DefUploadSize
 			exchange.Backupipfs = DefAutoSnft
-			params.Link = DefExchangeLink
+			exchange.Link = DefExchangeLink
 			err = nft.db.Model(&Exchangeinfos{}).Create(&exchange)
 			if err.Error != nil {
 				fmt.Println("QueryExchangeInfo() create exchange err= ", err.Error)
@@ -695,7 +711,7 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	paraminfo.TransferNFT = params.Transfersnft
 	TransferSNFT, _ = strconv.ParseBool(params.Transfersnft)
 	paraminfo.AllowNft = params.Allownft
-	AllowNft, _ = strconv.ParseBool(params.Allownft)
+	AllowSnft, _ = strconv.ParseBool(params.Allownft)
 	paraminfo.AllowUserMint = params.Allowusermint
 	AllowUserMinit, _ = strconv.ParseBool(params.Allowusermint)
 	paraminfo.Backupipfs = params.Backupipfs
@@ -786,7 +802,7 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 				log.Println("AllowNft input  error.")
 				return ErrData
 			}
-			AllowNft = audit
+			AllowSnft = audit
 		}
 		if param.AllowUserMint != "" {
 			updateP.Allowusermint = param.AllowUserMint
@@ -810,7 +826,7 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 			low, _ := strconv.ParseUint(param.Uploadsize, 10, 64)
 			updateP.Uploadsize = low
 			UploadSize = low
-			beego.BConfig.MaxMemory = int64(low)
+			beego.BConfig.MaxUploadSize = int64(low)
 		}
 
 		if param.Restrictcode != "" {
@@ -859,7 +875,7 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 	}
 
 	return nft.db.Transaction(func(tx *gorm.DB) error {
-		err = tx.Model(&Exchangeinfos{}).Where("id = ? ", "1").Updates(&updateP)
+		err = tx.Model(&Exchangeinfos{}).Last(&Exchangeinfos{}).Updates(&updateP)
 		if err.Error != nil {
 			fmt.Println("Exchangeinfos() update  err= ", err.Error)
 			return ErrDataBase
@@ -904,19 +920,14 @@ func (nft NftDb) TranSnft() error {
 		return nil
 	}
 	log.Println("update blocknumber,transferNFT=", TransferSNFT)
-	//
-	//err := nft.db.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1, "transfersnft": "true"})
-	//if err.Error != nil {
-	//	fmt.Println("TranSnft() update Blocknumber err= ", err.Error)
-	//	return err.Error
-	//}
+
 	return nft.db.Transaction(func(tx *gorm.DB) error {
-		//err := tx.Last(&SysParams{}).Updates(map[string]interface{}{"blocknumber": 1, "scannumber": 1})
-		//if err.Error != nil {
-		//	fmt.Println("TranSnft() update SysParams Blocknumber err= ", err.Error)
-		//	return err.Error
-		//}
-		err := nft.db.Last(&Exchangeinfos{}).Updates(map[string]interface{}{"transfersnft": "true"})
+		err := tx.Last(&SysParams{}).Updates(map[string]interface{}{"scannumber": 1})
+		if err.Error != nil {
+			fmt.Println("TranSnft() update SysParams Blocknumber err= ", err.Error)
+			return err.Error
+		}
+		err = nft.db.Last(&Exchangeinfos{}).Updates(map[string]interface{}{"transfersnft": "true"})
 		if err.Error != nil {
 			fmt.Println("TranSnft() update Exchangeinfos transfersnft err= ", err.Error)
 			return err.Error
@@ -1023,7 +1034,11 @@ func InitSysParams(Sqldsndb string) error {
 	ExchangeName = auth.ExchangeName
 	fmt.Printf("InitSysParams() ExchangeOwer = %s\n", ExchangeOwer)
 	ExchangeBlocknumber = uint64(auth.BlockNumber)
-	SuperAdminPrv = DefSuperAdminPrv
+	if AgentExchangePrv == "" {
+		SuperAdminPrv = DefSuperAdminPrv
+	} else {
+		SuperAdminPrv = AgentExchangePrv
+	}
 	privateKey, err := crypto.HexToECDSA(SuperAdminPrv)
 	if err != nil {
 		fmt.Printf("InitSysParams() AdminListPrv err = %s\n", err)
@@ -1113,7 +1128,8 @@ func InitSysParams(Sqldsndb string) error {
 		}
 	}
 	go AutoPeriodEth(Sqldsndb)
-	go CaptchaDefault()
+	//go CaptchaDefault()
+	go WormLogoDefault()
 	//hexExchangePrv := crypto.FromECDSA(ExchangerPrv)
 	//hexExchangePrvStr := hexutil.Encode(hexExchangePrv)[2:]
 	//contracts.SetSysParams(BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
@@ -1314,8 +1330,14 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 				}
 			}
 			var recCount int64
+			var maxCount int64
 			countSql := `select max(id) from nfts`
-			dberr = nd.db.Raw(countSql).Scan(&recCount)
+			dberr = nd.db.Raw(countSql).Scan(&maxCount)
+			if AllowSnft {
+				dberr = nd.db.Model(&SysInfos{}).Select("snfttotal").First(&recCount)
+			} else {
+				dberr = nd.db.Model(&SysInfos{}).Select("nfttotal").First(&recCount)
+			}
 			//dberr = nd.db.Model(Nfts{}).Count(&recCount)
 			if dberr.Error != nil {
 				//if dberr.Error != gorm.ErrRecordNotFound {
@@ -1331,27 +1353,29 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 				limit, _ = strconv.Atoi(params.Nftloopcount)
 				scaned := make(map[int64]bool)
 				log.Println("ScanLoop() recCount= ", recCount)
-				for i := 0; i < limit && int64(i) < recCount; i++ {
-					index := rand.Int63()%recCount + 1
+				homepage.NftLoop = []HomePageNft{}
+				for i := 0; i < limit && int64(i) < recCount; {
+					index := rand.Int63()%maxCount + 1
 					log.Println("ScanLoop() rand.Int63() index= ", index)
 					/*if index == 0 {
 						index = 1
 					}*/
 					flag := scaned[index]
 					if flag {
-						i = i - 1
+						//i = i - 1
 						log.Println("ScanLoop() scaned[index] index= ", index)
-						time.Sleep(time.Second)
+						//time.Sleep(time.Second)
 						continue
 					}
 					scaned[index] = true
 					var nftRec Nfts
 					dberr := nd.db.Where("id = ?", index).First(&nftRec)
 					if dberr.Error != nil {
-						nd.Close()
+						//nd.Close()
 						log.Println("ScanLoop() index=", index, "First(&nftRec) err = ", dberr.Error)
 						continue
 					}
+					i++
 					var hpnft HomePageNft
 					hpnft.Contract = nftRec.Contract
 					hpnft.Tokenid = nftRec.Tokenid
@@ -1441,6 +1465,137 @@ func HomePageFlash(sqldsn string) {
 	}
 }
 
+func HomePageRenew() error {
+	log.Println("HomePageRenew: start")
+	nd, err := NewNftDb(sqldsn)
+	if err != nil {
+		log.Printf("HomePageRenew() connect database err = %s\n", err)
+		return err
+	}
+	params, err := nd.QuerySysParams()
+	if err != nil {
+		nd.Close()
+		log.Printf("HomePageRenew() QuerySysParams() err = %s\n", err)
+		return err
+	}
+	var hp, homepage HomePage
+	err = json.Unmarshal([]byte(params.Homepage), &hp)
+	if err != nil {
+		log.Println("HomePageRenew() Unmarshal() err =", err)
+		return err
+	}
+	homepage.Announcement = hp.Announcement
+	trans := make([]HotTrans, 0, 20)
+	limit, _ := strconv.Atoi(params.Nftcount)
+	sql := "SELECT  contract, tokenid, count(tokenid) as tc from trans group by contract, tokenid order by tc desc limit "
+	sql = sql + params.Nftcount
+	dberr := nd.db.Raw(sql).Scan(&trans)
+	if dberr.Error != nil {
+		if dberr.Error != gorm.ErrRecordNotFound {
+			nd.Close()
+			log.Printf("HomePageRenew() Find(&trans) err = %s\n", dberr.Error)
+			return err
+		}
+	} else {
+		if len(trans) > 0 {
+			for _, tran := range trans {
+				var homenft HomePageNft
+				homenft.Contract = tran.Contract
+				homenft.Tokenid = tran.Tokenid
+				homepage.Nfts = append(homepage.Nfts, homenft)
+			}
+		} else {
+			homepage.Nfts = []HomePageNft{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
+		}
+	}
+	collects := make([]Collects, 0, 20)
+	limit, _ = strconv.Atoi(params.Nftcount)
+	dberr = nd.db.Order("transcnt desc").Limit(limit).Find(&collects)
+	if dberr.Error != nil {
+		if dberr.Error != gorm.ErrRecordNotFound {
+			nd.Close()
+			log.Printf("HomePageRenew() Find(&collects) err = %s\n", dberr.Error)
+			return err
+		}
+	} else {
+		if len(collects) > 0 {
+			for _, collect := range collects {
+				var hcollect HomePageCollections
+				hcollect.Creator = collect.Createaddr
+				hcollect.Name = collect.Name
+				homepage.Collections = append(homepage.Collections, hcollect)
+			}
+		} else {
+			homepage.Collections = []HomePageCollections{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
+		}
+	}
+	var recCount int64
+	var maxCount int64
+	countSql := `select max(id) from nfts`
+	dberr = nd.db.Raw(countSql).Scan(&maxCount)
+	if AllowSnft {
+		dberr = nd.db.Model(&SysInfos{}).Select("snfttotal").First(&recCount)
+	} else {
+		dberr = nd.db.Model(&SysInfos{}).Select("nfttotal").First(&recCount)
+	}
+	if dberr.Error != nil {
+		log.Printf("HomePageRenew() Count(&recCount) err = %s\n", dberr.Error)
+		recCount = 0
+	}
+	if recCount != 0 {
+		rand.Seed(time.Now().UnixNano())
+		limit, _ = strconv.Atoi(params.Nftloopcount)
+		scaned := make(map[int64]bool)
+		log.Println("HomePageRenew() recCount= ", recCount)
+		homepage.NftLoop = []HomePageNft{}
+		for i := 0; i < limit && int64(i) < recCount; {
+			index := rand.Int63()%maxCount + 1
+			log.Println("HomePageRenew() rand.Int63() index= ", index)
+			/*if index == 0 {
+				index = 1
+			}*/
+			flag := scaned[index]
+			if flag {
+				//i = i - 1
+				log.Println("HomePageRenew() scaned[index] index= ", index)
+				//time.Sleep(time.Second)
+				continue
+			}
+			scaned[index] = true
+			var nftRec Nfts
+			dberr := nd.db.Where("id = ?", index).First(&nftRec)
+			if dberr.Error != nil {
+				//nd.Close()
+				log.Println("HomePageRenew() index=", index, "First(&nftRec) err = ", dberr.Error)
+				continue
+			}
+			i++
+			var hpnft HomePageNft
+			hpnft.Contract = nftRec.Contract
+			hpnft.Tokenid = nftRec.Tokenid
+			homepage.NftLoop = append(homepage.NftLoop, hpnft)
+			if i == int(recCount) {
+				break
+			}
+		}
+	} else {
+		homepage.NftLoop = []HomePageNft{{"", ""}, {"", ""}, {"", ""}}
+	}
+	homestr, err := json.Marshal(&homepage)
+	if err != nil {
+		nd.Close()
+		log.Println("HomePageRenew() Marshal(&homepage) err = ", err)
+		return err
+	}
+	newParam := SysParamsInfo{
+		Homepage: string(homestr),
+	}
+	nd.SetSysParams(newParam)
+	nd.Close()
+	log.Println("HomePageRenew() <-scan.C: end")
+	return nil
+}
+
 func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
@@ -1453,14 +1608,69 @@ func PKCS7UnPadding(origData []byte) []byte {
 	return origData[:(length - unpadding)]
 }
 
+func WormLogoDefault() {
+	if DefaultCaptcha == "" {
+		DefaultCaptcha = "/ipfs/QmQjTwQDAxJ6cNhW7fQRC8EnAbdpSTPiP859m9EbNSs6Cx"
+	}
+	if DefaultMask == "" {
+		DefaultMask = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/mask.png"
+		DefaultMaskFrame = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/maskframe.png"
+	}
+	DefaultWormholes := "/ipfs/QmTr3WF9CG2wWNTo3eEZeyLGLcN6gAs68qFb87uihutVu1/worm.png"
+	DefaultCaptchaNum = DefCaptchaNum
+
+	fmt.Println("default worm:", DefaultWormholes)
+	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
+	s := shell.NewShell(url)
+	s.SetTimeout(100 * time.Second)
+
+	var err error
+	var wormdata io.Reader
+	for {
+		wormdata, err = s.Cat(DefaultWormholes)
+		if err != nil {
+			log.Printf("wormdata cat  [%v] failed! %v", DefaultWormholes, err)
+			time.Sleep(5 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
+
+	wormbody, err := ioutil.ReadAll(wormdata)
+	if err != nil {
+		fmt.Printf("Read http response failed! %v", err)
+		return
+	}
+	wormimg, _, err := image.Decode(bytes.NewReader(wormbody))
+	if err != nil {
+		fmt.Printf("image Decode  failed! %v", err)
+		return
+	}
+
+	emptyBuff := bytes.NewBuffer(nil)
+	jpeg.Encode(emptyBuff, wormimg, nil)
+	wormstr := base64.StdEncoding.EncodeToString(emptyBuff.Bytes())
+	partlogo := "data:image/jpg;base64," + wormstr
+
+	err = SavePartnerslogoImage(ImageDir, "wormholes", partlogo)
+	if err != nil {
+		fmt.Println("Wormholes  logo save image err=", err)
+		return
+	}
+	fmt.Println("default captcha init ok")
+}
+
 func CaptchaDefault() {
 	if DefaultCaptcha == "" {
 		DefaultCaptcha = "/ipfs/QmQjTwQDAxJ6cNhW7fQRC8EnAbdpSTPiP859m9EbNSs6Cx"
 	}
 	if DefaultMask == "" {
-		DefaultMask = "/ipfs/QmZkbudV725WbCjcFG2frNNTSrKheAZT7PRZzCED5D6HyY/mask.png"
-		DefaultMaskFrame = "/ipfs/QmZkbudV725WbCjcFG2frNNTSrKheAZT7PRZzCED5D6HyY/maskframe.png"
+		DefaultMask = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/mask.png"
+		DefaultMaskFrame = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/maskframe.png"
 	}
+	DefaultWormholes := "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/worm.png"
+
 	fmt.Println("default captcha:", DefaultCaptcha)
 	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
 	s := shell.NewShell(url)
@@ -1512,6 +1722,7 @@ func CaptchaDefault() {
 		log.Printf("maskframe Read cat response failed! %v", err)
 		return
 	}
+
 	newPath := ImageDir + "/captcha/"
 	_, err = os.Stat(newPath)
 	if os.IsNotExist(err) {
@@ -1533,15 +1744,17 @@ func CaptchaDefault() {
 		fmt.Printf("maskframe Decode  failed! %v", err)
 		return
 	}
+
 	defer f.Close()
+	defer ff.Close()
 	err = png.Encode(f, img)
 	if err != nil {
-		fmt.Println("mask png encode err=", err)
+		log.Println("mask png encode err=", err)
 		return
 	}
 	err = png.Encode(ff, ffimg)
 	if err != nil {
-		fmt.Println("mask png encode err=", err)
+		log.Println("maskframe png encode err=", err)
 		return
 	}
 	var v io.Reader
@@ -1604,6 +1817,40 @@ func CaptchaDefault() {
 			return
 		}
 
+	}
+
+	var wormdata io.Reader
+	for {
+		wormdata, err = s.Cat(DefaultWormholes)
+		if err != nil {
+			log.Printf("wormdata cat  [%v] failed! %v", DefaultWormholes, err)
+			time.Sleep(5 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
+
+	wormbody, err := ioutil.ReadAll(wormdata)
+	if err != nil {
+		fmt.Printf("Read http response failed! %v", err)
+		return
+	}
+	wormimg, _, err := image.Decode(bytes.NewReader(wormbody))
+	if err != nil {
+		fmt.Printf("image Decode  failed! %v", err)
+		return
+	}
+
+	emptyBuff := bytes.NewBuffer(nil)
+	jpeg.Encode(emptyBuff, wormimg, nil)
+	wormstr := base64.StdEncoding.EncodeToString(emptyBuff.Bytes())
+	partlogo := "data:image/jpg;base64," + wormstr
+
+	err = SavePartnerslogoImage(ImageDir, "wormholes", partlogo)
+	if err != nil {
+		fmt.Println("Wormholes  logo save image err=", err)
+		return
 	}
 	fmt.Println("default captcha init ok")
 }

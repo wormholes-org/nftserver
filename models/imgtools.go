@@ -57,22 +57,22 @@ func base64toJpeg(file, data string) error {
 		fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
 		return err
 	}
-	i := strings.LastIndex(file, "jpeg")
-	if i != -1 {
-		file = file[:i] + "jpg"
-	} else {
-		file = file[:i] + "jpeg"
-	}
-	f, err = os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0777)
-	if err != nil {
-		fmt.Println("base64toJpeg() OpenFile() err=", err)
-		return err
-	}
-	err = jpeg.Encode(f, m, nil)
-	if err != nil {
-		fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
-		return err
-	}
+	//i := strings.LastIndex(file, "jpeg")
+	//if i != -1 {
+	//	file = file[:i] + "jpg"
+	//} else {
+	//	file = file[:i] + "jpeg"
+	//}
+	//f, err = os.OpenFile(file, os.O_WRONLY|os.O_CREATE, 0777)
+	//if err != nil {
+	//	fmt.Println("base64toJpeg() OpenFile() err=", err)
+	//	return err
+	//}
+	//err = jpeg.Encode(f, m, nil)
+	//if err != nil {
+	//	fmt.Println("base64toJpeg() jpeg.Encode() err=", err)
+	//	return err
+	//}
 	return err
 }
 
@@ -186,7 +186,7 @@ func SaveCollectionsImage(path, user_addr, name, image_base64 string) error {
 		for _, c := range name {
 			hexname += fmt.Sprintf("%02x", c)
 		}
-		file = newPath + hexname + "." + imagetype
+		file = newPath + hexname + "." + "jpg"
 	} else {
 		fmt.Println("SaveCollectionsImage() image_base64==0 error.")
 		return err
@@ -205,6 +205,11 @@ func SaveCollectionsImage(path, user_addr, name, image_base64 string) error {
 	default:
 		fmt.Println("SaveCollectionsImage() imagetype error.")
 		return errors.New("SaveCollectionsImage() imagetype error.")
+	}
+	result := Base64AddMemory(file)
+	if result != nil {
+		log.Println("Base64AddMemory() err=", result)
+		return result
 	}
 	return err
 }
@@ -231,7 +236,7 @@ func SaveSnftCollectionsImage(path, user_addr, name, image_base64 string) error 
 		for _, c := range name {
 			hexname += fmt.Sprintf("%02x", c)
 		}
-		file = newPath + hexname + "." + imagetype
+		file = newPath + hexname + "." + "jpg"
 	} else {
 		fmt.Println("SaveSnftCollectionsImage() image_base64==0 error.")
 		return err
@@ -250,6 +255,11 @@ func SaveSnftCollectionsImage(path, user_addr, name, image_base64 string) error 
 	default:
 		fmt.Println("SaveCollectionsImage() imagetype error.")
 		return errors.New("SaveCollectionsImage() imagetype error.")
+	}
+	result := Base64AddMemory(file)
+	if result != nil {
+		log.Println("Base64AddMemory() err=", result)
+		return result
 	}
 	return err
 }
@@ -271,7 +281,7 @@ func SaveNftImage(path, contract_addr, token_id, image_base64 string) error {
 			fmt.Println("SaveImage() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + token_id + "." + imagetype
+		file = newPath + token_id + "." + "jpg"
 	} else {
 		fmt.Println("SaveImage() image_base64==0 error.")
 		return err
@@ -290,6 +300,11 @@ func SaveNftImage(path, contract_addr, token_id, image_base64 string) error {
 	default:
 		fmt.Println("SaveImage() imagetype error.")
 		return errors.New("SaveImage() imagetype error.")
+	}
+	result := Base64AddMemory(file)
+	if result != nil {
+		log.Println("Base64AddMemory() err=", result)
+		return result
 	}
 	return err
 }
@@ -330,6 +345,11 @@ func SavePartnerslogoImage(path, token_id, image_base64 string) error {
 	default:
 		fmt.Println("SaveImage() imagetype error.")
 		return errors.New("SaveImage() imagetype error.")
+	}
+	result := Base64AddMemory(file)
+	if result != nil {
+		log.Println("Base64AddMemory() err=", result)
+		return result
 	}
 	return err
 }

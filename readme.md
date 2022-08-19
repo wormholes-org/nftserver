@@ -31,3 +31,4 @@
 
 ## 3. start the nftserver service
     setsid ./nftserver > log
+

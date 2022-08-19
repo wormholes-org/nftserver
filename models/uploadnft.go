@@ -382,7 +382,7 @@ func (nft NftDb) DelNft(useraddr, contract, tokenid string) error {
 		fmt.Println("DelNft() delete nft Minstate cannot deleted")
 		return ErrDeleteNft
 	}
-	return nft.db.Transaction(func(tx *gorm.DB) error {
+	rerr := nft.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Model(&Nfts{}).Where("tokenid=?", tokenid).Delete(&Nfts{})
 		if err.Error != nil {
 			fmt.Println("DelNft() delete subscribe record err=", err.Error)
@@ -412,11 +412,20 @@ func (nft NftDb) DelNft(useraddr, contract, tokenid string) error {
 			fmt.Println("DelNft() add  SysInfos nfttotal err=", err.Error)
 			return ErrNotExist
 		}
-		//NftCatch.SetFlushFlag()
 
 		GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 		return nil
 	})
+	if rerr != nil {
+		log.Println("DelNft Transaction err =", rerr)
+		return rerr
+	}
+	homeerr := HomePageRenew()
+	if homeerr != nil {
+		log.Println("DelNft() HomePageRenew err=", homeerr)
+		return homeerr
+	}
+	return nil
 }
 
 func (nft NftDb) SetNft(
@@ -462,6 +471,7 @@ func (nft NftDb) SetNft(
 		log.Println("SetNft() err = Nft not exist.")
 		return NftImage{}, ErrNftNotExist
 	}
+	oldnfts := setnfts
 	if setnfts.Mintstate != NoMinted.String() {
 		log.Println("SetNft() err = Nft sell type not exist.")
 		return NftImage{}, ErrNftNotExist
@@ -587,7 +597,16 @@ func (nft NftDb) SetNft(
 				fmt.Println("SetNft() err=", err.Error)
 				return ErrDataBase
 			}
-
+			err = tx.Model(&Collects{}).Where("name =? and createaddr=?", oldnfts.Collections, oldnfts.Collectcreator).Update("totalcount", gorm.Expr("totalcount - ?", 1))
+			if err.Error != nil {
+				fmt.Println("SetNft() update collection err=", err.Error)
+				return ErrDataBase
+			}
+			err = tx.Model(&Collects{}).Where("name =? and createaddr=?", setnfts.Collections, setnfts.Collectcreator).Update("totalcount", gorm.Expr("totalcount + ?", 1))
+			if err.Error != nil {
+				fmt.Println("SetNft() update collection err=", err.Error)
+				return ErrDataBase
+			}
 			//HomePageCatchs.NftCountLock()
 			//HomePageCatchs.NftCountFlag = true
 			//HomePageCatchs.NftCountUnLock()
@@ -670,7 +689,16 @@ func (nft NftDb) SetNft(
 				fmt.Println("SetNft() err=", err.Error)
 				return ErrDataBase
 			}
-
+			err = tx.Model(&Collects{}).Where("name =? and createaddr=?", oldnfts.Collections, oldnfts.Collectcreator).Update("totalcount", gorm.Expr("totalcount - ?", 1))
+			if err.Error != nil {
+				fmt.Println("SetNft() update collection err=", err.Error)
+				return ErrDataBase
+			}
+			err = tx.Model(&Collects{}).Where("name =? and createaddr=?", setnfts.Collections, setnfts.Collectcreator).Update("totalcount", gorm.Expr("totalcount + ?", 1))
+			if err.Error != nil {
+				fmt.Println("SetNft() update collection err=", err.Error)
+				return ErrDataBase
+			}
 			//HomePageCatchs.NftCountLock()
 			//HomePageCatchs.NftCountFlag = true
 			//HomePageCatchs.NftCountUnLock()

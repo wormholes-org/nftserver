@@ -68,4 +68,11 @@ func init() {
 	LimitWritesDatabase, _ = beego.AppConfig.Bool("limitwritesdatabase")
 	AnnouncementRequired = true
 	NftScanServer, _ = beego.AppConfig.String("NftScanServer")
+	AgentExchangePrv, _ = beego.AppConfig.String("AgentExchangePrv")
+	LimitFileSize, _ = beego.AppConfig.String("LimitFileSize")
+	if LimitFileSize == "" {
+		LimitTotalSize = false
+	} else {
+		LimitTotalSize = true
+	}
 }

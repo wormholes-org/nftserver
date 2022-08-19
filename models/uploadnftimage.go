@@ -182,6 +182,7 @@ func (nft NftDb) UploadNftImage(
 			fmt.Println("UploadNftImage() save image err=", imagerr)
 			return NftImage{}, ErrNftImage
 		}
+
 		var nftMeta nftInfo
 		nftMeta.CreatorAddr = user_addr
 		nftMeta.Contract = collectRec.Contract

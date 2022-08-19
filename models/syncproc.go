@@ -525,6 +525,7 @@ func WormsAmountValid(Price uint64, addr string) (bool, string, error) {
 	if err != nil {
 		return false, err.Error(), err
 	}
+	fmt.Println("balance =", temp)
 	if len(temp) < 9 {
 		return false, ErrBalanceLess.Error(), nil
 	} else {
