@@ -137,12 +137,9 @@ func SyncBlock(sqldsn string) error {
 				if tx.From == ZeroAddr && tx.To != ZeroAddr {
 					newtxs = append(newtxs, txs[i])
 				}
-<<<<<<< HEAD
 				if tx.From != ZeroAddr && tx.To == ZeroAddr {
 					newtxs = append(newtxs, txs[i])
 				}
-=======
->>>>>>> origin/master
 			}
 		}
 		err = syncTxs(nd, newtxs)
