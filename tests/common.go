@@ -23,31 +23,31 @@ import (
 //const SrcUrl = "http://192.168.56.129:8081/v2/"
 //var SrcUrl = "http://192.168.1.237:8091/v2/"
 var SrcUrl = "http://192.168.1.235:10582/v2/"
+
 //const SrcUrl = "http://192.168.1.8:8081/v2/"
 //const SrcUrl = "http://192.168.4.237:8081/v2/"
 //const SrcUrl = "https://192.168.1.237:9002/v2/"
 
 type UserKeys struct {
-	LogKey *ecdsa.PrivateKey 	//`json:"log_key"`
-	WorkKey *ecdsa.PrivateKey	//`json:"work_key"`
+	LogKey  *ecdsa.PrivateKey //`json:"log_key"`
+	WorkKey *ecdsa.PrivateKey //`json:"work_key"`
 }
 
 type SaveKeys struct {
-	LogKey []byte
+	LogKey  []byte
 	WorkKey []byte
 }
 
-
 type Response struct {
-	Code 	string 		`json:"code"`
-	Msg 	string 		`json:"msg"`
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
 	Data struct {
-		Hash 		string 	`json:"hash"`
-		Secret 		string 	`json:"secret"`
-		TimeStamp 	int64 	`json:"time_stamp"`
-		Token 		string 	`json:"token"`
+		Hash      string `json:"hash"`
+		Secret    string `json:"secret"`
+		TimeStamp int64  `json:"time_stamp"`
+		Token     string `json:"token"`
 	} `json:"data"`
-	Total_count int	`json:"total_count"`
+	Total_count int `json:"total_count"`
 }
 
 func GetMd5Index(Secret, Hash string) int {
@@ -59,7 +59,7 @@ func GetMd5Index(Secret, Hash string) int {
 		if hashString == Hash {
 			break
 		}
-		i ++
+		i++
 	}
 	return i
 }
@@ -139,7 +139,6 @@ func HttpGetSendRev(url string, data string, token string) ([]byte, error) {
 	return b, nil
 }
 
-
 func HttpGetParamsSendRev(remoteUrl string, queryValues url.Values) ([]byte, error) {
 	//params := url.Values{}
 	parseURL, err := url.Parse(remoteUrl)
@@ -184,9 +183,8 @@ func GetUserAddr(c int) ([]UserKeys, error) {
 	return tKey[:c], nil
 }
 
-
 func GenUserKeys(filePath string, c int) error {
-	file, err := os.OpenFile(filePath, os.O_RDWR | os.O_CREATE, 0666)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -257,4 +255,3 @@ func GetUserKeys(filePath string) ([]UserKeys, error) {
 	}
 	return userKey, nil
 }
-

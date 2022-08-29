@@ -263,8 +263,7 @@ func registFilters() {
 	//beego.InsertFilter("/v2/queryUserInfo", beego.BeforeRouter, nftexchangev2.CheckToken)
 	beego.InsertFilter("/v2/modifyUserInfo", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/queryNFT", beego.BeforeRouter, nftexchangev2.CheckToken)
-	//TODO token
-	//beego.InsertFilter("/v2/sell", beego.BeforeRouter, nftexchangev2.CheckToken)
+	beego.InsertFilter("/v2/sell", beego.BeforeRouter, nftexchangev2.CheckToken)
 	beego.InsertFilter("/v2/cancelSell", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/queryPendingVrfList", beego.BeforeRouter, nftexchangev2.CheckToken)
 	//beego.InsertFilter("/v2/vrfNFT", beego.BeforeRouter, nftexchangev2.CheckToken)

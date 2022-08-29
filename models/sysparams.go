@@ -64,6 +64,9 @@ const (
 	AesKey            = "CISzdrmfuTQvFJXpLySugjzTqorIMKSZ"
 	DefPartlogo       = "wormholes"
 	DefCaptchaNum     = 16
+	DefaultWormBlack  = "/ipfs/QmSQf4rm7C2riGffS6YFxrPgiVBAaSwLMfdhubPo1jP2A5/worm_black.png"
+	DefaultWormBlue   = "/ipfs/QmSQf4rm7C2riGffS6YFxrPgiVBAaSwLMfdhubPo1jP2A5/worm_blue.jpg"
+	DefaultCollection = "mycollection"
 )
 
 var (
@@ -98,7 +101,7 @@ var (
 	ExchangerAuth           string
 	DebugPort               string
 	DebugAllowNft           string
-	AllowSnft               bool
+	AllowNft                bool
 	AllowUserMinit          bool
 	UploadSize              uint64
 	Backupipfs              bool
@@ -116,6 +119,7 @@ var (
 	AgentExchangePrv        string
 	LimitTotalSize          bool
 	LimitFileSize           string
+	TransSnft               bool
 )
 
 type ExchangerAuthrize struct {
@@ -280,6 +284,7 @@ type ExchangeInfo struct {
 	ExtendLogo     []string `json:"extend_logo"`
 	Homepage       string   `json:"homepage"`
 	Desc           string   `json:"desc"`
+	AutoFlag       string   `json:"autoflag"`
 }
 
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
@@ -289,6 +294,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	log.Println(params)
 	if err.Error != nil {
 		if err.Error == gorm.ErrRecordNotFound {
+			GetRedisCatch().SetDirtyFlag(AllDirty)
 			params = SysParams{}
 			params.NFT1155addr = strings.ToLower(NFT1155Addr)
 			params.Adminaddr = strings.ToLower(AdminAddr)
@@ -395,11 +401,12 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.TransferNFT = exchangeinfo.Transfersnft
 	TransferSNFT, _ = strconv.ParseBool(exchangeinfo.Transfersnft)
 	paraminfo.AllowNft = exchangeinfo.Allownft
-	AllowSnft, _ = strconv.ParseBool(exchangeinfo.Allownft)
+	AllowNft, _ = strconv.ParseBool(exchangeinfo.Allownft)
 	paraminfo.AllowUserMint = exchangeinfo.Allowusermint
 	AllowUserMinit, _ = strconv.ParseBool(exchangeinfo.Allowusermint)
 	paraminfo.Backupipfs = exchangeinfo.Backupipfs
 	Backupipfs, _ = strconv.ParseBool(exchangeinfo.Backupipfs)
+	TransSnft, _ = strconv.ParseBool(exchangeinfo.Transfersnft)
 	UploadSize = exchangeinfo.Uploadsize
 	beego.BConfig.MaxUploadSize = int64(exchangeinfo.Uploadsize)
 	paraminfo.Uploadsize = strconv.FormatUint(exchangeinfo.Uploadsize, 10)
@@ -711,7 +718,7 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	paraminfo.TransferNFT = params.Transfersnft
 	TransferSNFT, _ = strconv.ParseBool(params.Transfersnft)
 	paraminfo.AllowNft = params.Allownft
-	AllowSnft, _ = strconv.ParseBool(params.Allownft)
+	AllowNft, _ = strconv.ParseBool(params.Allownft)
 	paraminfo.AllowUserMint = params.Allowusermint
 	AllowUserMinit, _ = strconv.ParseBool(params.Allowusermint)
 	paraminfo.Backupipfs = params.Backupipfs
@@ -802,7 +809,7 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 				log.Println("AllowNft input  error.")
 				return ErrData
 			}
-			AllowSnft = audit
+			AllowNft = audit
 		}
 		if param.AllowUserMint != "" {
 			updateP.Allowusermint = param.AllowUserMint
@@ -884,6 +891,13 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 			err = tx.Last(&SysParams{}).Updates(map[string]interface{}{"homepage": param.Homepage, "autoflag": "false"})
 			if err.Error != nil {
 				fmt.Println("Exchangeinfos() update SysParams err= ", err.Error)
+				return ErrDataBase
+			}
+		}
+		if param.AutoFlag != "" {
+			err = tx.Last(&SysParams{}).Updates(map[string]interface{}{"autoflag": param.AutoFlag})
+			if err.Error != nil {
+				fmt.Println("Exchangeinfos() update autoflag err= ", err.Error)
 				return ErrDataBase
 			}
 		}
@@ -1310,7 +1324,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 			}
 			collects := make([]Collects, 0, 20)
 			limit, _ = strconv.Atoi(params.Nftcount)
-			dberr = nd.db.Order("transcnt desc").Limit(limit).Find(&collects)
+			dberr = nd.db.Where("name <> ?", DefaultCollection).Order("transcnt desc").Limit(limit).Find(&collects)
 			if dberr.Error != nil {
 				if dberr.Error != gorm.ErrRecordNotFound {
 					nd.Close()
@@ -1333,7 +1347,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 			var maxCount int64
 			countSql := `select max(id) from nfts`
 			dberr = nd.db.Raw(countSql).Scan(&maxCount)
-			if AllowSnft {
+			if TransSnft {
 				dberr = nd.db.Model(&SysInfos{}).Select("snfttotal").First(&recCount)
 			} else {
 				dberr = nd.db.Model(&SysInfos{}).Select("nfttotal").First(&recCount)
@@ -1478,6 +1492,9 @@ func HomePageRenew() error {
 		log.Printf("HomePageRenew() QuerySysParams() err = %s\n", err)
 		return err
 	}
+	if params.AutoFlag == "false" {
+		return nil
+	}
 	var hp, homepage HomePage
 	err = json.Unmarshal([]byte(params.Homepage), &hp)
 	if err != nil {
@@ -1510,7 +1527,7 @@ func HomePageRenew() error {
 	}
 	collects := make([]Collects, 0, 20)
 	limit, _ = strconv.Atoi(params.Nftcount)
-	dberr = nd.db.Order("transcnt desc").Limit(limit).Find(&collects)
+	dberr = nd.db.Where("name <> ?", DefaultCollection).Order("transcnt desc").Limit(limit).Find(&collects)
 	if dberr.Error != nil {
 		if dberr.Error != gorm.ErrRecordNotFound {
 			nd.Close()
@@ -1533,7 +1550,7 @@ func HomePageRenew() error {
 	var maxCount int64
 	countSql := `select max(id) from nfts`
 	dberr = nd.db.Raw(countSql).Scan(&maxCount)
-	if AllowSnft {
+	if TransSnft {
 		dberr = nd.db.Model(&SysInfos{}).Select("snfttotal").First(&recCount)
 	} else {
 		dberr = nd.db.Model(&SysInfos{}).Select("nfttotal").First(&recCount)

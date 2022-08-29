@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"gorm.io/gorm"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -90,6 +91,17 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 			if db.Error != nil {
 				fmt.Println("loging()->create() err=", db.Error)
 				return ErrLoginFailed
+			}
+			jpgbase, err := IpfsTojpgbase64()
+			if err != nil {
+				log.Println("Login default worm_blue to base64 err=", err)
+				return ErrIpfsImage
+			}
+			err = nft.NewUserCollection(userAddr, DefaultCollection, jpgbase, "NFT1155", "",
+				"mycollection", "Art", "")
+			if err != nil {
+				log.Println("Login new user create collection err=", err)
+				return err
 			}
 			//GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
 

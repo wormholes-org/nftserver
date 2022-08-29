@@ -62,6 +62,56 @@ func (nft NftDb) NewCollections(useraddr, name, img, contract_type, contract_add
 	return errors.New(ErrDataBase.Error() + err.Error.Error())
 }
 
+func (nft NftDb) NewUserCollection(useraddr, name, img, contract_type, contract_addr,
+	desc, categories, sig string) error {
+	useraddr = strings.ToLower(useraddr)
+	contract_addr = strings.ToLower(contract_addr)
+	fmt.Println("NewUserCollection() user_addr=", useraddr, "      time=", time.Now().String())
+	//fmt.Println("NewCollections() useraddr=", useraddr )
+	fmt.Println("NewUserCollection() contract_addr=", contract_addr)
+	if !nft.UserKYCAduit(useraddr) {
+		return ErrUserNotVerify
+	}
+	var collectRec Collects
+	err := nft.db.Where("Createaddr = ? AND name = ? ", useraddr, name).First(&collectRec)
+	if err.Error == nil {
+		fmt.Println("NewUserCollection() err=Collection already exist.")
+		return ErrCollectionExist
+	} else if err.Error == gorm.ErrRecordNotFound {
+		collectRec = Collects{}
+		collectRec.Createaddr = useraddr
+		collectRec.Name = name
+		collectRec.Desc = desc
+		//collectRec.Img = img
+		if contract_addr != "" {
+			collectRec.Contract = contract_addr
+		} else {
+			//collectRec.Contract = strings.ToLower(NFT1155Addr)
+			collectRec.Contract = strings.ToLower(ExchangeOwer)
+		}
+		collectRec.Contracttype = contract_type
+		collectRec.Categories = categories
+		collectRec.SigData = sig
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			err := tx.Model(&Collects{}).Create(&collectRec)
+			if err.Error != nil {
+				fmt.Println("NewUserCollection() err=", err.Error)
+				return errors.New(ErrDataBase.Error() + err.Error.Error())
+			}
+			imagerr := SaveCollectionsImage(ImageDir, useraddr, name, img)
+			if imagerr != nil {
+				fmt.Println("NewUserCollection() SaveCollectionsImage() err=", imagerr)
+				return ErrNftImage
+			}
+			GetRedisCatch().SetDirtyFlag(CollectionList)
+			return nil
+		})
+	}
+
+	fmt.Println("NewCollections() dbase err=.", err)
+	return errors.New(ErrDataBase.Error() + err.Error.Error())
+}
+
 func (nft NftDb) ModifyCollections(useraddr, name, img, contract_type, contract_addr,
 	desc, categories, sig string) error {
 	useraddr = strings.ToLower(useraddr)

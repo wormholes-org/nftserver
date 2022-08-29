@@ -38,7 +38,7 @@ func (nft *NftDb) Search(cond string) ([]SearchData, error) {
 	searchData.NftsRecords = append(searchData.NftsRecords, nfts...)
 
 	collects := []Collects{}
-	findCollectsResult := nft.db.Model(&Collects{}).Where("createaddr like ? or name like ?", "%"+cond+"%", "%"+cond+"%").
+	findCollectsResult := nft.db.Model(&Collects{}).Where("createaddr like ? or name like ? and  name <> ?", "%"+cond+"%", "%"+cond+"%", DefaultCollection).
 		Order("name asc").Offset(0).Limit(5).Find(&collects)
 	if findCollectsResult.Error != nil && findCollectsResult.Error != gorm.ErrRecordNotFound {
 		return nil, findCollectsResult.Error

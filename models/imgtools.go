@@ -1,15 +1,19 @@
 package models
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	shell "github.com/ipfs/go-ipfs-api"
 	"image"
 	"image/jpeg"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -447,4 +451,42 @@ func base64toJpg(file, data string) error {
 	}
 
 	return err
+}
+
+func IpfsTojpgbase64() (string, error) {
+	fmt.Println("default worm:", DefaultWormBlue)
+	url := NftIpfsServerIP + ":" + NftstIpfsServerPort
+	s := shell.NewShell(url)
+	s.SetTimeout(100 * time.Second)
+
+	var err error
+	var wormdata io.Reader
+	for {
+		wormdata, err = s.Cat(DefaultWormBlue)
+		if err != nil {
+			log.Printf("wormdata cat  [%v] failed! %v", DefaultWormBlue, err)
+			time.Sleep(5 * time.Second)
+			continue
+		} else {
+			break
+		}
+	}
+
+	wormbody, err := ioutil.ReadAll(wormdata)
+	if err != nil {
+		fmt.Printf("Read http response failed! %v", err)
+		return "", err
+	}
+	wormimg, _, err := image.Decode(bytes.NewReader(wormbody))
+	if err != nil {
+		fmt.Printf("image Decode  failed! %v", err)
+		return "", err
+	}
+
+	emptyBuff := bytes.NewBuffer(nil)
+	jpeg.Encode(emptyBuff, wormimg, nil)
+	wormstr := base64.StdEncoding.EncodeToString(emptyBuff.Bytes())
+	partlogo := "data:image/jpg;base64," + wormstr
+	fmt.Println("IpfsTojpgbase64 ok")
+	return partlogo, nil
 }

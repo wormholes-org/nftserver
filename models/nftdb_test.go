@@ -1979,13 +1979,21 @@ func TestGetBuyingParams(t *testing.T) {
 
 func TestGetIsVliaddr(t *testing.T) {
 	fmt.Println(strings.ToLower("0x571CbB911fE99118B230585BA0cC7c5054324F85"))
-	tm := time.Unix(1656700000, 0)
+	//tm := time.Unix(1661146660, 0)
+	//tm := time.Unix(1663825060, 0).AddDate(0, 1, 0)
+	tm := time.Unix(1669095460, 0)
 	f := tm.String()
+	end := tm.Unix()
+	fmt.Println("end=", end)
 	fmt.Println(f)
 	fmt.Println(f)
 	fmt.Println(tm.Format("2006-01-02 15:04:05"))
-	tm = time.Unix(1654848672, 0)
+	tm = tm.AddDate(0, 1, 0)
+	fmt.Printf("%T", tm)
 	fmt.Println(tm.Format("2006-01-02 15:04:05"))
+	tn := time.Now().Unix()
+	fmt.Println(tn)
+	fmt.Println(time.Now().AddDate(0, 1, 0).Unix())
 
 }
 func TestQueryUserBidList(t *testing.T) {
@@ -2166,7 +2174,7 @@ func TestSaveDirtoipfs(t *testing.T) {
 	spendT := time.Now()
 	s := shell.NewShell(url)
 	s.SetTimeout(5 * time.Second)
-	mhash, err := s.AddDir("D:\\workdir\\go\\code\\captcha\\captcha\\bg")
+	mhash, err := s.AddDir("D:\\workdir\\go\\code\\captcha\\captcha\\bg\\worm")
 	//mhash, err := s.AddDir("D:\\picture\\2022_6_3")
 	if err != nil {
 		fmt.Println("SaveToIpfs() err=", err)
@@ -2313,7 +2321,7 @@ func TestDelCatch(t *testing.T) {
 		log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
 		return
 	}
-	GetRedisCatch().SetDirtyFlag(SysParamsDirtyName)
+	//GetRedisCatch().SetDirtyFlag(SysParamsDirtyName)
 	cerr = qCatch.GetCatchData("QuerySysParams", "QuerySysParams", &paraminfo)
 	if cerr == nil {
 		log.Printf("QueryPendingKYCList() default  time.now=%s\n", time.Now())
@@ -2517,4 +2525,19 @@ func TestHomePageRenew(t *testing.T) {
 	//if err != nil {
 	//	fmt.Println(err)
 	//}
+}
+
+func TestAlice(t *testing.T) {
+	txs := []string{"1", "2", "3"}
+	tx := []string{}
+	for i, j := range txs {
+		fmt.Println(j, i)
+		if j == "3" {
+		} else {
+			tx = append(tx, txs[i])
+
+		}
+		//txs = append(txs[:i], txs[i+1:]...)
+	}
+	fmt.Println(tx)
 }

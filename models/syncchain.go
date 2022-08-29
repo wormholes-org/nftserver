@@ -14,16 +14,20 @@ const (
 	ErrorsWaitTime = time.Second * 1
 )
 
-func syncTxs(nd *NftDb, txs []contracts.NftTx) error {
+func syncTxs(nd *NftDb, txn []contracts.NftTx) error {
 	var err error
-	for i, tx := range txs {
+	txs := []contracts.NftTx{}
+	for i, tx := range txn {
 		if tx.From == "" {
 			err = nd.BuyResultWRoyalty(&tx)
 			if err != nil {
 				log.Println("syncTxs() BuyResultWRoyalty() err=", err)
 				return err
 			}
-			txs = append(txs[:i], txs[i+1:]...)
+			//TODO append
+			//txs = append(txs[:i], txs[i+1:]...)
+		} else {
+			txs = append(txs, txn[i])
 		}
 	}
 	for _, nftTx := range txs {
@@ -81,7 +85,7 @@ func SyncBlock(sqldsn string) error {
 		return err
 	}
 	curBlock := contracts.GetCurrentBlockNumber()
-	for ; blockS <= curBlock; curBlock = contracts.GetCurrentBlockNumber() {
+	for blockS <= curBlock /*curBlock = contracts.GetCurrentBlockNumber()*/ {
 		blockStr := strconv.FormatUint(blockS, 10)
 		if TransferSNFT {
 			spendT := time.Now()
@@ -163,8 +167,10 @@ func SyncBlock(sqldsn string) error {
 			return dberr.Error
 		}
 		fmt.Println("SyncBlock() update record upload block number=", blockS)
+		if blockS >= curBlock {
+			curBlock = contracts.GetCurrentBlockNumber()
+		}
 	}
-
 	return nil
 }
 
