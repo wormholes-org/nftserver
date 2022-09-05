@@ -9,6 +9,10 @@ const (
 	SnftStageOffset           = 39
 	SnftCollectionsStageIndex = 30
 
+	SnftExchangeChip      = 42
+	SnftExchangeSnft      = 41
+	SnftExchangeColletion = 40
+	SnftExchangeStage     = 39
 	//DefSuperAdminPrv = "17109ec24e570fe115f363553251f4d476ac4113905dd817eb4660c68d324aae"
 	//DefSuperAddr = "0x01842a2cf56400a245a56955dc407c2c4137321e"
 )

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nftexchange/nftserver/common/contracts"
 	"gorm.io/gorm"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -43,6 +45,10 @@ func (nft NftDb) MakeOffer(userAddr,
 		fmt.Println("MakeOffer() bidprice not find nft err= ", err.Error)
 		return ErrNftNotExist
 	}
+	if nftrecord.Pledgestate == Pledge.String() {
+		log.Println("MakeOffer() snft Has pledged.", err.Error)
+		return ErrSnftPledge
+	}
 	if nftrecord.Ownaddr == userAddr {
 		fmt.Println("MakeOffer() don't buy your own nft.")
 		return ErrBuyOwn
@@ -53,6 +59,11 @@ func (nft NftDb) MakeOffer(userAddr,
 	}
 	if !valid {
 		return errors.New(ErrBlockchain.Error() + errmsg)
+	}
+	rerr := MakeofferSigVerify(TradeSig, userAddr)
+	if rerr != nil {
+		log.Println("MakeOffer() SigVerify buyerSig err=", rerr)
+		return rerr
 	}
 	var auctionRec Auction
 	err = nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&auctionRec)
@@ -386,6 +397,11 @@ func (nft NftDb) Sell(ownAddr,
 	if !nft.UserKYCAduit(ownAddr) {
 		return ErrUserNotVerify
 	}
+	rerr := SellSigVerify(tradeSig, ownAddr)
+	if rerr != nil {
+		log.Println("Sell() SigVerify sigData err=", rerr)
+		return rerr
+	}
 	fmt.Println(time.Now().String()[:22], "Sell() Start.",
 		"tokenId=", tokenId,
 		"SellType=", sellType,
@@ -409,6 +425,10 @@ func (nft NftDb) Sell(ownAddr,
 	}
 	if nftrecord.Verified != Passed.String() {
 		return ErrNotVerify
+	}
+	if nftrecord.Pledgestate == Pledge.String() {
+		log.Println("MakeOffer() snft Has pledged.", err.Error)
+		return ErrSnftPledge
 	}
 	/*if nftrecord.Mintstate != Minted.String() {
 		return ErrNftNotMinted
@@ -533,6 +553,59 @@ func (nft NftDb) GroupSell(params string) error {
 			fmt.Println("BuyingNft err=", err)
 			return err
 		}
+	}
+	return nil
+}
+
+type SellerVerify struct {
+	Price         string `json:"price"`
+	Nftaddress    string `json:"nft_address"`
+	Royalty       string `json:"royalty"`
+	Metaurl       string `json:"meta_url"`
+	Exclusiveflag string `json:"exclusive_flag"`
+	Exchanger     string `json:"exchanger"`
+	Blocknumber   string `json:"block_number"`
+	Sig           string `json:"sig"`
+}
+
+func SellSigVerify(sigstr, buyerAddr string) error {
+	buyer := SellerVerify{}
+	err := json.Unmarshal([]byte(sigstr), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+		return errors.New(ErrData.Error() + "sig data err")
+	}
+	msg := buyer.Price + buyer.Nftaddress + buyer.Royalty + buyer.Metaurl + buyer.Exclusiveflag + buyer.Exchanger + buyer.Blocknumber
+	toaddr, rerr := contracts.RecoverAddress(msg, buyer.Sig)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =", buyerAddr)
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+		return errors.New(ErrData.Error() + "buyer sig recover err")
+	}
+	if strings.ToLower(toaddr.String()) != strings.ToLower(buyerAddr) {
+		log.Println("SigVerify()   address error.")
+		return errors.New(ErrData.Error() + " address error.")
+	}
+	return nil
+}
+
+func MakeofferSigVerify(sigstr, buyerAddr string) error {
+	buyer := contracts.Buyer{}
+	err := json.Unmarshal([]byte(sigstr), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+		return errors.New(ErrData.Error() + "sig data err")
+	}
+	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	toaddr, rerr := contracts.RecoverAddress(msg, buyer.Sig)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =", buyerAddr)
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+		return errors.New(ErrData.Error() + "buyer sig recover err")
+	}
+	if strings.ToLower(toaddr.String()) != strings.ToLower(buyerAddr) {
+		log.Println("SigVerify()   address error.")
+		return errors.New(ErrData.Error() + " address error.")
 	}
 	return nil
 }

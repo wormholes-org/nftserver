@@ -56,6 +56,12 @@ func (nft *NftExchangeControllerV2) SaveToIpfs(fromfile string) (string, error) 
 	url := models.NftIpfsServerIP + ":" + models.NftstIpfsServerPort
 	s := shell.NewShell(url)
 	s.SetTimeout(500 * time.Second)
+	//gr, err := gzip.NewReader(file)
+	//if err != nil {
+	//	log.Println("SaveToIpfs gzip reader err=", err)
+	//	return "", err
+	//}
+	//models.DeCompressTarGz(models.ExchangeOwer, file)
 	mhash, err := s.Add(file)
 	if err != nil {
 		log.Println("SaveToIpfs() err=", err)

@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/beego/beego/v2/server/web"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
+	"golang.org/x/crypto/sha3"
 	"log"
 	"math/big"
 	"math/rand"
@@ -23,11 +25,11 @@ import (
 )
 
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
-const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.56.128:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
+
 //
 //const sqlsvrLcT = "demo:123456@tcp(192.168.56.129:3306)/"
 
@@ -35,8 +37,9 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
 //const dbNameT = "mynftdb"
 //const dbNameT = "tnftdb"
-//const dbNameT = "nftdb"
-const dbNameT = "snftdb8012"
+const dbNameT = "snftdb"
+
+//const dbNameT = "snftdb8012"
 
 //const dbNameT = "nftdb8011"
 //const dbNameT = "tttt"
@@ -760,13 +763,15 @@ func TestQueryNftByFilter(t *testing.T) {
 }
 
 func TestQuerySnfChip(t *testing.T) {
+	err := NewQueryCatch("192.168.1.235:6379", "user123456")
+	fmt.Println(err)
 	nd := new(NftDb)
-	err := nd.ConnectDB(sqldsnT)
+	err = nd.ConnectDB(sqldsnT)
 	if err != nil {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	snftChip, count, err := nd.QuerySnftChip("0x01842a2cf56400a245a56955dc407c2c4137321e", "7679889549168", "0", "10")
+	snftChip, count, err := nd.QuerySnftChip("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "5640175101587", "0", "10")
 	if err != nil {
 		t.Fatalf("err = %v\n", err)
 	}
@@ -781,6 +786,74 @@ func TestQuerySnfChip(t *testing.T) {
 	t.Logf("nft = %v %v\n", snftChip, count)
 }
 
+func hashMsg(data []byte) ([]byte, string) {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), string(data))
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte(msg))
+	return hasher.Sum(nil), msg
+}
+
+func recoverAddress(msg string, sigStr string) (*common.Address, error) {
+	sigData, err := hexutil.Decode(sigStr)
+	if err != nil {
+		log.Println("recoverAddress() err=", err)
+		return nil, err
+	}
+	if len(sigData) != 65 {
+		return nil, fmt.Errorf("signature must be 65 bytes long")
+	}
+	if sigData[64] != 27 && sigData[64] != 28 {
+		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+	}
+	sigData[64] -= 27
+	hash, _ := hashMsg([]byte(msg))
+	rpk, err := crypto.SigToPub(hash, sigData)
+	if err != nil {
+		return nil, err
+	}
+	addr := crypto.PubkeyToAddress(*rpk)
+	return &addr, nil
+}
+
+func TestDecodeMint(t *testing.T) {
+	Buyer := contracts.Buyer1{}
+	err := json.Unmarshal([]byte("{\"price\":\"0xd3c21bcecceda0000000\",\"exchanger\":\"0x62e0c8032fb51bc401558b58b1e7733276c1ec8a\",\"block_number\":\"0x8639\",\"sig\":\"0x4d07c38394bdf14590a7b4d8b0d432f493c40c08369cac0f1d920580ad0cd72372bd58714e029398f5909cde8fc116d5a763333fae42db451e492766a47cbf261c\"}"), &Buyer)
+	if err != nil {
+		log.Println("AuthExchangerMint()  Unmarshal() err=", err)
+		return
+	}
+	msg := Buyer.Price + Buyer.Exchanger + Buyer.Blocknumber
+	toaddr, err := recoverAddress(msg, Buyer.Sig)
+	if err != nil {
+		log.Println("GetBlockTxs() recoverAddress() err=", err)
+		return
+	}
+	fmt.Println(toaddr)
+	Seller := contracts.Seller2{}
+	err = json.Unmarshal([]byte("{\"price\":\"0x38d7ea4c68000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d63666e4c647174704b4c55794c325155716f36546a4438695857667161545448716d6a503470636f78656d47222c22746f6b656e5f6964223a2231323234303239323432313134227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0x62e0c8032fb51bc401558b58b1e7733276c1ec8a\",\"block_number\":\"0x168146307200100\",\"sig\":\"0xf267eaa1edd2d6a4f438e11a65bc0836e6296cd9d1a731737846eb27d34247a45e85505e4eabf7e2cbd0f9ea30b6609a9b7ac7beb1fcb53b98a6fadaa713ad741b\"}"), &Seller)
+	if err != nil {
+		log.Println("AuthExchangerMint()  Unmarshal() err=", err)
+		return
+	}
+	msg = Seller.Price + Seller.Royalty + Seller.Metaurl + Seller.Exclusiveflag +
+		Seller.Exchanger + Seller.Blocknumber
+	fromAddr, err := recoverAddress(msg, Seller.Sig)
+	if err != nil {
+		log.Println("GetBlockTxs() recoverAddress() err=", err)
+		return
+	}
+	fmt.Println(fromAddr)
+	var nftmeta contracts.NftMeta
+	metabyte, jsonErr := hex.DecodeString("7b226d657461223a222f697066732f516d63666e4c647174704b4c55794c325155716f36546a4438695857667161545448716d6a503470636f78656d47222c22746f6b656e5f6964223a2231323234303239323432313134227d")
+	if jsonErr != nil {
+		log.Println("GetBlockTxs() hex.DecodeString err=", jsonErr)
+	}
+	jsonErr = json.Unmarshal(metabyte, &nftmeta)
+	if jsonErr != nil {
+		log.Println("GetBlockTxs() NftMeta unmarshal type err=", jsonErr)
+	}
+}
+
 func TestQueryNftByFilterNew(t *testing.T) {
 	nd := new(NftDb)
 	err := nd.ConnectDB(sqldsnT)
@@ -788,7 +861,8 @@ func TestQueryNftByFilterNew(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	NewQueryCatch("192.168.56.128:6379", "")
+	NewQueryCatch("192.168.1.235:6379", "user123456")
+	GetRedisCatch().SetDirtyFlag(AllDirty)
 	nfilters := []StQueryField{
 		/*{
 			"selltype",
@@ -915,7 +989,7 @@ func TestQueryNftByFilterNew(t *testing.T) {
 		{
 			"createdate",
 			">=",
-			"1654226774",
+			"1662009658",
 		},
 		/*{
 			"offernum",
@@ -935,7 +1009,8 @@ func TestQueryNftByFilterNew(t *testing.T) {
 			"asc",
 		},*/
 	}
-	nftByFilter, count, err := nd.QueryNftByFilterNftSnft(nfilters, sorts, "nft", "0", "10")
+	sorts = []StSortField{}
+	nftByFilter, count, err := nd.QueryNftByFilterNftSnft(nfilters, sorts, "snft", "0", "10")
 	if err != nil {
 		t.Fatalf("err = %v\n", err)
 	}
@@ -1981,7 +2056,10 @@ func TestGetIsVliaddr(t *testing.T) {
 	fmt.Println(strings.ToLower("0x571CbB911fE99118B230585BA0cC7c5054324F85"))
 	//tm := time.Unix(1661146660, 0)
 	//tm := time.Unix(1663825060, 0).AddDate(0, 1, 0)
-	tm := time.Unix(1669095460, 0)
+	tm := time.Unix(1662103355, 0)
+	fmt.Println(tm)
+	tm = time.Unix(1662016955, 0)
+	fmt.Println(tm)
 	f := tm.String()
 	end := tm.Unix()
 	fmt.Println("end=", end)
@@ -2490,6 +2568,21 @@ func TestBigDatass(t *testing.T) {
 	//"0xbdc996a45840937b92c3bea53ab0d76664e4ecc3437958f68e86c6b99757bf78
 }
 
+func TestTestmode(t *testing.T) {
+	m := 256 % 16
+	fmt.Println(m)
+	m = 253 % 16
+	fmt.Println(m)
+	m = 25 % 16
+	fmt.Println(m)
+	m = 2 % 16
+	fmt.Println(m)
+	m = 11 % 16
+	fmt.Println(m)
+	m = 16 % 16
+	fmt.Println(m)
+}
+
 func TestHomePageRenew(t *testing.T) {
 	//nd, err := NewNftDb(sqldsnT)
 	//if err != nil {
@@ -2540,4 +2633,22 @@ func TestAlice(t *testing.T) {
 		//txs = append(txs[:i], txs[i+1:]...)
 	}
 	fmt.Println(tx)
+}
+
+func TestRecover(t *testing.T) {
+	sig := "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
+	sig = "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
+	sig = "{\"price\":\"0x56bc75e2d63100000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x603fb9\",\"seller\":\"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900\",\"sig\":\"0x694c643f462931444abc52752b24af61f58cfdc37ab891632734a384b8108f6f69093339d0760313f88ade72e22a5e630c7c767a316ad02c1abd6d865684a0fd1c\"}"
+	buyer := contracts.Buyer{}
+	err := json.Unmarshal([]byte(sig), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+	}
+	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	toaddr, rerr := contracts.RecoverAddress(msg, buyer.Sig)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =")
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+	}
+
 }

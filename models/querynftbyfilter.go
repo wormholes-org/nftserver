@@ -50,6 +50,7 @@ type NftInfo struct {
 	Selltype     string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft transaction type'"`
 	Sellprice    uint64 `json:"sellprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'selling price'"`
 	Mintstate    string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'minting status'"`
+	Pledgestate  string `json:"pledgestate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'Pledgestate status'"`
 	//Extend			string		`json:"extend" gorm:"type:longtext NOT NULL;comment:'extend data'"`
 	Offernum    uint64 `json:"offernum" gorm:"type:bigint unsigned DEFAULT NULL;comment:'number of bids'"`
 	Maxbidprice uint64 `json:"maxbidprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Highest bid price'"`
@@ -484,8 +485,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				snftSql = snftSql + " where " + querySplit["createdate"]
 				snftCountSql = snftCountSql + " where " + querySplit["createdate"]
 			} else {
-				snftSql = snftSql + "and" + querySplit["createdate"]
-				snftCountSql = snftCountSql + "and" + querySplit["createdate"]
+				snftSql = snftSql + " and " + querySplit["createdate"]
+				snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 			}
 		}
 
@@ -495,8 +496,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				snftSql = snftSql + " where " + querySplit["offernum"]
 				snftCountSql = snftCountSql + " where " + querySplit["offernum"]
 			} else {
-				snftSql = snftSql + "and" + querySplit["offernum"]
-				snftCountSql = snftCountSql + "and" + querySplit["offernum"]
+				snftSql = snftSql + " and " + querySplit["offernum"]
+				snftCountSql = snftCountSql + " and " + querySplit["offernum"]
 			}
 		}
 
@@ -506,8 +507,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				snftSql = snftSql + " where " + querySplit["collectcreator"]
 				snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
 			} else {
-				snftSql = snftSql + "and" + querySplit["collectcreator"]
-				snftCountSql = snftCountSql + "and" + querySplit["collectcreator"]
+				snftSql = snftSql + " and " + querySplit["collectcreator"]
+				snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
 			}
 		}
 		if querySplit["collections"] != "" {
@@ -516,8 +517,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				snftSql = snftSql + " where " + querySplit["collections"]
 				snftCountSql = snftCountSql + " where " + querySplit["collections"]
 			} else {
-				snftSql = snftSql + "and" + querySplit["collections"]
-				snftCountSql = snftCountSql + "and" + querySplit["collections"]
+				snftSql = snftSql + " and " + querySplit["collections"]
+				snftCountSql = snftCountSql + " and " + querySplit["collections"]
 			}
 		}
 		if querySplit["categories"] != "" {
@@ -526,8 +527,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				snftSql = snftSql + " where " + querySplit["categories"]
 				snftCountSql = snftCountSql + " where " + querySplit["categories"]
 			} else {
-				snftSql = snftSql + "and" + querySplit["categories"]
-				snftCountSql = snftCountSql + "and" + querySplit["categories"]
+				snftSql = snftSql + " and " + querySplit["categories"]
+				snftCountSql = snftCountSql + " and " + querySplit["categories"]
 			}
 		}
 		if whereFlag == false {
@@ -535,8 +536,8 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 			snftSql = snftSql + " where " + " (nfts.deleted_at is null) "
 			snftCountSql = snftCountSql + " where " + " (nfts.deleted_at is null) "
 		} else {
-			snftSql = snftSql + "and" + " (nfts.deleted_at is null) "
-			snftCountSql = snftCountSql + "and" + " (nfts.deleted_at is null) "
+			snftSql = snftSql + " and " + " (nfts.deleted_at is null) "
+			snftCountSql = snftCountSql + " and " + " (nfts.deleted_at is null) "
 		}
 		snftSql = snftSql + " order by " + orderBy
 		if len(startIndex) > 0 && len(count) > 0 {
@@ -778,8 +779,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					nftSql = nftSql + " where " + querySplit["createdate"]
 					nftCountSql = nftCountSql + " where " + querySplit["createdate"]
 				} else {
-					nftSql = nftSql + "and" + querySplit["createdate"]
-					nftCountSql = nftCountSql + "and" + querySplit["createdate"]
+					nftSql = nftSql + " and " + querySplit["createdate"]
+					nftCountSql = nftCountSql + " and " + querySplit["createdate"]
 				}
 			}
 			if querySplit["categories"] != "" {
@@ -788,8 +789,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					nftSql = nftSql + " where " + querySplit["categories"]
 					nftCountSql = nftCountSql + " where " + querySplit["categories"]
 				} else {
-					nftSql = nftSql + "and" + querySplit["categories"]
-					nftCountSql = nftCountSql + "and" + querySplit["categories"]
+					nftSql = nftSql + " and " + querySplit["categories"]
+					nftCountSql = nftCountSql + " and " + querySplit["categories"]
 				}
 			}
 			if querySplit["collectcreator"] != "" {
@@ -798,8 +799,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					nftSql = nftSql + " where " + querySplit["collectcreator"]
 					nftCountSql = nftCountSql + " where " + querySplit["collectcreator"]
 				} else {
-					nftSql = nftSql + "and" + querySplit["collectcreator"]
-					nftCountSql = nftCountSql + "and" + querySplit["collectcreator"]
+					nftSql = nftSql + " and " + querySplit["collectcreator"]
+					nftCountSql = nftCountSql + " and " + querySplit["collectcreator"]
 				}
 			}
 			if querySplit["collections"] != "" {
@@ -808,8 +809,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					nftSql = nftSql + " where " + querySplit["collections"]
 					nftCountSql = nftCountSql + " where " + querySplit["collections"]
 				} else {
-					nftSql = nftSql + "and" + querySplit["collections"]
-					nftCountSql = nftCountSql + "and" + querySplit["collections"]
+					nftSql = nftSql + " and " + querySplit["collections"]
+					nftCountSql = nftCountSql + " and " + querySplit["collections"]
 				}
 			}
 			if whereFlag == false {
@@ -817,8 +818,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 				nftSql = nftSql + " where " + " (nfts.deleted_at is null) "
 				nftCountSql = nftCountSql + " where " + " (nfts.deleted_at is null) "
 			} else {
-				nftSql = nftSql + "and" + " (nfts.deleted_at is null) "
-				nftCountSql = nftCountSql + "and" + " (nfts.deleted_at is null) "
+				nftSql = nftSql + " and " + " (nfts.deleted_at is null) "
+				nftCountSql = nftCountSql + " and " + " (nfts.deleted_at is null) "
 			}
 			//snftSql = snftSql + " group by snft "
 			//nftCountSql = nftCountSql + " ) as a"
@@ -846,7 +847,7 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 				createaddr = strings.Replace(createaddr, "collectcreator", "createaddr", -1)
 				name := querySplit["collections"]
 				name = strings.Replace(name, "collections", "name", -1)
-				nftCountSql = nftCountSql + createaddr + " and " + name + "and" + " deleted_at IS NULL "
+				nftCountSql = nftCountSql + createaddr + " and " + name + " and " + " deleted_at IS NULL "
 				err = nft.db.Raw(nftCountSql).Scan(&nftCount)
 				if err.Error != nil {
 					log.Println("QueryNftByFilter() Raw(countSql).Scan(&nftCount) err=", err.Error)
@@ -925,8 +926,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					snftSql = snftSql + " where " + querySplit["createdate"]
 					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["createdate"]
-					snftCountSql = snftCountSql + "and" + querySplit["createdate"]
+					snftSql = snftSql + " and " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 				}
 			}
 			if querySplit["offernum"] != "" {
@@ -935,8 +936,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					snftSql = snftSql + " where " + querySplit["offernum"]
 					snftCountSql = snftCountSql + " where " + querySplit["offernum"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["offernum"]
-					snftCountSql = snftCountSql + "and" + querySplit["offernum"]
+					snftSql = snftSql + " and " + querySplit["offernum"]
+					snftCountSql = snftCountSql + " and " + querySplit["offernum"]
 				}
 			}
 			if querySplit["collectcreator"] != "" {
@@ -945,8 +946,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					snftSql = snftSql + " where " + querySplit["collectcreator"]
 					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collectcreator"]
-					snftCountSql = snftCountSql + "and" + querySplit["collectcreator"]
+					snftSql = snftSql + " and " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
 				}
 			}
 			if querySplit["collections"] != "" {
@@ -955,8 +956,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					snftSql = snftSql + " where " + querySplit["collections"]
 					snftCountSql = snftCountSql + " where " + querySplit["collections"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collections"]
-					snftCountSql = snftCountSql + "and" + querySplit["collections"]
+					snftSql = snftSql + " and " + querySplit["collections"]
+					snftCountSql = snftCountSql + " and " + querySplit["collections"]
 				}
 			}
 			if querySplit["categories"] != "" {
@@ -965,8 +966,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 					snftSql = snftSql + " where " + querySplit["categories"]
 					snftCountSql = snftCountSql + " where " + querySplit["categories"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["categories"]
-					snftCountSql = snftCountSql + "and" + querySplit["categories"]
+					snftSql = snftSql + " and " + querySplit["categories"]
+					snftCountSql = snftCountSql + " and " + querySplit["categories"]
 				}
 			}
 			if whereFlag == false {
@@ -974,8 +975,8 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 				snftSql = snftSql + " where " + " (nfts.deleted_at is null) "
 				snftCountSql = snftCountSql + " where " + " (nfts.deleted_at is null) "
 			} else {
-				snftSql = snftSql + "and" + " (nfts.deleted_at is null) "
-				snftCountSql = snftCountSql + "and" + " (nfts.deleted_at is null) "
+				snftSql = snftSql + " and " + " (nfts.deleted_at is null) "
+				snftCountSql = snftCountSql + " and " + " (nfts.deleted_at is null) "
 			}
 			snftSql = snftSql + " order by " + orderBy
 			if len(startIndex) > 0 && len(count) > 0 {
@@ -1143,8 +1144,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["createdate"]
 					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["createdate"]
-					snftCountSql = snftCountSql + "and" + querySplit["createdate"]
+					snftSql = snftSql + " and " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 				}
 			}
 			if querySplit["categories"] != "" {
@@ -1153,8 +1154,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["categories"]
 					snftCountSql = snftCountSql + " where " + querySplit["categories"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["categories"]
-					snftCountSql = snftCountSql + "and" + querySplit["categories"]
+					snftSql = snftSql + " and " + querySplit["categories"]
+					snftCountSql = snftCountSql + " and " + querySplit["categories"]
 				}
 			}
 			if querySplit["collectcreator"] != "" {
@@ -1163,8 +1164,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["collectcreator"]
 					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collectcreator"]
-					snftCountSql = snftCountSql + "and" + querySplit["collectcreator"]
+					snftSql = snftSql + " and " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
 				}
 			}
 			if querySplit["collections"] != "" {
@@ -1173,9 +1174,17 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["collections"]
 					snftCountSql = snftCountSql + " where " + querySplit["collections"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collections"]
-					snftCountSql = snftCountSql + "and" + querySplit["collections"]
+					snftSql = snftSql + " and " + querySplit["collections"]
+					snftCountSql = snftCountSql + " and " + querySplit["collections"]
 				}
+			}
+			if whereFlag == false {
+				whereFlag = true
+				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+			} else {
+				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
 			}
 			snftSql = snftSql + " group by snft "
 			snftCountSql = snftCountSql + " group by snft ) as a"
@@ -1243,8 +1252,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["createdate"]
 					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["createdate"]
-					snftCountSql = snftCountSql + "and" + querySplit["createdate"]
+					snftSql = snftSql + " and " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 				}
 			}
 			if querySplit["offernum"] != "" {
@@ -1253,8 +1262,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["offernum"]
 					snftCountSql = snftCountSql + " where " + querySplit["offernum"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["offernum"]
-					snftCountSql = snftCountSql + "and" + querySplit["offernum"]
+					snftSql = snftSql + " and " + querySplit["offernum"]
+					snftCountSql = snftCountSql + " and " + querySplit["offernum"]
 				}
 			}
 			if querySplit["collectcreator"] != "" {
@@ -1263,8 +1272,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["collectcreator"]
 					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collectcreator"]
-					snftCountSql = snftCountSql + "and" + querySplit["collectcreator"]
+					snftSql = snftSql + " and " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
 				}
 			}
 			if querySplit["collections"] != "" {
@@ -1273,8 +1282,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["collections"]
 					snftCountSql = snftCountSql + " where " + querySplit["collections"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["collections"]
-					snftCountSql = snftCountSql + "and" + querySplit["collections"]
+					snftSql = snftSql + " and " + querySplit["collections"]
+					snftCountSql = snftCountSql + " and " + querySplit["collections"]
 				}
 			}
 			if querySplit["categories"] != "" {
@@ -1283,17 +1292,17 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 					snftSql = snftSql + " where " + querySplit["categories"]
 					snftCountSql = snftCountSql + " where " + querySplit["categories"]
 				} else {
-					snftSql = snftSql + "and" + querySplit["categories"]
-					snftCountSql = snftCountSql + "and" + querySplit["categories"]
+					snftSql = snftSql + " and " + querySplit["categories"]
+					snftCountSql = snftCountSql + " and " + querySplit["categories"]
 				}
 			}
 			if whereFlag == false {
 				whereFlag = true
-				snftSql = snftSql + " where " + " (nfts.deleted_at is null) "
-				snftCountSql = snftCountSql + " where " + " (nfts.deleted_at is null) "
+				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
 			} else {
-				snftSql = snftSql + "and" + " (nfts.deleted_at is null) "
-				snftCountSql = snftCountSql + "and" + " (nfts.deleted_at is null) "
+				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
 			}
 			snftSql = snftSql + " order by " + orderBy
 			if len(startIndex) > 0 && len(count) > 0 {
@@ -1353,7 +1362,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 		totalCount = snftCount
 		snftInfo := []NftInfo{}
 		spendStart = time.Now()
-		snftSql := `select min(nftaddr) from nfts where snft != "" group by snft `
+		//snftSql := ` select min(nftaddr) from nfts where snft != "" group by snft `
+		snftSql := `select min(nftaddr) from nfts where snft != "" and  Pledgestate != "Pledge" and deleted_at is null group by snft `
 		snftSql = snftSql + " limit " + startIndex + ", " + count
 		err = nft.db.Raw(snftSql).Scan(&snftAddrs)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {

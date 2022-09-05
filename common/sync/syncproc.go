@@ -176,6 +176,160 @@ func SyncBlockTxsNew(sqldsn string, block uint64, blockTrans contracts.NftTrans)
 	return err
 }
 
+func SelfSyncBlockTxs(sqldsn string, block uint64, blockTrans contracts.NftTrans) error {
+	nd, err := models.NewNftDb(sqldsn)
+	if err != nil {
+		fmt.Printf("SyncBlockTxs() connect database err = %s\n", err)
+		return err
+	}
+	defer nd.Close()
+	for _, mintTx := range blockTrans.Minttxs {
+		if mintTx.From == "" {
+			err = nd.BuyResultRoyalty(mintTx.From, mintTx.To, mintTx.Contract, mintTx.TokenId, "", mintTx.Ratio, mintTx.TxHash, mintTx.Ts)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultRoyalty() err=", err)
+				return err
+			}
+		}
+	}
+	for _, nftTx := range blockTrans.Nfttxs {
+		if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" && nftTx.Price != "" &&
+			nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
+			fmt.Println("SyncBlockTxs() nftTx.Value=", nftTx.Value)
+			var price string
+			if len(nftTx.Price) >= 9 {
+				price = nftTx.Price[:len(nftTx.Price)-9]
+			} else {
+				continue
+				//price = "0"
+			}
+			err = nd.BuyResultWithAmount(nftTx.From, nftTx.To, nftTx.Contract, nftTx.TokenId,
+				nftTx.Value, price, nftTx.Ratio, nftTx.TxHash, nftTx.Ts)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultWithAmount() err=", err)
+				return err
+			}
+
+		}
+	}
+	for _, mintTx := range blockTrans.Wmintxs {
+		if mintTx.From == "" {
+			err = nd.BuyResultWRoyalty(mintTx)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultWRoyalty() err=", err)
+				return err
+			}
+		}
+	}
+	for _, nftTx := range blockTrans.Wnfttxs {
+		log.Println("nfttx :", nftTx)
+		if nftTx.From != "" && nftTx.To != "" && nftTx.Value != "" /*&& nftTx.Price != ""*/ &&
+			nftTx.From != ZeroAddr && nftTx.To != ZeroAddr {
+			err = nd.BuyResultWithWAmount(nftTx)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultWithWAmount() err=", err)
+				return err
+			}
+
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
+		}
+		if nftTx.From == ZeroAddr && nftTx.To != ZeroAddr {
+			err = nd.BuyResultWTransfer(nftTx)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultWTransfer() err=", err)
+				return err
+			}
+
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
+		}
+		if nftTx.From != ZeroAddr && nftTx.To == ZeroAddr {
+			err = nd.BuyResultExchange(nftTx)
+			if err != nil {
+				fmt.Println("SyncBlockTxs() BuyResultExchange() err=", err)
+				return err
+			}
+			models.GetRedisCatch().SetDirtyFlag(models.NftCacheDirtyName)
+			models.GetRedisCatch().SetDirtyFlag(models.TradingDirtyName)
+		}
+	}
+	return err
+}
+
+func SelfSync(sqldsn string) error {
+	nd, err := models.NewNftDb(sqldsn)
+	if err != nil {
+		log.Printf("SelfSync() connect database err = %s\n", err)
+		return err
+	}
+	defer nd.Close()
+	blockS := uint64(0)
+	if models.TransferSNFT {
+		blockS, err = models.GetDbSnftBlockNumber(sqldsn)
+		if err != nil {
+			log.Println("SelfSync() get scan block num err=", err)
+			return err
+		}
+	} else {
+		blockS, err = models.GetDbBlockNumber(sqldsn)
+		if err != nil {
+			log.Println("SelfSync() get scan block num err=", err)
+			return err
+		}
+	}
+	for curBlock := contracts.GetCurrentBlockNumber(); blockS <= curBlock; {
+		if models.TransferSNFT {
+			log.Println("SelfSync() call ScanWorkerNft() blockNum=", blockS)
+			err := SelfScanWorkerNft(sqldsn, blockS)
+			if err != nil {
+				log.Println("SelfSync() call SyncWorkerNft() err=", err)
+				return err
+			}
+			fmt.Println("SelfSync() sync ScanWorkerNft ok.  blockNum=", blockS)
+		}
+		//txs, err := contracts.GetBlockTxsNew(blockS)
+		txs, err := contracts.SelfGetBlockTxs(blockS)
+		if err != nil {
+			fmt.Println("SelfSync() call GetBlockTxs() err=", err)
+			return err
+		}
+		//err = SelfSyncBlockTxs(sqldsn, blockS, *txs)
+		err = models.SyncTxs(nd, txs)
+		if err != nil {
+			log.Println("SelfSync() SyncBlockTxs err=", err)
+			return err
+		}
+		blockS++
+		err = nd.GetDB().Transaction(func(tx *gorm.DB) error {
+			var params models.SysParams
+			dbErr := nd.GetDB().Select("id").Last(&params)
+			if dbErr.Error != nil {
+				log.Println("SelfSync() params err=", dbErr.Error)
+				return dbErr.Error
+			}
+			nparams := models.SysParams{}
+			nparams.Scannumber = blockS
+			nparams.Scansnftnumber = blockS
+			dbErr = nd.GetDB().Model(&models.SysParams{}).Where("id = ?", params.ID).Updates(&nparams)
+			if dbErr.Error != nil {
+				log.Println("SelfSync() update params err=", dbErr.Error)
+				return dbErr.Error
+			}
+			return nil
+		})
+		if err != nil {
+			log.Println("SelfSync() update params err=", err)
+			return err
+		}
+		fmt.Println("SelfSync() update OK block=", blockS)
+		if blockS >= curBlock {
+			curBlock = contracts.GetCurrentBlockNumber()
+		}
+	}
+	return err
+}
+
 func InitSyncBlockTs(sqldsn string) error {
 	if !models.LimitWritesDatabase {
 		if models.NftScanServer != "" {
@@ -187,7 +341,7 @@ func InitSyncBlockTs(sqldsn string) error {
 			}
 			go models.SyncChain(sqldsn)
 		} else {
-			if models.TransferSNFT {
+			/*if models.TransferSNFT {
 				snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
 				if err != nil {
 					fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
@@ -217,6 +371,22 @@ func InitSyncBlockTs(sqldsn string) error {
 					select {
 					case <-ticker.C:
 						SyncBlockNew(models.Sqldsndb)
+					}
+				}
+			}()*/
+			for {
+				err := SelfSync(sqldsn)
+				if err == nil {
+					break
+				}
+				time.Sleep(time.Second)
+			}
+			go func() {
+				ticker := time.NewTicker(ScanBlockTime)
+				for {
+					select {
+					case <-ticker.C:
+						SelfSync(sqldsn)
 					}
 				}
 			}()
@@ -428,6 +598,9 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 	snftInfos := make([]models.SnftInfo, len(snftAddr))
 	if len(snftAddr) > 0 {
 		for i, address := range snftAddr {
+			if address.NftAddress.String() == ZeroAddr {
+				continue
+			}
 			accountInfo, err := contracts.GetAccountInfo(address.NftAddress, big.NewInt(0).SetUint64(blockS))
 			if err != nil {
 				log.Println("ScanWorkerNft() GetAccountInfo err =", err, "NftAddress= ", address.NftAddress, "blocks", blockS)
@@ -456,9 +629,11 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 				//metaUrl = "/ipfs/QmVyVJTMQVbHRz8dr8RHrW4c1pgnspcM3Ee1pj9vae2oo8" //1.237
 				metaUrl = "/ipfs/QmNbNvhW1StGPQaXhXMQcfT6W7HqEXDY6MfZijuRLf7Roa" //云服务器
 				//metaUrl = "/ipfs/QmWpDcyU287P3bgw74nmUmWGDcaRYGud51y8xxQkiK5zDR" //云服务器
-				metaHash = metaUrl + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				//metaHash = metaUrl + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				metaHash = metaUrl + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-3:len(accountInfo.MetaURL)-1])
 			} else {
-				metaHash = accountInfo.MetaURL[:index] + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				//metaHash = accountInfo.MetaURL[:index] + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				metaHash = accountInfo.MetaURL[:index] + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-3:len(accountInfo.MetaURL)-1])
 			}
 			fmt.Println("ScanWorkerNft() metaHash=", metaHash)
 			var snftinfo *models.SnftInfo
@@ -540,6 +715,117 @@ func ScanWorkerNft(sqldsn string, blockS uint64) error {
 	return err
 }
 
+func SelfScanWorkerNft(sqldsn string, blockS uint64) error {
+	snftAddr, err := contracts.GetSnftAddressList(big.NewInt(0).SetUint64(blockS), true)
+	if err != nil {
+		log.Println("ScanWorkerNft() GetSnftAddressList err =", err, "blocks", blockS)
+		return err
+	}
+	snftInfos := make([]models.SnftInfo, len(snftAddr))
+	if len(snftAddr) > 0 {
+		for i, address := range snftAddr {
+			if address.NftAddress.String() == ZeroAddr {
+				continue
+			}
+			accountInfo, err := contracts.GetAccountInfo(address.NftAddress, big.NewInt(0).SetUint64(blockS))
+			if err != nil {
+				log.Println("ScanWorkerNft() GetAccountInfo err =", err, "NftAddress= ", address.NftAddress, "blocks", blockS)
+				return err
+			}
+			fmt.Println("ScanWorkerNft() MetaUrl=", accountInfo.MetaURL, "blockS=", blockS)
+			index := strings.Index(accountInfo.MetaURL, "/ipfs/")
+			if index == -1 {
+				log.Printf("ScanWorkerNft() Index ipfs error.\n")
+				continue
+				return errors.New("ScanWorkerNft(): MetaUrl error.")
+			}
+			index = strings.LastIndex(accountInfo.MetaURL, "/")
+			if index == -1 {
+				log.Printf("ScanWorkerNft() LastIndex error.\n")
+				continue
+				return errors.New("ScanWorkerNft(): MetaUrl error.")
+			}
+			/*if accountInfo.MetaURL[:index] == "/ipfs/QmYgBEB9CEx356zqJaDd4yjvY92qE276Gh1y2baWeDY3By" ||
+				accountInfo.MetaURL[:index] == "/ipfs/QmaiReZpUeWcSRvhWhHwQ4PN2NbggYdZt7hKFAoM8kTVF7" {
+				continue
+			}*/
+			var metaUrl, metaHash string
+			if accountInfo.MetaURL[:index] == "/ipfs/QmeCPcX3rYguWqJYDmJ6D4qTQqd5asr8gYpwRcgw44WsS7" ||
+				accountInfo.MetaURL[:index] == "/ipfs/QmYgBEB9CEx356zqJaDd4yjvY92qE276Gh1y2baWeDY3By" {
+				//metaUrl = "/ipfs/QmVyVJTMQVbHRz8dr8RHrW4c1pgnspcM3Ee1pj9vae2oo8" //1.237
+				metaUrl = "/ipfs/QmNbNvhW1StGPQaXhXMQcfT6W7HqEXDY6MfZijuRLf7Roa" //云服务器
+				//metaUrl = "/ipfs/QmWpDcyU287P3bgw74nmUmWGDcaRYGud51y8xxQkiK5zDR" //云服务器
+				//metaHash = metaUrl + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				metaHash = metaUrl + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-3:len(accountInfo.MetaURL)-1])
+			} else {
+				//metaHash = accountInfo.MetaURL[:index] + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-4:len(accountInfo.MetaURL)-2])
+				metaHash = accountInfo.MetaURL[:index] + "/" + strings.ToLower(accountInfo.MetaURL[len(accountInfo.MetaURL)-3:len(accountInfo.MetaURL)-1])
+			}
+			fmt.Println("ScanWorkerNft() metaHash=", metaHash)
+			var snftinfo *models.SnftInfo
+			if snftinfo = ScanIpfsCatch.GetByHash(metaHash); snftinfo == nil {
+				retry := 0
+				for {
+					snftinfo, err = GetSnftInfoFromIPFSWithShell(metaHash)
+					if err != nil {
+						log.Println("ScanWorkerNft() GetSnftInfoFromIPFS count=", retry, " err =", err, "ipfs hash=", metaHash)
+						errflag := strings.Index(err.Error(), "context deadline exceeded")
+						if errflag != -1 {
+							time.Sleep(WaitIpfsFailTime)
+							continue
+						}
+						errflag = strings.Index(err.Error(), "connection refused")
+						if errflag != -1 {
+							time.Sleep(WaitIpfsFailTime)
+							continue
+						}
+						errflag = strings.Index(err.Error(), "502 Bad Gateway")
+						if errflag != -1 {
+							time.Sleep(WaitIpfsFailTime)
+							continue
+						}
+						errflag = strings.Index(err.Error(), "403 Forbidden")
+						if errflag != -1 {
+							time.Sleep(WaitIpfsFailTime)
+							continue
+						}
+					}
+					break
+				}
+				if err != nil {
+					continue
+				}
+				ScanIpfsCatch.SetByHash(metaHash, snftinfo)
+			}
+			snftinfo.Ownaddr = strings.ToLower(accountInfo.Owner.String())
+			snftinfo.Contract = models.ExchangeOwer
+			snftinfo.Nftaddr = strings.ToLower(address.NftAddress.String())
+			snftinfo.Meta = accountInfo.MetaURL
+			b, _ := big.NewInt(0).SetString(snftinfo.Nftaddr[models.SnftCollectionsStageIndex:models.SnftStageOffset], 16)
+			snftinfo.CollectionsName = b.String() + "-" + snftinfo.CollectionsName
+			snftInfos[i] = *snftinfo
+		}
+	}
+	nd, err := models.NewNftDb(sqldsn)
+	if err != nil {
+		log.Printf("ScanWorkerNft() connect database err = %s\n", err)
+		return err
+	}
+	defer nd.Close()
+	if len(snftInfos) != 0 {
+		for _, info := range snftInfos {
+			if info.Nftaddr == "" {
+				continue
+			}
+			err = nd.UploadWNft(&info)
+			if err != nil {
+				log.Println("ScanWorkerNft() upload err=", err)
+				return err
+			}
+		}
+	}
+	return err
+}
 func SyncWorkerNft(sqldsn string) error {
 	blockS, err := models.GetDbSnftBlockNumber(sqldsn)
 	if err != nil {

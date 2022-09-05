@@ -23,7 +23,7 @@ type NftTx struct {
 	NftAddr          string
 	Nonce            string
 	Status           bool
-	//TransType		 int
+	TransType        int
 }
 
 type ResponseGetBlockTrans struct {
@@ -34,7 +34,8 @@ type ResponseGetBlockTrans struct {
 }
 
 func GetBlockTrans(blocknumber string) (*[]NftTx, error) {
-	url := "http://192.168.56.1:8081/" + "/v1/getBlockTrans"
+	//url := "http://192.168.56.1:8081/" + "/v1/getBlockTrans"
+	url := "http://192.168.1.237:8089/" + "/v1/getBlockTrans"
 	datam := make(map[string]string)
 	datam["blocknumber"] = blocknumber
 	datas, _ := json.Marshal(&datam)

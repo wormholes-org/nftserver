@@ -13,7 +13,7 @@ type NftAuction struct {
 	Endprice        uint64 `json:"endprice"`
 	Startdate       int64  `json:"startdate"`
 	Enddate         int64  `json:"enddate"`
-	Tradesig       	string `json:"tradesig"`
+	Tradesig        string `json:"tradesig"`
 }
 
 type NftTran struct {
@@ -21,12 +21,12 @@ type NftTran struct {
 	Fromaddr        string `json:"fromaddr"`
 	Toaddr          string `json:"toaddr"`
 	NftTokenId      string `json:"nft_token_id"`
-	Nftaddr			string `json:"nft_address"`
+	Nftaddr         string `json:"nft_address"`
 	Transtime       int64  `json:"transtime"`
 	Paychan         string `json:"paychan"`
 	Currency        string `json:"currency"`
 	Price           uint64 `json:"price"`
-	Txhash			string `json:"trade_hash"`
+	Txhash          string `json:"trade_hash"`
 	Selltype        string `json:"selltype"`
 }
 
@@ -38,38 +38,39 @@ type NftBid struct {
 	Currency        string `json:"currency"`
 	Price           uint64 `json:"price"`
 	Bidtime         int64  `json:"bidtime"`
-	Tradesig       	string `json:"tradesig"`
+	Tradesig        string `json:"tradesig"`
 }
 
 type NftSingleInfo struct {
-	Name            string 			`json:"name"`
-	CreatorAddr     string 			`json:"creator_addr"`
+	Name        string `json:"name"`
+	CreatorAddr string `json:"creator_addr"`
 	//CreatorPortrait string 			`json:"creator_portrait"`
-	OwnerAddr       string 			`json:"owner_addr"`
+	OwnerAddr string `json:"owner_addr"`
 	//OwnerPortrait   string 			`json:"owner_portrait"`
-	Md5             string 			`json:"md5"`
+	Md5 string `json:"md5"`
 	//AssetSample     string 			`json:"asset_sample"`
-	Desc            string 			`json:"desc"`
-	Collectiondesc  string 			`json:"collection_desc"`
-	Meta            string 			`json:"meta"`
-	SourceUrl       string 			`json:"source_url"`
-	NftContractAddr string 			`json:"nft_contract_addr"`
-	NftTokenId      string 			`json:"nft_token_id"`
-	Nftaddr			string 			`json:"nft_address"`
-	Categories      string 			`json:"categories"`
-	CollectionCreatorAddr string    `json:"collection_creator_addr"`
-	Collections     string 			`json:"collections"`
-	Img             string 			`json:"img"`
-	Approve         string 			`json:"approve"`
-	Royalty         int 			`json:"royalty"`
-	Verified        string 			`json:"verified"`
-	Selltype        string 			`json:"selltype"`
-	Mintstate       string	 		`json:"mintstate"`
-	Likes	        int 			`json:"likes"`
+	Desc                  string `json:"desc"`
+	Collectiondesc        string `json:"collection_desc"`
+	Meta                  string `json:"meta"`
+	SourceUrl             string `json:"source_url"`
+	NftContractAddr       string `json:"nft_contract_addr"`
+	NftTokenId            string `json:"nft_token_id"`
+	Nftaddr               string `json:"nft_address"`
+	Categories            string `json:"categories"`
+	CollectionCreatorAddr string `json:"collection_creator_addr"`
+	Collections           string `json:"collections"`
+	Img                   string `json:"img"`
+	Approve               string `json:"approve"`
+	Royalty               int    `json:"royalty"`
+	Verified              string `json:"verified"`
+	Selltype              string `json:"selltype"`
+	Mintstate             string `json:"mintstate"`
+	Pledgestate           string `json:"pledgestate"`
+	Likes                 int    `json:"likes"`
 
-	Auction 		NftAuction		`json:"auction"`
-	Trans   		[]NftTran		`json:"trans"`
-	Bids    		[]NftBid	 	`json:"bids"`
+	Auction NftAuction `json:"auction"`
+	Trans   []NftTran  `json:"trans"`
+	Bids    []NftBid   `json:"bids"`
 }
 
 func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error) {
@@ -88,7 +89,7 @@ func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error)
 	nftInfo.Md5 = nftRecord.Md5
 	//nftInfo.AssetSample = nftRecord.Image
 	nftInfo.Desc = nftRecord.Desc
-	nftInfo.Meta =  nftRecord.Meta
+	nftInfo.Meta = nftRecord.Meta
 	nftInfo.SourceUrl = nftRecord.Url
 	nftInfo.NftContractAddr = nftRecord.Contract
 	nftInfo.NftTokenId = nftRecord.Tokenid
@@ -100,6 +101,7 @@ func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error)
 	nftInfo.Verified = nftRecord.Verified
 	nftInfo.Selltype = nftRecord.Selltype
 	nftInfo.Mintstate = nftRecord.Mintstate
+	nftInfo.Pledgestate = nftRecord.Pledgestate
 	nftInfo.Likes = nftRecord.Favorited
 
 	user := Users{}
@@ -180,4 +182,3 @@ func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error)
 	}
 	return nftInfo, nil
 }
-

@@ -228,7 +228,26 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 				return err.Error
 			}
 			//}
-			if nftaddress[len(nftaddress)-2:] == "00" {
+			/*	if (collectRec.Totalcount+1)%16 == 0 {
+				recCount := int64(0)
+				snft := nftaddress[:len(nftaddress)-1]
+				err := nft.db.Model(Nfts{}).Where("snft = ? and ownaddr != ?", snft, ZeroAddr).Count(&recCount)
+				if err.Error != nil {
+					log.Println("UploadWNft() recCount err=", err)
+					return err.Error
+				}
+				if recCount == 16 {
+					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
+					if err.Error != nil {
+						fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
+						return err.Error
+					}
+					GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
+						"queryStageList", "queryStageCollection", "queryNFTList", "search"})
+					GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+				}
+			}*/
+			/*if nftaddress[len(nftaddress)-2:] == "00" {
 				//NftCatch.SetFlushFlag()
 				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
 					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
@@ -239,7 +258,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error
 				}
-			}
+			}*/
 			return nil
 		})
 	} else {
@@ -294,6 +313,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 		nfttab.Verifiedtime = time.Now().Unix()
 
 		nfttab.Mintstate = Minted.String()
+		nfttab.Pledgestate = NoPledge.String()
 		nfttab.Createdate = time.Now().Unix()
 		nfttab.Royalty, _ = strconv.Atoi(royalty)
 		sysInfo := SysInfos{}
@@ -319,7 +339,26 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 				return err.Error
 			}
 			//}
-			if nftaddress[len(nftaddress)-2:] == "00" {
+			if (collectRec.Totalcount+1)%16 == 0 {
+				recCount := int64(0)
+				snft := nftaddress[:len(nftaddress)-1]
+				err := nft.db.Model(Nfts{}).Where("snft = ? and ownaddr != ?", snft, ZeroAddr).Count(&recCount)
+				if err.Error != nil {
+					log.Println("UploadWNft() recCount err=", err)
+					return err.Error
+				}
+				if recCount+1 == 16 {
+					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
+					if err.Error != nil {
+						fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
+						return err.Error
+					}
+					GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
+						"queryStageList", "queryStageCollection", "queryNFTList", "search"})
+					GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+				}
+			}
+			/*if nftaddress[len(nftaddress)-2:] == "00" {
 				//NftCatch.SetFlushFlag()
 				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
 					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
@@ -329,7 +368,7 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error
 				}
-			}
+			}*/
 			return nil
 		})
 	}

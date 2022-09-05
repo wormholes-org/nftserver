@@ -37,6 +37,8 @@ const (
 	WormHolesMint                      = 0
 	WormHolesTransfer                  = 1
 	WormHolesExchange                  = 6
+	WormHolesPledge                    = 7
+	WormHolesUnPledge                  = 8
 	WormHolesOpenExchanger             = 11
 	WormHolesExToBuyTransfer           = 14
 	WormHolesBuyFromSellTransfer       = 15
@@ -72,6 +74,7 @@ type NftTx struct {
 	NftAddr          string
 	Nonce            string
 	Status           bool
+	TransType        int
 }
 
 type NftTrans struct {
@@ -274,6 +277,12 @@ type WormholesTransfer struct {
 }
 
 type WormholesExchange struct {
+	Version    string `json:"version"`
+	Type       uint8  `json:"type"`
+	NftAddress string `json:"nft_address"`
+}
+
+type WormholesPledge struct {
 	Version    string `json:"version"`
 	Type       uint8  `json:"type"`
 	NftAddress string `json:"nft_address"`
@@ -1344,6 +1353,28 @@ func recoverAddress(msg string, sigStr string) (*common.Address, error) {
 	return &addr, nil
 }
 
+func RecoverAddress(msg string, sigStr string) (*common.Address, error) {
+	sigData, err := hexutil.Decode(sigStr)
+	if err != nil {
+		log.Println("recoverAddress() err=", err)
+		return nil, err
+	}
+	if len(sigData) != 65 {
+		return nil, fmt.Errorf("signature must be 65 bytes long")
+	}
+	if sigData[64] != 27 && sigData[64] != 28 {
+		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+	}
+	sigData[64] -= 27
+	hash, _ := hashMsg([]byte(msg))
+	rpk, err := crypto.SigToPub(hash, sigData)
+	if err != nil {
+		return nil, err
+	}
+	addr := crypto.PubkeyToAddress(*rpk)
+	return &addr, nil
+}
+
 func GenNftAddr(UserMintDeep *big.Int) error {
 	//UserMintDeep = "0x" + UserMintDeep
 	//nft, err := hexutil.DecodeBig(*UserMintDeep)
@@ -1367,16 +1398,16 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 		log.Println("GetBlockTxs() err=", err)
 		return nil, err
 	}
-	tradeInstance, err := trade.NewTrade(common.HexToAddress(TradeAddr), client)
-	if err != nil {
-		log.Println("GetBlockTxs() NewTrade() err=", err)
-		return nil, err
-	}
-	nft1155Instance, err := nft1155.NewNft1155(common.HexToAddress(Nft1155Addr), client)
-	if err != nil {
-		log.Println("GetBlockTxs() NewNft1155() err=", err)
-		return nil, err
-	}
+	//tradeInstance, err := trade.NewTrade(common.HexToAddress(TradeAddr), client)
+	//if err != nil {
+	//	log.Println("GetBlockTxs() NewTrade() err=", err)
+	//	return nil, err
+	//}
+	//nft1155Instance, err := nft1155.NewNft1155(common.HexToAddress(Nft1155Addr), client)
+	//if err != nil {
+	//	log.Println("GetBlockTxs() NewNft1155() err=", err)
+	//	return nil, err
+	//}
 	//weth9Instance, err := weth9.NewWeth9(common.HexToAddress(Weth9Addr), client)
 	//if err != nil {
 	//	log.Println("GetBlockTxs() NewWeth9() err=", err)
@@ -1426,7 +1457,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 			transFlag = false
 			//continue
 		}
-		if tx.To().Hex() == TradeAddr {
+		/*if tx.To().Hex() == TradeAddr {
 			for _, logger := range receipt.Logs {
 				if logger.Address == common.HexToAddress(Nft1155Addr) {
 					if logger.Topics[0] == common.HexToHash(TransferSingleHash) {
@@ -1509,7 +1540,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 					wethchanges[nftx.To] = true
 				}
 			}
-		}
+		}*/
 		data := tx.Data()
 		if len(data) > 10 && string(data[:10]) == "wormholes:" {
 			var wormholes Wormholes
@@ -1543,6 +1574,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesMint
 				nftx.To = strings.ToLower(tx.To().String())
 				//nftx.Contract = WormHolesContract
 				nftx.Contract = strings.ToLower(wormMint.Exchanger)
@@ -1580,6 +1612,62 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
 				nftx.TxHash = strings.ToLower(tx.Hash().String())
 				wnfttxs = append(wnfttxs, &nftx)
+			case WormHolesPledge:
+				/*if !transFlag {
+					continue
+				}*/
+				wormtrans := WormholesPledge{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("ScanBlockTxs() Unmarshal err=", err)
+					continue
+				}
+				/*from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}*/
+				msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}
+				nftx := NftTx{}
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesPledge
+				nftx.From = strings.ToLower(msg.From().String())
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				wnfttxs = append(wnfttxs, &nftx)
+			case WormHolesUnPledge:
+				/*if !transFlag {
+					continue
+				}*/
+				wormtrans := WormholesPledge{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("ScanBlockTxs() WormHolesExMintTransfer mint type err=", err)
+					continue
+				}
+				msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}
+				nftx := NftTx{}
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesUnPledge
+				nftx.From = strings.ToLower(msg.From().String())
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				wnfttxs = append(wnfttxs, &nftx)
 			case WormHolesOpenExchanger:
 				wormOpen := WormholesOpenExchanger{}
 				jsonErr := json.Unmarshal(data[10:], &wormOpen)
@@ -1614,10 +1702,12 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 				if err != nil {
 					log.Println("GetBlockTxs() WormHolesTransfer() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesTransfer
 				nftx.From = strings.ToLower(from.String())
 				nftx.To = strings.ToLower(tx.To().String())
 				//nftx.Contract = WormHolesContract
@@ -1664,18 +1754,22 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				toaddr, err := recoverAddress(msg, wormtrans.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				if toaddr.String() != tx.To().String() {
 					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
-					return nil, err
+					continue
+					//return nil, err
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesExToBuyTransfer
 				nftx.From = strings.ToLower(wormtrans.Seller)
 				nftx.To = strings.ToLower(tx.To().String())
 				//nftx.Contract = WormHolesContract
 				//nftx.Contract = wormtrans.Exchanger
+				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
 				nftx.NftAddr = wormtrans.Nftaddress
 				nftx.NftAddr = wormtrans.Nftaddress
 				nftx.Value = WormHolesNftCount
@@ -1719,9 +1813,10 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				//}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesBuyFromSellTransfer
 				nftx.From = strings.ToLower(fromaddr.String())
 				nftx.To = strings.ToLower(tx.To().String())
-				nftx.Contract = wormtrans.Exchanger
+				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
 				nftx.NftAddr = wormtrans.Nftaddress
 				nftx.Value = WormHolesNftCount
 				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
@@ -1748,14 +1843,16 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
 				if err != nil {
 					log.Println("GetBlockTxs() TransactionSender() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				msg := wormtrans.Price + wormtrans.Royalty + wormtrans.Metaurl + wormtrans.Exclusiveflag +
 					wormtrans.Exchanger + wormtrans.Blocknumber
 				toaddr, err := recoverAddress(msg, wormtrans.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				/*if toaddr.String() != tx.To().String() {
 					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
@@ -1774,6 +1871,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftxm := NftTx{}
 				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesBuyFromSellMintTransfer
 				nftxm.To = strings.ToLower(toaddr.String())
 				nftxm.Contract = strings.ToLower(wormtrans.Exchanger)
 				nftxm.TokenId = nftmeta.TokenId
@@ -1795,6 +1893,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesBuyFromSellMintTransfer
 				nftx.To = strings.ToLower(from.String())
 				nftx.From = strings.ToLower(toaddr.String())
 				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
@@ -1845,7 +1944,8 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				toaddr, err := recoverAddress(msg, wormtrans.Buyer.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				if toaddr.String() != tx.To().String() {
 					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
@@ -1869,7 +1969,8 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				fromAddr, err := recoverAddress(msg, wormtrans.Seller.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				//if fromAddr.String() != tx.To().String() {
 				//	log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
@@ -1888,6 +1989,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftxm := NftTx{}
 				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesExToBuyMintToSellTransfer
 				nftxm.To = strings.ToLower(fromAddr.String())
 				nftxm.Contract = strings.ToLower(wormtrans.Seller.Exchanger)
 				nftxm.TokenId = nftmeta.TokenId
@@ -1909,6 +2011,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesExToBuyMintToSellTransfer
 				nftx.From = strings.ToLower(fromAddr.String())
 				nftx.To = strings.ToLower(toaddr.String())
 				nftx.NftAddr = NftAddr
@@ -1955,18 +2058,20 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				toaddr, err := recoverAddress(msg, wormtrans.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				if toaddr.String() != tx.To().String() {
 					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
-					return nil, errors.New("buyer address error.")
+					continue
+					//return nil, errors.New("buyer address error.")
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesExAuthToExBuyTransfer
 				nftx.From = strings.ToLower(wormtrans.Seller)
 				nftx.To = strings.ToLower(tx.To().String())
-				//nftx.Contract = WormHolesContract
-				//nftx.Contract = wormtrans.Exchanger
+				nftx.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
 				nftx.NftAddr = wormtrans.Nftaddress
 				nftx.Value = WormHolesNftCount
 				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
@@ -2013,7 +2118,8 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				toaddr, err := recoverAddress(msg, wormtrans.Buyer.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				if toaddr.String() != tx.To().String() {
 					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
@@ -2037,7 +2143,8 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				fromAddr, err := recoverAddress(msg, wormtrans.Seller.Sig)
 				if err != nil {
 					log.Println("GetBlockTxs() recoverAddress() err=", err)
-					return nil, err
+					continue
+					//return nil, err
 				}
 				//if fromAddr.String() != tx.To().String() {
 				//	log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
@@ -2056,8 +2163,9 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftxm := NftTx{}
 				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesExAuthToExMintBuyTransfer
 				nftxm.To = strings.ToLower(fromAddr.String())
-				nftxm.Contract = strings.ToLower(wormtrans.Seller.Exchanger)
+				nftxm.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
 				nftxm.TokenId = nftmeta.TokenId
 				nftxm.Value = WormHolesNftCount
 				royalty, _ := strconv.Atoi(wormtrans.Seller.Royalty)
@@ -2077,8 +2185,10 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 				}
 				nftx := NftTx{}
 				nftx.Status = transFlag
+				nftx.TransType = WormHolesExAuthToExMintBuyTransfer
 				nftx.From = strings.ToLower(fromAddr.String())
 				nftx.To = strings.ToLower(toaddr.String())
+				nftx.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
 				nftx.NftAddr = NftAddr
 				nftx.Value = WormHolesNftCount
 				//price, _ := hexutil.DecodeUint64(wormtrans.Buyer.Price)
@@ -2095,6 +2205,718 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 		}
 	}
 	return &NftTrans{nfttxs, minttxs, wnfttxs, wminttxs, wethchanges, exchangerInfo}, nil
+}
+
+func SelfGetBlockTxs(blockNum uint64) ([]NftTx, error) {
+	client, err := ethclient.Dial(EthNode)
+	if err != nil {
+		log.Println("GetBlockTxs() err=", err)
+		return nil, err
+	}
+	block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(blockNum)))
+	if err != nil {
+		log.Println("GetBlockTxs() BlockByNumber() err=", err)
+		return nil, err
+	}
+	UserMintDeep := big.NewInt(0)
+	if blockNum > 1 {
+		mintdeep, err := GetUserMintDeep(blockNum - 1)
+		if err != nil {
+			log.Println("GetBlockTxs() GetUserMintDeep() err=", err)
+			return nil, err
+		}
+		UserMintDeep, ok := UserMintDeep.SetString(mintdeep, 16)
+		if !ok {
+			log.Println("GetBlockTxs() UserMintDeep.SetString() errors.")
+			return nil, err
+		}
+		log.Println("GetBlockTxs() UserMintDeep= ", UserMintDeep)
+	}
+	transT := block.Time()
+	log.Println(time.Unix(int64(transT), 0))
+	wnfttxs := make([]NftTx, 0, 20)
+	wminttxs := make([]NftTx, 0, 20)
+	for _, tx := range block.Transactions() {
+		if tx.To() == nil {
+			continue
+		}
+		nonce := tx.Nonce()
+		receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+		if err != nil {
+			log.Println("GetBlockTxs() TransactionReceipt() err=", err)
+			return nil, err
+		}
+		transFlag := true
+		if receipt.Status != 1 {
+			log.Println("GetBlockTxs() receipt.Status != 1")
+			transFlag = false
+			//continue
+		}
+		data := tx.Data()
+		if len(data) > 10 && string(data[:10]) == "wormholes:" {
+			var wormholes Wormholes
+			jsonErr := json.Unmarshal(data[10:], &wormholes)
+			if jsonErr != nil {
+				log.Println("GetBlockTxs() wormholes type err=", err)
+				continue
+			}
+			switch wormholes.Type {
+			case WormHolesMint:
+				wormMint := WormholesMint{}
+				jsonErr := json.Unmarshal(data[10:], &wormMint)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+					continue
+				}
+				if ExchangeOwer != wormMint.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				var nftmeta NftMeta
+				metabyte, _ := hex.DecodeString(wormMint.MetaUrl)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() hex.DecodeString err=", err)
+					continue
+				}
+				jsonErr = json.Unmarshal(metabyte, &nftmeta)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() NftMeta unmarshal type err=", err)
+					continue
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesMint
+				nftx.To = strings.ToLower(tx.To().String())
+				//nftx.Contract = WormHolesContract
+				nftx.Contract = strings.ToLower(wormMint.Exchanger)
+				//nftx.TokenId = wormMint.NftAddress
+				nftx.TokenId = nftmeta.TokenId
+				nftx.Value = WormHolesNftCount
+				nftx.Ratio = strconv.Itoa(int(wormMint.Royalty))
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(uint64(nonce), 10)
+				nftx.MetaUrl = nftmeta.Meta
+				nftx.NftAddr = common.BytesToAddress(UserMintDeep.Bytes()).String()
+				wminttxs = append(wminttxs, nftx)
+				err = GenNftAddr(UserMintDeep)
+				if err != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+				}
+			case WormHolesExchange:
+				if !transFlag {
+					continue
+				}
+				wormtrans := WormholesExchange{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() WormHolesExMintTransfer mint type err=", err)
+					continue
+				}
+				nftx := NftTx{}
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.Status = transFlag
+				nftx.From = strings.ToLower(tx.To().String())
+				nftx.To = ZeroAddr
+				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesPledge:
+				/*if !transFlag {
+					continue
+				}*/
+				wormtrans := WormholesPledge{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("ScanBlockTxs() Unmarshal err=", err)
+					continue
+				}
+				/*from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}*/
+				msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}
+				nftx := NftTx{}
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesPledge
+				nftx.From = strings.ToLower(msg.From().String())
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesUnPledge:
+				/*if !transFlag {
+					continue
+				}*/
+				wormtrans := WormholesPledge{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("ScanBlockTxs() WormHolesExMintTransfer mint type err=", err)
+					continue
+				}
+				msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
+				if err != nil {
+					log.Println("ScanBlockTxs() WormHolesTransfer() err=", err)
+					//return err
+					continue
+				}
+				nftx := NftTx{}
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesUnPledge
+				nftx.From = strings.ToLower(msg.From().String())
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.NftAddr = strings.ToLower(wormtrans.NftAddress)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesOpenExchanger:
+				wormOpen := WormholesOpenExchanger{}
+				jsonErr := json.Unmarshal(data[10:], &wormOpen)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() Unmarshal err=", err)
+					continue
+				}
+				wormOpen.Blocknumber = strconv.FormatUint(block.NumberU64(), 10)
+				exInfo, err := json.Marshal(&wormOpen)
+				if err != nil {
+					log.Println("GetBlockTxs() Marshal err=", err)
+					continue
+				}
+				if wormOpen.Name == "exchanger test." {
+					exchangerInfo := string(exInfo)
+					log.Println("GetBlockTxs() find open exchanger trans", exchangerInfo)
+				}
+			case WormHolesTransfer:
+				if !transFlag {
+					continue
+				}
+				wormtrans := WormholesTransfer{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() WormHolesTransfer unmarshal type err=", err)
+					continue
+				}
+				if wormtrans.NftAddress == "" {
+					log.Println("GetBlockTxs() WormHolesTransfer nftaddress equal null.")
+					continue
+				}
+				from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				if err != nil {
+					log.Println("GetBlockTxs() WormHolesTransfer() err=", err)
+					continue
+					//return nil, err
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesTransfer
+				nftx.From = strings.ToLower(from.String())
+				nftx.To = strings.ToLower(tx.To().String())
+				//nftx.Contract = WormHolesContract
+				//nftx.Contract = wormtrans.Exchanger
+				nftx.NftAddr = wormtrans.NftAddress
+				nftx.Value = WormHolesNftCount
+				nftx.Price = tx.Value().String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesExToBuyTransfer:
+				wormtrans := WormholesFixTrans{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+					continue
+				}
+				if ExchangeOwer != wormtrans.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				//from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				//if err != nil {
+				//	log.Println("GetBlockTxs() TransactionSender() err=", err)
+				//	return nil, err
+				//}
+				msg := wormtrans.Price + wormtrans.Nftaddress + wormtrans.Exchanger + wormtrans.Blocknumber + wormtrans.Seller
+				/*msghash := crypto.Keccak256([]byte(msg))
+				hexsig, err := hexutil.Decode("0x" + wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err :=crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				toaddr := crypto.PubkeyToAddress(*pub)
+				*/
+				toaddr, err := recoverAddress(msg, wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				if toaddr.String() != tx.To().String() {
+					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+					continue
+					//return nil, err
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesExToBuyTransfer
+				nftx.From = strings.ToLower(wormtrans.Seller)
+				nftx.To = strings.ToLower(tx.To().String())
+				//nftx.Contract = WormHolesContract
+				//nftx.Contract = wormtrans.Exchanger
+				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
+				nftx.NftAddr = wormtrans.Nftaddress
+				nftx.NftAddr = wormtrans.Nftaddress
+				nftx.Value = WormHolesNftCount
+				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
+				//nftx.Price = strconv.FormatUint(price, 10)
+				price, _ := hexutil.DecodeBig(wormtrans.Price)
+				nftx.Price = price.String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesBuyFromSellTransfer:
+				wormtrans := WormholesBuyFromSellTrans{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+					continue
+				}
+				if ExchangeOwer != wormtrans.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				//from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				//if err != nil {
+				//	log.Println("GetBlockTxs() TransactionSender() err=", err)
+				//	return nil, err
+				//}
+				msg := wormtrans.Price + wormtrans.Nftaddress + wormtrans.Exchanger + wormtrans.Blocknumber
+				fromaddr, err := recoverAddress(msg, wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					//todo
+					//return nil, err
+					continue
+				}
+				//if fromaddr.String() != tx.To().String() {
+				//	log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+				//	return nil, err
+				//}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesBuyFromSellTransfer
+				nftx.From = strings.ToLower(fromaddr.String())
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
+				nftx.NftAddr = wormtrans.Nftaddress
+				nftx.Value = WormHolesNftCount
+				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
+				//nftx.Price = strconv.FormatUint(price, 10)
+				price, _ := hexutil.DecodeBig(wormtrans.Price)
+				nftx.Price = price.String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesBuyFromSellMintTransfer:
+				wormtrans := WormholesBuyFromSellMintTrans{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+					continue
+				}
+				if ExchangeOwer != wormtrans.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					continue
+					//return nil, err
+				}
+				msg := wormtrans.Price + wormtrans.Royalty + wormtrans.Metaurl + wormtrans.Exclusiveflag +
+					wormtrans.Exchanger + wormtrans.Blocknumber
+				toaddr, err := recoverAddress(msg, wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				/*if toaddr.String() != tx.To().String() {
+					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+					return nil, err
+				}*/
+				var nftmeta NftMeta
+				metabyte, _ := hex.DecodeString(wormtrans.Metaurl)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() hex.DecodeString err=", err)
+					continue
+				}
+				jsonErr = json.Unmarshal(metabyte, &nftmeta)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() NftMeta unmarshal type err=", err)
+					continue
+				}
+				nftxm := NftTx{}
+				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesBuyFromSellMintTransfer
+				nftxm.To = strings.ToLower(toaddr.String())
+				nftxm.Contract = strings.ToLower(wormtrans.Exchanger)
+				nftxm.TokenId = nftmeta.TokenId
+				nftxm.Value = WormHolesNftCount
+				royalty, _ := hexutil.DecodeUint64(wormtrans.Royalty)
+				nftxm.Ratio = strconv.FormatUint(royalty, 10)
+				nftxm.TxHash = strings.ToLower(tx.Hash().String())
+				nftxm.Ts = strconv.FormatUint(transT, 10)
+				nftxm.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftxm.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftxm.Nonce = strconv.FormatUint(uint64(nonce), 10)
+				nftxm.MetaUrl = nftmeta.Meta
+				NftAddr := common.BytesToAddress(UserMintDeep.Bytes()).String()
+				nftxm.NftAddr = NftAddr
+				wminttxs = append(wminttxs, nftxm)
+				err = GenNftAddr(UserMintDeep)
+				if err != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesBuyFromSellMintTransfer
+				nftx.To = strings.ToLower(from.String())
+				nftx.From = strings.ToLower(toaddr.String())
+				nftx.Contract = strings.ToLower(wormtrans.Exchanger)
+				nftx.TokenId = nftmeta.TokenId
+				nftx.NftAddr = NftAddr
+				nftx.Value = WormHolesNftCount
+				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
+				//nftx.Price = strconv.FormatUint(price, 10)
+				price, _ := hexutil.DecodeBig(wormtrans.Price)
+				nftx.Price = price.String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesExToBuyMintToSellTransfer:
+				wormtrans := ExchangerMintTrans{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() WormHolesExMintTransfer mint type err=", err)
+					continue
+				}
+				//from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				//if err != nil {
+				//	log.Println("GetBlockTxs() TransactionSender() err=", err)
+				//	return nil, err
+				//}
+				if ExchangeOwer != wormtrans.Seller.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				msg := wormtrans.Buyer.Price + wormtrans.Buyer.Exchanger + wormtrans.Buyer.Blocknumber
+				/*msghash := crypto.Keccak256([]byte(msg))
+				hexsig, err := hexutil.Decode("0x"+ wormtrans.Buyer.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err :=crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				//2a95249bcbe73397f54562ff7a74d40b9d34a08b
+				toaddr := crypto.PubkeyToAddress(*pub)
+				*/
+				toaddr, err := recoverAddress(msg, wormtrans.Buyer.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				if toaddr.String() != tx.To().String() {
+					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+					//return nil, err
+				}
+				msg = wormtrans.Seller.Price + wormtrans.Seller.Royalty + wormtrans.Seller.Metaurl + wormtrans.Seller.Exclusiveflag +
+					wormtrans.Seller.Exchanger + wormtrans.Seller.Blocknumber
+				/*msghash = crypto.Keccak256([]byte(msg))
+				hexsig, err = hexutil.Decode("0x"+ wormtrans.Seller.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err =crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				fromAddr := crypto.PubkeyToAddress(*pub)
+				*/
+				fromAddr, err := recoverAddress(msg, wormtrans.Seller.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				//if fromAddr.String() != tx.To().String() {
+				//	log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+				//	//return nil, err
+				//}
+				var nftmeta NftMeta
+				metabyte, jsonErr := hex.DecodeString(wormtrans.Seller.Metaurl)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() hex.DecodeString err=", err)
+					continue
+				}
+				jsonErr = json.Unmarshal(metabyte, &nftmeta)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() NftMeta unmarshal type err=", err)
+					continue
+				}
+				nftxm := NftTx{}
+				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesExToBuyMintToSellTransfer
+				nftxm.To = strings.ToLower(fromAddr.String())
+				nftxm.Contract = strings.ToLower(wormtrans.Seller.Exchanger)
+				nftxm.TokenId = nftmeta.TokenId
+				nftxm.Value = WormHolesNftCount
+				royalty, _ := strconv.Atoi(wormtrans.Seller.Royalty)
+				nftxm.Ratio = strconv.Itoa(royalty)
+				nftxm.TxHash = strings.ToLower(tx.Hash().String())
+				nftxm.Ts = strconv.FormatUint(transT, 10)
+				nftxm.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftxm.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftxm.Nonce = strconv.FormatUint(uint64(nonce), 10)
+				nftxm.MetaUrl = nftmeta.Meta
+				NftAddr := common.BytesToAddress(UserMintDeep.Bytes()).String()
+				nftxm.NftAddr = NftAddr
+				wminttxs = append(wminttxs, nftxm)
+				err = GenNftAddr(UserMintDeep)
+				if err != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesExToBuyMintToSellTransfer
+				nftx.From = strings.ToLower(fromAddr.String())
+				nftx.To = strings.ToLower(toaddr.String())
+				nftx.NftAddr = NftAddr
+				nftx.Value = WormHolesNftCount
+				price, _ := hexutil.DecodeUint64(wormtrans.Buyer.Price)
+				nftx.Price = strconv.FormatUint(price, 10)
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesExAuthToExBuyTransfer:
+				wormtrans := WormholesFixTransAuth{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+					continue
+				}
+				if ExchangeOwer != wormtrans.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				//from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				//if err != nil {
+				//	log.Println("GetBlockTxs() TransactionSender() err=", err)
+				//	return nil, err
+				//}
+				msg := wormtrans.Price + wormtrans.Nftaddress + wormtrans.Exchanger + wormtrans.Blocknumber + wormtrans.Seller
+				//msg := wormtrans.Price + wormtrans.Nftaddress + wormtrans.Exchanger + wormtrans.Blocknumber
+				/*msghash := crypto.Keccak256([]byte(msg))
+				hexsig, err := hexutil.Decode("0x" + wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err :=crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				toaddr := crypto.PubkeyToAddress(*pub)
+				*/
+				toaddr, err := recoverAddress(msg, wormtrans.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				if toaddr.String() != tx.To().String() {
+					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+					continue
+					//return nil, errors.New("buyer address error.")
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesExAuthToExBuyTransfer
+				nftx.From = strings.ToLower(wormtrans.Seller)
+				nftx.To = strings.ToLower(tx.To().String())
+				nftx.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
+				nftx.NftAddr = wormtrans.Nftaddress
+				nftx.Value = WormHolesNftCount
+				//price, _ := hexutil.DecodeUint64(wormtrans.Price)
+				//nftx.Price = strconv.FormatUint(price, 10)
+				price, _ := hexutil.DecodeBig(wormtrans.Price)
+				nftx.Price = price.String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			case WormHolesExAuthToExMintBuyTransfer:
+				wormtrans := ExchangerAuthMintTrans{}
+				jsonErr := json.Unmarshal(data[10:], &wormtrans)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() WormHolesExMintTransfer mint type err=", err)
+					continue
+				}
+				//from, err := client.TransactionSender(context.Background(), tx, block.Hash(), receipt.TransactionIndex)
+				//if err != nil {
+				//	log.Println("GetBlockTxs() TransactionSender() err=", err)
+				//	return nil, err
+				//}
+				if ExchangeOwer != wormtrans.Seller.Exchanger {
+					log.Println("GetBlockTxs() ExchangeOwer err=")
+					continue
+				}
+				msg := wormtrans.Buyer.Price + wormtrans.Buyer.Exchanger + wormtrans.Buyer.Blocknumber
+				/*msghash := crypto.Keccak256([]byte(msg))
+				hexsig, err := hexutil.Decode("0x"+ wormtrans.Buyer.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err :=crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				//2a95249bcbe73397f54562ff7a74d40b9d34a08b
+				toaddr := crypto.PubkeyToAddress(*pub)
+				*/
+				toaddr, err := recoverAddress(msg, wormtrans.Buyer.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				if toaddr.String() != tx.To().String() {
+					log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+					//return nil, err
+				}
+				msg = wormtrans.Seller.Price + wormtrans.Seller.Royalty + wormtrans.Seller.Metaurl + wormtrans.Seller.Exclusiveflag +
+					wormtrans.Seller.Exchanger + wormtrans.Seller.Blocknumber
+				/*msghash = crypto.Keccak256([]byte(msg))
+				hexsig, err = hexutil.Decode("0x"+ wormtrans.Seller.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() Decode() err=", err)
+					return nil, err
+				}
+				pub, err =crypto.SigToPub(msghash, hexsig)
+				if err != nil {
+					log.Println("GetBlockTxs() TransactionSender() err=", err)
+					return nil, err
+				}
+				fromAddr := crypto.PubkeyToAddress(*pub)
+				*/
+				fromAddr, err := recoverAddress(msg, wormtrans.Seller.Sig)
+				if err != nil {
+					log.Println("GetBlockTxs() recoverAddress() err=", err)
+					continue
+					//return nil, err
+				}
+				//if fromAddr.String() != tx.To().String() {
+				//	log.Println("GetBlockTxs() PubkeyToAddress() buyer address error.")
+				//	//return nil, err
+				//}
+				var nftmeta NftMeta
+				metabyte, jsonErr := hex.DecodeString(wormtrans.Seller.Metaurl)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() hex.DecodeString err=", err)
+					continue
+				}
+				jsonErr = json.Unmarshal(metabyte, &nftmeta)
+				if jsonErr != nil {
+					log.Println("GetBlockTxs() NftMeta unmarshal type err=", err)
+					continue
+				}
+				nftxm := NftTx{}
+				nftxm.Status = transFlag
+				nftxm.TransType = WormHolesExAuthToExMintBuyTransfer
+				nftxm.To = strings.ToLower(fromAddr.String())
+				nftxm.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
+				nftxm.TokenId = nftmeta.TokenId
+				nftxm.Value = WormHolesNftCount
+				royalty, _ := strconv.Atoi(wormtrans.Seller.Royalty)
+				nftxm.Ratio = strconv.Itoa(royalty)
+				nftxm.TxHash = strings.ToLower(tx.Hash().String())
+				nftxm.Ts = strconv.FormatUint(transT, 10)
+				nftxm.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftxm.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftxm.Nonce = strconv.FormatUint(uint64(nonce), 10)
+				nftxm.MetaUrl = nftmeta.Meta
+				NftAddr := common.BytesToAddress(UserMintDeep.Bytes()).String()
+				nftxm.NftAddr = NftAddr
+				wminttxs = append(wminttxs, nftxm)
+				err = GenNftAddr(UserMintDeep)
+				if err != nil {
+					log.Println("GetBlockTxs() wormholes mint type err=", err)
+				}
+				nftx := NftTx{}
+				nftx.Status = transFlag
+				nftx.TransType = WormHolesExAuthToExMintBuyTransfer
+				nftx.From = strings.ToLower(fromAddr.String())
+				nftx.To = strings.ToLower(toaddr.String())
+				nftx.Contract = strings.ToLower(wormtrans.Exchangerauth.Exchangerowner)
+				nftx.NftAddr = NftAddr
+				nftx.Value = WormHolesNftCount
+				//price, _ := hexutil.DecodeUint64(wormtrans.Buyer.Price)
+				//nftx.Price = strconv.FormatUint(price, 10)
+				price, _ := hexutil.DecodeBig(wormtrans.Buyer.Price)
+				nftx.Price = price.String()
+				nftx.TxHash = strings.ToLower(tx.Hash().String())
+				nftx.Ts = strconv.FormatUint(transT, 10)
+				nftx.BlockNumber = strconv.FormatUint(block.NumberU64(), 10)
+				nftx.TransactionIndex = strconv.FormatUint(uint64(receipt.TransactionIndex), 10)
+				nftx.Nonce = strconv.FormatUint(nonce, 10)
+				wnfttxs = append(wnfttxs, nftx)
+			}
+		}
+	}
+	wnfttxs = append(wnfttxs, wminttxs...)
+	return wnfttxs, nil
 }
 
 func GetUserMintDeep(blockNumber uint64) (string, error) {

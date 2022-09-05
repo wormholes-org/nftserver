@@ -83,6 +83,7 @@ var (
 	ErrUserTrading          = errors.New("567,User in trading.")
 	ErrDeleteImg            = errors.New("568,Delete image error.")
 	ErrFileSize             = errors.New("569,Upload file size exceeds hard drive storage.")
+	ErrSnftPledge           = errors.New("570,snft has pledged.")
 )
 
 //const (
@@ -296,6 +297,7 @@ type NftRecord struct {
 	Verifiedtime   int64  `json:"vrf_time" gorm:"type:bigint DEFAULT NULL;comment:'Review time'"`
 	Selltype       string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft transaction type'"`
 	Mintstate      string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'minting status'"`
+	Pledgestate    string `json:"pledgestate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'Pledgestate status'"`
 	Extend         string `json:"extend" gorm:"type:longtext ;comment:'expand field'"`
 }
 
@@ -416,6 +418,24 @@ func (this MintState) String() string {
 		return "Minted"
 	case Minting:
 		return "Minting"
+	default:
+		return "Unknow"
+	}
+}
+
+type PledgeState int
+
+const (
+	NoPledge PledgeState = iota
+	Pledge
+)
+
+func (this PledgeState) String() string {
+	switch this {
+	case NoPledge:
+		return "NoPledge"
+	case Pledge:
+		return "Pledge"
 	default:
 		return "Unknow"
 	}
@@ -767,6 +787,14 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexNftsSnftOwnaddrDeleted ON nfts ( snft, ownaddr, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftOwnaddrDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	strOrder = "CREATE INDEX indexNftsNftaddrOwnaddr ON nfts ( nftaddr, ownaddr );"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -852,6 +880,22 @@ func (nft NftDb) CreateIndexs() error {
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
 			fmt.Printf("CreateIndexs() indexNftsSnftCollectionOwnaddrDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexCollectsSnftstageDeleted ON collects ( snftstage, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexCollectsSnftstageDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexCollectsCreateaddrNameDeleted ON collects ( createaddr, name, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexCollectsCreateaddrNameDeleted  err=%s\n", db.Error)
 			return db.Error
 		}
 	}

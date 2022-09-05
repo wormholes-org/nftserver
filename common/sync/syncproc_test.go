@@ -7,6 +7,7 @@ import (
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"github.com/nftexchange/nftserver/models"
+	"gorm.io/gorm"
 	"log"
 	"math/big"
 	"strings"
@@ -130,4 +131,87 @@ func TestSyncBlockTxsNew(t *testing.T) {
 		}
 		blockS++
 	}
+}
+
+func TestSync(t *testing.T) {
+	const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
+	const dbNameT = "snftdb"
+	const localtimeT = "?parseTime=true&loc=Local"
+	const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
+
+	contracts.EthNode = "http://43.129.181.130:8561"
+	contracts.ExchangeOwer = "0x62e0c8032fb51bc401558b58b1e7733276c1ec8a"
+	models.ExchangeOwer = "0x62e0c8032fb51bc401558b58b1e7733276c1ec8a"
+	nd, err := models.NewNftDb(sqldsnT)
+	if err != nil {
+		log.Printf("SelfSync() connect database err = %s\n", err)
+		return
+	}
+	models.NewQueryCatch("192.168.1.235:6379", "user123456")
+	defer nd.Close()
+	blockS := uint64(0)
+	if models.TransferSNFT {
+		blockS, err = models.GetDbSnftBlockNumber(sqldsnT)
+		if err != nil {
+			log.Println("SelfSync() get scan block num err=", err)
+			return
+		}
+	} else {
+		blockS, err = models.GetDbBlockNumber(sqldsnT)
+		if err != nil {
+			log.Println("SelfSync() get scan block num err=", err)
+			return
+		}
+	}
+	blockS = 34032
+	for curBlock := contracts.GetCurrentBlockNumber(); blockS <= curBlock; {
+		if models.TransferSNFT {
+			log.Println("SelfSync() call ScanWorkerNft() blockNum=", blockS)
+			err := SelfScanWorkerNft(sqldsnT, blockS)
+			if err != nil {
+				log.Println("SelfSync() call SyncWorkerNft() err=", err)
+				return
+			}
+			fmt.Println("SelfSync() sync ScanWorkerNft ok.  blockNum=", blockS)
+		}
+		//txs, err := contracts.GetBlockTxsNew(blockS)
+		txs, err := contracts.SelfGetBlockTxs(blockS)
+		if err != nil {
+			fmt.Println("SelfSync() call GetBlockTxs() err=", err)
+			return
+		}
+		//err = SelfSyncBlockTxs(sqldsn, blockS, *txs)
+		err = models.SyncTxs(nd, txs)
+		if err != nil {
+			log.Println("SelfSync() SyncBlockTxs err=", err)
+			return
+		}
+		blockS++
+		err = nd.GetDB().Transaction(func(tx *gorm.DB) error {
+			var params models.SysParams
+			dbErr := nd.GetDB().Select("id").Last(&params)
+			if dbErr.Error != nil {
+				log.Println("SelfSync() params err=", dbErr.Error)
+				return dbErr.Error
+			}
+			nparams := models.SysParams{}
+			nparams.Scannumber = blockS
+			nparams.Scansnftnumber = blockS
+			dbErr = nd.GetDB().Model(&models.SysParams{}).Where("id = ?", params.ID).Updates(&nparams)
+			if dbErr.Error != nil {
+				log.Println("SelfSync() update params err=", dbErr.Error)
+				return dbErr.Error
+			}
+			return nil
+		})
+		if err != nil {
+			log.Println("SelfSync() update params err=", err)
+			return
+		}
+		fmt.Println("SelfSync() update OK block=", blockS)
+		if blockS >= curBlock {
+			curBlock = contracts.GetCurrentBlockNumber()
+		}
+	}
+	return
 }

@@ -182,9 +182,15 @@ func (nft NftDb) BuyingNft(userAddr,
 		fmt.Println("BuyingNft() bidprice not find nft err= ", err.Error)
 		return ErrNftNotExist
 	}
+	rerr := BuySigVerify(buyerSig, userAddr)
+	if rerr != nil {
+		log.Println("BuyingNft() SigVerify buyerSig err=", rerr)
+		return rerr
+	}
 	if userAddr == buyerAddr {
 		//err := WormTrans(nftrecord.Mintstate, auctionRec.Tradesig, buyerSig)
 		//ExchangerAuth = `{"exchanger_owner":"0x01842a2cf56400a245a56955dc407c2c4137321e","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900","block_number":"0x2540be400","sig":"0x7f1ca96714208959c5a75bdbf4770893b76b13c0bca26da2086c3365e537d57444f79b31498301c5c1d55400eec4b469c83a88a527159112f27ff934c222e4191b"}`
+
 		auctRec := Auction{}
 		auctRec.SellState = SellStateWait.String()
 		auctRec.Price = price
@@ -325,6 +331,27 @@ func (nft NftDb) GroupBuyingNft(userAddr, params string) error {
 			fmt.Println("BuyingNft err=", err)
 			return err
 		}
+	}
+	return nil
+}
+
+func BuySigVerify(sigstr, buyerAddr string) error {
+	buyer := contracts.Buyer{}
+	err := json.Unmarshal([]byte(sigstr), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+		return errors.New(ErrData.Error() + "sig data err")
+	}
+	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	toaddr, rerr := contracts.RecoverAddress(msg, buyer.Sig)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =", buyerAddr)
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+		return errors.New(ErrData.Error() + "buyer sig recover err")
+	}
+	if strings.ToLower(toaddr.String()) != strings.ToLower(buyerAddr) {
+		log.Println("SigVerify() buying  address error.")
+		return errors.New(ErrData.Error() + "buying address error.")
 	}
 	return nil
 }
