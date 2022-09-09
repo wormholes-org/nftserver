@@ -11,7 +11,7 @@ import (
 )
 
 func (nft NftDb) NewCollections(useraddr, name, img, contract_type, contract_addr,
-	desc, categories, sig string) error {
+	desc, categories, sig, background string) error {
 	useraddr = strings.ToLower(useraddr)
 	contract_addr = strings.ToLower(contract_addr)
 	fmt.Println("NewCollections() user_addr=", useraddr, "      time=", time.Now().String())
@@ -51,6 +51,11 @@ func (nft NftDb) NewCollections(useraddr, name, img, contract_type, contract_add
 			imagerr := SaveCollectionsImage(ImageDir, useraddr, name, img)
 			if imagerr != nil {
 				fmt.Println("NewCollections() SaveCollectionsImage() err=", imagerr)
+				return ErrNftImage
+			}
+			imagerr = SaveCollectionsBackgroundImage(ImageDir, useraddr, name, img)
+			if imagerr != nil {
+				fmt.Println("NewCollections() SaveCollectionsBackgroundImage() err=", imagerr)
 				return ErrNftImage
 			}
 			GetRedisCatch().SetDirtyFlag(CollectionList)
@@ -113,7 +118,7 @@ func (nft NftDb) NewUserCollection(useraddr, name, img, contract_type, contract_
 }
 
 func (nft NftDb) ModifyCollections(useraddr, name, img, contract_type, contract_addr,
-	desc, categories, sig string) error {
+	desc, categories, sig, background string) error {
 	useraddr = strings.ToLower(useraddr)
 	contract_addr = strings.ToLower(contract_addr)
 	if !nft.UserKYCAduit(useraddr) {
@@ -127,7 +132,6 @@ func (nft NftDb) ModifyCollections(useraddr, name, img, contract_type, contract_
 	}
 	collectRec = Collects{}
 	if img != "" {
-		collectRec.Img = img
 		imagerr := SaveCollectionsImage(ImageDir, useraddr, name, img)
 		if imagerr != nil {
 			fmt.Println("ModifyCollections() SaveCollectionsImage() err=", imagerr)
@@ -135,6 +139,15 @@ func (nft NftDb) ModifyCollections(useraddr, name, img, contract_type, contract_
 		}
 
 	}
+	if background != "" {
+		imagerr := SaveCollectionsBackgroundImage(ImageDir, useraddr, name, background)
+		if imagerr != nil {
+			fmt.Println("ModifyCollections() SaveCollectionsBackgroundImage() err=", imagerr)
+			return ErrNftImage
+		}
+
+	}
+
 	if contract_type != "" {
 		collectRec.Contracttype = contract_type
 	}
@@ -280,11 +293,21 @@ func (nft NftDb) DelCollection(useraddr, contract, name string) error {
 			//	fmt.Println("DelCollection() count nft err= ", err.Error)
 			//	return err.Error
 			//}
-			err = tx.Model(&Nfts{}).Where("collectcreator =? and collections=? and mintstate =? ", useraddr, name, "NoMinted").Count(&total).Delete(&Nfts{})
+			err = tx.Model(&Nfts{}).Select("").Where("collectcreator =? and collections=? and mintstate =? ", useraddr, name, "NoMinted").Count(&total).Delete(&Nfts{})
 			if err.Error != nil {
 				fmt.Println("DelCollection() delete collection under nfts err= ", err.Error)
 				return errors.New(ErrDataBase.Error() + err.Error.Error())
 			}
+			var nftdata []string
+			err = tx.Model(&Nfts{}).Select("tokenid").Where("collectcreator =? and collections=? and mintstate =? ", useraddr, name, "NoMinted").Find(&nftdata)
+			if err.Error != nil {
+				fmt.Println("DelCollection() found nft err= ", err.Error)
+			}
+			err = tx.Model(&NftFavorited{}).Where("tokenid in ? ", nftdata).Delete(&NftFavorited{})
+			if err.Error != nil {
+				fmt.Println("DelCollection() delete NftFavorited  err= ", err.Error)
+			}
+
 			sysInfo := SysInfos{}
 			err = nft.db.Model(&SysInfos{}).Last(&sysInfo)
 			if err.Error != nil {

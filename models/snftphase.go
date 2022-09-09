@@ -934,8 +934,16 @@ func AutoPeriodEth(sqldsn string) {
 }
 
 type SNftCollection struct {
-	Collection CollectRec  `json:"collection"`
-	NftList    []NftRecord `json:"nftlist"`
+	Collection CollectRec      `json:"collection"`
+	NftList    []NftCollection `json:"nftlist"`
+}
+
+type NftCollection struct {
+	Ownaddr  string `json:"ownaddr"`
+	Name     string `json:"name"`
+	Url      string `json:"source_url"`
+	Contract string `json:"nft_contract_addr"`
+	Tokenid  string `json:"nft_token_id"`
 }
 
 func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count string) ([]SNftCollection, int64, error) {
@@ -943,11 +951,6 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 	snftcollect := SNftCollection{}
 	collectsearch := []CollectRec{}
 	var recCount int64
-	//cerr := GetRedisCatch().GetCatchData("CollectSearch", categories+param, &snftsearch)
-	//if cerr == nil {
-	//	log.Printf("CollectSearch() cache default  time.now=%s\n", time.Now())
-	//	return snftsearch, nil
-	//}
 	if IsIntDataValid(start_index) != true {
 		return nil, 0, ErrDataFormat
 	}
@@ -978,8 +981,8 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 			}
 		}
 		for _, value := range collectsearch {
-			nftrec := []NftRecord{}
-			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			nftrec := []NftCollection{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Scan(&nftrec)
 			if err.Error != nil {
 				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
 				return nil, 0, ErrNftNotExist
@@ -992,17 +995,6 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 	}
 
 	if categories == "" {
-		//err := nft.db.Model(&SnftCollect{}).Where("name like ?", "%"+param+"%").Find(&snftsearch)
-		//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-		//	fmt.Printf("search nft err=%s", err.Error)
-		//	return nil, ErrDataBase
-		//}
-		//for i, _ := range snftsearch {
-		//	snftsearch[i].Img = ""
-		//}
-		////GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
-		//
-		//return snftsearch, nil
 
 		err := nft.db.Model(Collects{}).Where("name like ?", "%"+param+"%").Count(&recCount)
 		if err.Error != nil {
@@ -1025,8 +1017,8 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 			}
 		}
 		for _, value := range collectsearch {
-			nftrec := []NftRecord{}
-			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			nftrec := []NftCollection{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Scan(&nftrec)
 			if err.Error != nil {
 				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
 				return nil, 0, ErrNftNotExist
@@ -1051,17 +1043,6 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 
 		selesql := "select *  " + catesql
 		countsql := "select count(*) " + catesql
-		//err := nft.db.Raw(catesql, "%"+param+"%").Scan(&snftsearch)
-		//if err.Error != nil {
-		//	fmt.Println("CollectSearch() search err=", err)
-		//	return nil, ErrDataBase
-		//}
-		//for i, _ := range snftsearch {
-		//	snftsearch[i].Img = ""
-		//}
-		////GetRedisCatch().CatchQueryData("CollectSearch", categories+param, &snftsearch)
-		//
-		//return snftsearch, nil
 
 		err := nft.db.Model(Collects{}).Raw(countsql, "%"+param+"%").Scan(&recCount)
 		if err.Error != nil {
@@ -1084,8 +1065,8 @@ func (nft NftDb) SNftCollectionSearch(categories, param, start_index, count stri
 			}
 		}
 		for _, value := range collectsearch {
-			nftrec := []NftRecord{}
-			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Find(&nftrec)
+			nftrec := []NftCollection{}
+			err = nft.db.Model(Nfts{}).Where("collectcreator =? and collections =?", value.Createaddr, value.Name).Scan(&nftrec)
 			if err.Error != nil {
 				fmt.Println("SNftCollectionSearch() find Nfts err=", err)
 				return nil, 0, ErrNftNotExist
@@ -1272,7 +1253,11 @@ func (nft NftDb) SetPeriod(useraddr, param, collection string) error {
 				return ErrDataBase
 			}
 		}
-		colletcstr = colletcstr[:len(colletcstr)-1]
+		if len(colletcstr) == 0 {
+			colletcstr = ""
+		} else {
+			colletcstr = colletcstr[:len(colletcstr)-1]
+		}
 		newperiod.Collect = colletcstr
 		newperiod.Accedvote = strconv.FormatBool(whethereth)
 		if collection != "" {

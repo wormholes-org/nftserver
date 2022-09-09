@@ -24,11 +24,13 @@ import (
 	"time"
 )
 
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
+//
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 
-const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
+//
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
 
 //
 //const sqlsvrLcT = "demo:123456@tcp(192.168.56.129:3306)/"
@@ -37,7 +39,7 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
 //const dbNameT = "mynftdb"
 //const dbNameT = "tnftdb"
-const dbNameT = "snftdb"
+const dbNameT = "c0x7cfbfeab24f646ab96b31da34ac689bc71faf655"
 
 //const dbNameT = "snftdb8012"
 
@@ -1237,14 +1239,14 @@ func TestCollections(t *testing.T) {
 		"",
 		"test.",
 		"art",
-		"sigedata",
+		"sigedata", "",
 	)
 	if err != nil {
 		fmt.Println("NewCollections() err=", err)
 	}
 	err = nd.ModifyCollections("0x86c02ffd61b0aca14ced6c3fefc4c832b58b246c",
 		"test", "img", "contract_type", "contract_addr",
-		"test desc.", "art", "sig string")
+		"test desc.", "art", "sig string", "")
 	if err != nil {
 		fmt.Println("NewCollections() err=", err)
 	}
@@ -1307,7 +1309,7 @@ func TestForeignContract(t *testing.T) {
 		"0x9e2576747C2525062a77667E4E88A97b6034C461",
 		"foreign-test.",
 		"art",
-		"sigedata",
+		"sigedata", "",
 	)
 	if err != nil {
 		fmt.Println("NewCollections() err=", err)
@@ -2645,10 +2647,38 @@ func TestRecover(t *testing.T) {
 		log.Println("SigVerify Unmarshal err=", err)
 	}
 	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
-	toaddr, rerr := contracts.RecoverAddress(msg, buyer.Sig)
+	msg = "0x8ac7230489e800000x647b226d657461223a222f697066732f516d5174556351744168423941533169427a6a7354675742343967776d6655323743344133724a387a5132556b71222c22746f6b656e5f6964223a2238343236373938323735333537227d10xb146bf8b0a069630ac5d151c5bf87fad77a479f70x12016307200100"
+	sig = "0x7417a8ae80c7dd4e61077cfd6ee9c007a2c703e18308de64544fd3e174a6e9922ed2cbfed5e28fe044a907c68f18cb3f67f1ea96fe8a28c4c39cda878b37744b1c"
+	sig = "0x382d215867c00889117a16b22cb37c90a817264491e48eb479b1fa098577f76152b2df9f1042d690e17f1d3fbd37297a882cad4148d29ae58d6827d382d1aa4e1b"
+	msg = "0xde0b6b3a76400000x647b226d657461223a222f697066732f516d5757326f447a4d486638335664704e6d426450524a754a3151536a54596a5651315350365358744b326f3842222c22746f6b656e5f6964223a2231363731333633333535393439227d10x01842a2cf56400a245a56955dc407c2c4137321e0x64f626"
+	sig = "0x3a1055b1c1a0194e2b5ab08b6c5e8caf0a54edfd4456854089f58475aaf89a936e0455edabe18f99b09eeaa7f7bac1b319d1bc82529003f92a3d7bc0defb65ca1c"
+	msg = "user"
+	toaddr, rerr := contracts.RecoverAddress(msg, sig)
 	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =")
 	if rerr != nil {
 		log.Println("SigVerify() recoverAddress() err=", err)
 	}
+
+}
+
+func TestDelFavor(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+	var nftdata []string
+	err := nd.db.Model(&Nfts{}).Select("tokenid").Where("collectcreator =? and collections=? and mintstate =? ", "0x7cfbfeab24f646ab96b31da34ac689bc71faf655", "wormholes", "NoMinted").Find(&nftdata)
+	if err.Error != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err.Error)
+	}
+	fmt.Println(nftdata)
+
+	var favorited []NftFavorited
+	err = nd.db.Model(&NftFavorited{}).Where("tokenid in ? ", nftdata).Find(&favorited)
+	if err.Error != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err.Error)
+	}
+	fmt.Println(favorited)
 
 }

@@ -51,7 +51,7 @@ func (nft *NftExchangeControllerV2) BatchCreateCollection() {
 			//	} else {
 			err = nd.NewCollections(data["user_addr"], data["name"],
 				data["img"], data["contract_type"], data["contract_addr"],
-				data["desc"], data["categories"], data["sig"])
+				data["desc"], data["categories"], data["sig"], data["background"])
 			if err == nil {
 				httpResponseData.Code = "200"
 				httpResponseData.Data = []interface{}{}

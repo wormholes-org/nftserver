@@ -412,7 +412,11 @@ func (nft NftDb) DelNft(useraddr, contract, tokenid string) error {
 			fmt.Println("DelNft() add  SysInfos nfttotal err=", err.Error)
 			return ErrNotExist
 		}
-
+		err = tx.Model(&NftFavorited{}).Where("tokenid = ?", tokenid).Delete(&NftFavorited{})
+		if err.Error != nil {
+			fmt.Println("DelNft() del  NftFavorited  err=", err.Error)
+			return ErrNotExist
+		}
 		GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 		return nil
 	})

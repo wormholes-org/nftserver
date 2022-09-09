@@ -1298,11 +1298,11 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			}
 			if whereFlag == false {
 				whereFlag = true
-				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
-				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" `
+				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" `
 			} else {
-				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
-				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" `
+				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" `
 			}
 			snftSql = snftSql + " order by " + orderBy
 			if len(startIndex) > 0 && len(count) > 0 {

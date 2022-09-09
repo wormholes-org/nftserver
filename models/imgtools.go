@@ -218,6 +218,56 @@ func SaveCollectionsImage(path, user_addr, name, image_base64 string) error {
 	return err
 }
 
+func SaveCollectionsBackgroundImage(path, user_addr, name, image_base64 string) error {
+	newPath := path + "/user/" + strings.ToLower(user_addr) + "/collections/"
+	_, err := os.Stat(newPath)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(newPath, os.ModePerm)
+		if err != nil {
+			fmt.Println("SaveCollectionsBackgroundImage() create dir err=", err)
+			return err
+		}
+	}
+	var file, imagetype, img string
+	if image_base64 != "" {
+		imagetype, img, err = ParseBase64Type(image_base64)
+		if err != nil {
+			fmt.Println("SaveCollectionsBackgroundImage() ParseBase64Type() err=", err)
+			return err
+		}
+		//hexname := hex.EncodeToString([]byte(name))
+		var hexname string
+		for _, c := range name {
+			hexname += fmt.Sprintf("%02x", c)
+		}
+		file = newPath + hexname + "background." + "jpg"
+	} else {
+		fmt.Println("SaveCollectionsBackgroundImage() image_base64==0 error.")
+		return err
+	}
+	if img == "" || imagetype == "" {
+		fmt.Println("SaveCollectionsBackgroundImage() imagetype error.")
+		return err
+	}
+	switch imagetype {
+	case "jpeg", "jpg":
+		err = base64toJpeg(file, img)
+		if err != nil {
+			fmt.Println("SaveCollectionsBackgroundImage() base64toJpeg() err=", err)
+			return err
+		}
+	default:
+		fmt.Println("SaveCollectionsBackgroundImage() imagetype error.")
+		return errors.New("SaveCollectionsBackgroundImage() imagetype error.")
+	}
+	result := Base64AddMemory(file)
+	if result != nil {
+		log.Println("Base64AddMemory() err=", result)
+		return result
+	}
+	return err
+}
+
 func SaveSnftCollectionsImage(path, user_addr, name, image_base64 string) error {
 	newPath := path + "/user/" + strings.ToLower(user_addr) + "/snftcollections/"
 	_, err := os.Stat(newPath)

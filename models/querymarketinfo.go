@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -255,6 +256,11 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 	mInfo := NFTMarketInfo{}
 
 	t := time.Now()
+	cerr := GetRedisCatch().GetCatchData("GetNftMarketInfo", t.Format("2006-01-02"), &mInfo)
+	if cerr == nil {
+		log.Printf("GetNftMarketInfo()   spend time=%s time.now=%s\n", time.Now().Sub(t), time.Now())
+		return &mInfo, nil
+	}
 	//marketcache := t.Format("2006-01-02")
 	//cerr := GetRedisCatch().GetCatchData("GetNftMarketInfo", marketcache, &mInfo)
 	//if cerr == nil {
@@ -460,6 +466,8 @@ func (nft *NftDb) GetNftMarketInfo() (*NFTMarketInfo, error) {
 		}
 	}
 	//GetRedisCatch().CatchQueryData("GetNftMarketInfo", marketcache, &mInfo)
+	t = time.Now()
+	GetRedisCatch().CatchQueryData("GetNftMarketInfo", t.Format("2006-01-02"), &mInfo)
 
 	return &mInfo, nil
 }

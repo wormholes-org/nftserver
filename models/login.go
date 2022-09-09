@@ -123,6 +123,7 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 			return ErrLoginFailed
 		}
 	}
+	GetRedisCatch().SetDirtyFlag(MarketNftInfo)
 	return db.Error
 }
 

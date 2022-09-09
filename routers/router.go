@@ -139,6 +139,8 @@ func registRouterV2() {
 		beego.Router("/v2/setperiod", &nftexchangev2.NftExchangeControllerV2{}, "post:SetPeriod")
 		//query period collection snft
 		beego.Router("/v2/queryperiod", &nftexchangev2.NftExchangeControllerV2{}, "get:GetPeriod")
+		//set user agreement and privacy policy
+		beego.Router("/v2/setAgreement", &nftexchangev2.NftExchangeControllerV2{}, "post:SetAgreement")
 
 	}
 	//User login

@@ -562,6 +562,7 @@ func GetCurrentBlockNumber() uint64 {
 	var err error
 	for {
 		for {
+			fmt.Println("GetCurrentBlockNumber() dial ", "EthNode=", EthNode)
 			client, err = ethclient.Dial(EthNode)
 			if err != nil {
 				log.Println("GetCurrentBlockNumber()", "EthNode=", EthNode, " connect err=", err)
@@ -571,6 +572,7 @@ func GetCurrentBlockNumber() uint64 {
 				break
 			}
 		}
+		fmt.Println("GetCurrentBlockNumber() get HeaderByNumber")
 		header, err := client.HeaderByNumber(context.Background(), nil)
 		if err != nil {
 			log.Println("GetCurrentBlockNumber() get HeaderByNumber err=", err)
