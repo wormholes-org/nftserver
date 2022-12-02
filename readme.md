@@ -24,11 +24,6 @@
         EthersNode = https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161
         EthersWsNode = wss://rinkeby.infura.io/ws/v3/97cb2119c79842b7818a7a37df749b2b
 
-## 2. the signature configuration file
-    Before signing, you need to delete all the data after the [time] tag (including the [time] tag) in the app.conf file.
-    ./signappconf -f app.conf -key without private key starting with 0x
-    Copy the signed app.conf file to the conf directory in the same directory as the nftserver execution file.
-
-## 3. start the nftserver service
+## 2. start the nftserver service
     setsid ./nftserver > log
 
