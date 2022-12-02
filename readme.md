@@ -2,11 +2,11 @@
 ## 1. Edit the configuration file (app.conf)
 ### Configure mysql related parameters, for example:
         #Database parameter configuration  
-        #"admin:user123456@tcp(192.168.1.238:3306)/"
+        #"username:userpassword@tcp(192.168.1.238:3306)/"
         #username  
-        dbusername = admin
+        dbusername = *****
         #user password
-        dbuserpassword = user123456
+        dbuserpassword = *******
         #Database server address
         dbserverip = 192.168.56.128
         #Database server port
