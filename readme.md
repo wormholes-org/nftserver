@@ -15,7 +15,7 @@
         dbname = nftdb
 ### Configure contract-related parameters, for example:
         #Contract event node access point
-        WormholesNode = https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161
+        WormholesNode = https://api.wormholestest.com
 
 ## 2. start the nftserver service
     setsid ./nftserver > log
