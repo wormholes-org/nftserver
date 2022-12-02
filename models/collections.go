@@ -53,7 +53,7 @@ func (nft NftDb) NewCollections(useraddr, name, img, contract_type, contract_add
 				fmt.Println("NewCollections() SaveCollectionsImage() err=", imagerr)
 				return ErrNftImage
 			}
-			imagerr = SaveCollectionsBackgroundImage(ImageDir, useraddr, name, img)
+			imagerr = SaveCollectionsBackgroundImage(ImageDir, useraddr, name, background)
 			if imagerr != nil {
 				fmt.Println("NewCollections() SaveCollectionsBackgroundImage() err=", imagerr)
 				return ErrNftImage

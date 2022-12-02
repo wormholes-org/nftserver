@@ -7,6 +7,7 @@ import (
 	"github.com/nftexchange/nftserver/models"
 	_ "github.com/nftexchange/nftserver/routers"
 	"gorm.io/gorm"
+	"log"
 	"strconv"
 	"time"
 )
@@ -25,6 +26,49 @@ func TimeProc(sqldsn string) {
 			nd.Close()
 		}
 	}
+}
+
+func clearMergeAuction(nft *models.NftDb, auctionRec *models.Auction) {
+	nft.GetDB().Transaction(func(tx *gorm.DB) error {
+		nftrecord := models.Nfts{}
+		err := tx.Model(&models.Nfts{}).Where("contract = ? AND tokenid =?",
+			auctionRec.Contract, auctionRec.Tokenid).First(&nftrecord)
+		if err.Error != nil {
+			log.Println("clearMergeAuction() update record err=", err.Error)
+			return err.Error
+		}
+		if nftrecord.Mergetype != nftrecord.Mergelevel || nftrecord.Exchange == 1 || nftrecord.Pledgestate == models.Pledge.String() {
+			err = nft.GetDB().Model(&models.Bidding{}).Where("auctionid = ?", auctionRec.ID).Delete(&models.Bidding{})
+			if err.Error != nil {
+				log.Println("clearMergeAuction() delete bidding record err=", err.Error)
+				return err.Error
+			}
+			err = tx.Model(&models.Auction{}).Where("id = ? ", auctionRec.ID).Delete(&models.Auction{})
+			if err.Error != nil {
+				log.Println("clearMergeAuction() delete auction record err=", err.Error)
+				return err.Error
+			}
+			//nftrecord := models.Nfts{}
+			//nftrecord.Selltype = models.SellTypeNotSale.String()
+			//err = tx.Model(&models.Nfts{}).Where("id = ?", auctionRec.Nftid).Updates(&nftrecord)
+			//if err.Error != nil {
+			//	fmt.Println("clearMergeAuction() update record err=", err.Error)
+			//	return err.Error
+			//}
+			nfttab := map[string]interface{}{
+				"Selltype":    models.SellTypeNotSale.String(),
+				"Sellprice":   0,
+				"Offernum":    0,
+				"Maxbidprice": 0,
+			}
+			err = tx.Model(&models.Nfts{}).Where("id = ?", auctionRec.Nftid).Updates(&nfttab)
+			if err.Error != nil {
+				fmt.Println("ClearAuction() update record err=", err.Error)
+				return err.Error
+			}
+		}
+		return nil
+	})
 }
 
 func CallContracts(nft *models.NftDb) {
@@ -314,6 +358,7 @@ func CallContracts(nft *models.NftDb) {
 				}
 			}
 		}
+		clearMergeAuction(nft, &auctionRec)
 	}
 	fmt.Println()
 	fmt.Println(time.Now().String()[:20], "TimeProc() end +++++++++++++++++++")

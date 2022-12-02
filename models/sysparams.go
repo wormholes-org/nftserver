@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	beego "github.com/beego/beego/v2/server/web"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
@@ -46,7 +47,7 @@ const (
 	ToolongAuciton   = 365
 	//HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"}]}"
 	HomePages         = "{\"announcement\":[\"m1\",\"m2\",\"m3\",\"m4\",\"m5\"],\"nft_loop\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}],\"collections\":[{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"},{\"creator\":\"\",\"name\":\"\"}],\"nfts\":[{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"},{\"contract\":\"\",\"tokenid\":\"\"}]}"
-	DefExchangeLink   = "{\"github\":\"https://github.com/wormholes-org\",\"discord\":\"https://discord.com/invite/AbmTrrAmuN\",\"twitter\":\"https://twitter.com/WormholesChain\"}"
+	DefExchangeLink   = "{\"github\":\"https://github.com/wormholes-org\",\"discord\":\"https://discord.gg/N4ksH6tqRX\",\"twitter\":\"https://twitter.com/WormholesChain\",\"telegram\":\"https://t.me/wormholes_chain\"}"
 	DefAutoFlag       = "true"
 	DefAutoSnft       = "false"
 	DefUserMint       = "true"
@@ -66,7 +67,8 @@ const (
 	DefPartlogo       = "wormholes"
 	DefCaptchaNum     = 16
 	DefaultWormBlack  = "/ipfs/QmSQf4rm7C2riGffS6YFxrPgiVBAaSwLMfdhubPo1jP2A5/worm_black.png"
-	DefaultWormBlue   = "/ipfs/QmSQf4rm7C2riGffS6YFxrPgiVBAaSwLMfdhubPo1jP2A5/worm_blue.jpg"
+	//DefaultWormBlue   = "/ipfs/QmSQf4rm7C2riGffS6YFxrPgiVBAaSwLMfdhubPo1jP2A5/worm_blue.jpg"
+	DefaultWormBlue   = "/ipfs/QmconYaGYgeZBL5XnvLtxM1Kxq1fWts4RNxXTDj5WxTAkK"
 	DefaultCollection = "mycollection"
 )
 
@@ -121,6 +123,7 @@ var (
 	LimitTotalSize          bool
 	LimitFileSize           string
 	TransSnft               bool
+	DefaultExchangeAuth     string
 )
 
 type ExchangerAuthrize struct {
@@ -227,6 +230,7 @@ type SysParamsInfo struct {
 	AllowUserMint  string `json:"allowusermint"`
 	Uploadsize     string `json:"uploadsize"`
 	Backupipfs     string `json:"backupipfs"`
+	Royalty        string `json:"royalty"`
 }
 
 type ExchangeinfoRec struct {
@@ -251,6 +255,7 @@ type ExchangeinfoRec struct {
 	Desc           string `json:"desc" gorm:"type:longtext ;comment:'exchange desc'"`
 	Totalsize      uint64 `json:"totalsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft total size'"`
 	Limitsize      uint64 `json:"limitsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit amount size'"`
+	Royalty        int    `json:"royalty" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
 	//Bannerauto     string `json:"bannerauto" gorm:"type:varchar(10) ;comment:'Banner auto-update'"`
 	//Collectauto    string `json:"collectauto" gorm:"type:varchar(10) ;comment:'Popular collections  auto-update'"`
 	//Nftsauto       string `json:"nftsauto" gorm:"type:varchar(10) ;comment:'Popular Nfts auto-update'"`
@@ -289,6 +294,7 @@ type ExchangeInfo struct {
 	Homepage       string   `json:"homepage"`
 	Desc           string   `json:"desc"`
 	AutoFlag       string   `json:"autoflag"`
+	Royalty        string   `json:"royalty"`
 }
 
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
@@ -298,7 +304,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	//log.Println(params)
 	if err.Error != nil {
 		if err.Error == gorm.ErrRecordNotFound {
-			GetRedisCatch().SetDirtyFlag(AllDirty)
+			//GetRedisCatch().SetDirtyFlag(AllDirty)
 			params = SysParams{}
 			params.NFT1155addr = strings.ToLower(NFT1155Addr)
 			params.Adminaddr = strings.ToLower(AdminAddr)
@@ -319,6 +325,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			params.Collectcount = DefCollectcount
 			//params.Collectflush = DefCollectflush
 			params.Nftcount = DefNftcount
+			params.Exchangerauth = DefaultExchangeAuth
 			//params.Transfersnft = DefAutoSnft
 			//params.Autocommitsnft = DefAutoSnft
 			//params.Allownft = DefAutoSnft
@@ -352,11 +359,17 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			exchange.Exchangerinfo = ExchangeName
 			exchange.Transfersnft = DefAutoSnft
 			exchange.Autocommitsnft = DefAutoSnft
-			exchange.Allownft = DefAutoSnft
+			if DebugAllowNft == "true" {
+				exchange.Allownft = DefAutoSnft
+			} else {
+				exchange.Allownft = "true"
+			}
+
 			exchange.Allowusermint = DefUserMint
 			exchange.Uploadsize = DefUploadSize
 			exchange.Backupipfs = DefAutoSnft
 			exchange.Partnerslogo = DefPartlogo
+			exchange.Royalty = 100
 			err = nft.db.Model(&Exchangeinfos{}).Create(&exchange)
 			if err.Error != nil {
 				fmt.Println("QuerySysParams() create Exchangeinfos err= ", err.Error)
@@ -383,6 +396,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	paraminfo.Royaltylimit = strconv.Itoa(params.Royaltylimit)
 	paraminfo.Homepage = params.Homepage
 	paraminfo.Exchangerinfo = exchangeinfo.Exchangerinfo
+	ExchangeName = exchangeinfo.Exchangerinfo
 	paraminfo.Icon = exchangeinfo.Icon
 	paraminfo.Data = exchangeinfo.Data
 	paraminfo.Categories = exchangeinfo.Categories
@@ -414,6 +428,7 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	UploadSize = exchangeinfo.Uploadsize
 	beego.BConfig.MaxUploadSize = int64(exchangeinfo.Uploadsize)
 	paraminfo.Uploadsize = strconv.FormatUint(exchangeinfo.Uploadsize, 10)
+	paraminfo.Royalty = strconv.Itoa(exchangeinfo.Royalty)
 	return &paraminfo, nil
 }
 
@@ -675,7 +690,6 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	var paraminfo ExchangeInfo
 
 	err := nft.db.First(&params)
-	log.Println(params)
 	if err.Error != nil {
 		if err.Error == gorm.ErrRecordNotFound {
 			exchange := Exchangeinfos{}
@@ -886,6 +900,14 @@ func (nft NftDb) SetExchangeInfo(param ExchangeInfo) error {
 		}
 		if param.Deflanguage != "" {
 			updateP.Deflanguage = param.Deflanguage
+		}
+		if param.Royalty != "" {
+			low, err := strconv.Atoi(param.Royalty)
+			if err != nil {
+				log.Println("Roylaty input  error.")
+				return ErrData
+			}
+			updateP.Royalty = low
 		}
 
 	}
@@ -1151,9 +1173,11 @@ func InitSysParams(Sqldsndb string) error {
 			return err
 		}
 	}
-	go AutoPeriodEth(Sqldsndb)
+	//go AutoPeriodEth(Sqldsndb)
 	//go CaptchaDefault()
 	go WormLogoDefault()
+	go nd.SetFeeRate()
+	GetRedisCatch().SetDirtyFlag(AllDirty)
 	//hexExchangePrv := crypto.FromECDSA(ExchangerPrv)
 	//hexExchangePrvStr := hexutil.Encode(hexExchangePrv)[2:]
 	//contracts.SetSysParams(BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
@@ -1348,7 +1372,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 					}
 					scaned[index] = true
 					var nftRec Nfts
-					dberr := nd.db.Where("id = ?", index).First(&nftRec)
+					dberr := nd.db.Where("id = ? and mergetype = mergelevel and exchange = 0", index).First(&nftRec)
 					if dberr.Error != nil {
 						//nd.Close()
 						log.Println("ScanLoop() index=", index, "First(&nftRec) err = ", dberr.Error)
@@ -1367,7 +1391,10 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 			trans := make([]HotTrans, 0, 20)
 			//limit, _ := strconv.Atoi(params.Nftcount)
 			//dberr := nd.db.Group("tokenid as tc").Order("tc desc").Limit(limit).Find(&trans)
-			sql := "SELECT  contract, tokenid, count(tokenid) as tc from trans group by contract, tokenid order by tc desc limit "
+			//sql := "SELECT  contract, tokenid, count(tokenid) as tc from trans group by contract, tokenid order by tc desc limit "
+			sql := "SELECT  tr.contract, tr.tokenid, count(tr.tokenid) as tc from trans as tr " +
+				"left join nfts as nf on nf.tokenid=tr.tokenid where nf.exchange = 0 and mergetype = mergelevel " +
+				"group by tr.contract, tr.tokenid order by tc desc limit "
 			sql = sql + params.Nftcount
 			dberr = nd.db.Raw(sql).Scan(&trans)
 			if dberr.Error != nil {
@@ -1639,13 +1666,13 @@ func PKCS7UnPadding(origData []byte) []byte {
 }
 
 func WormLogoDefault() {
-	if DefaultCaptcha == "" {
-		DefaultCaptcha = "/ipfs/QmQjTwQDAxJ6cNhW7fQRC8EnAbdpSTPiP859m9EbNSs6Cx"
-	}
-	if DefaultMask == "" {
-		DefaultMask = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/mask.png"
-		DefaultMaskFrame = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/maskframe.png"
-	}
+	//if DefaultCaptcha == "" {
+	//	DefaultCaptcha = "/ipfs/QmQjTwQDAxJ6cNhW7fQRC8EnAbdpSTPiP859m9EbNSs6Cx"
+	//}
+	//if DefaultMask == "" {
+	//	DefaultMask = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/mask.png"
+	//	DefaultMaskFrame = "/ipfs/QmR9W6BUBPvaBiabCk6DybAk6mhxzGN9fsZjRzXkzvMb2y/maskframe.png"
+	//}
 	DefaultWormholes := "/ipfs/QmTr3WF9CG2wWNTo3eEZeyLGLcN6gAs68qFb87uihutVu1/worm.png"
 	DefaultCaptchaNum = DefCaptchaNum
 
@@ -1883,4 +1910,20 @@ func CaptchaDefault() {
 		return
 	}
 	fmt.Println("default captcha init ok")
+}
+
+func (nft NftDb) SetFeeRate() error {
+
+	addr := common.HexToAddress(ExchangeOwer)
+	exchange, err := contracts.GetLatestAccountInfo(addr)
+	if err != nil {
+		log.Println("SetFeeRate GetLatestAccountInfo err=", err)
+		return err
+	}
+	db := nft.db.Last(&Exchangeinfos{}).Update("royalty", exchange.FeeRate)
+	if db.Error != nil {
+		log.Println("SetFeeRate update toyalty err=", db.Error)
+		return db.Error
+	}
+	return nil
 }

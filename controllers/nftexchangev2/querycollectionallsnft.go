@@ -11,13 +11,13 @@ import (
 	"time"
 )
 
-//Querying information about a single SNFT fragment
-func (nft *NftExchangeControllerV2) QueryOwnerSnftCollections() {
-	fmt.Println("QueryOwnerSnftCollections()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+//Query snft in the collection according to the creator, collection name with deleted
+func (nft *NftExchangeControllerV2) QueryCollectionAllSnft() {
+	fmt.Println("QuerySnftByCollection()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
-		fmt.Printf("QueryOwnerSnftCollections() connect database err = %s\n", err)
+		fmt.Printf("QuerySnftByCollection() connect database err = %s\n", err)
 		return
 	}
 	defer nd.Close()
@@ -31,14 +31,13 @@ func (nft *NftExchangeControllerV2) QueryOwnerSnftCollections() {
 		httpResponseData.Msg = ERRINPUT.Error()
 		httpResponseData.Data = []interface{}{}
 	} else {
-		inputDataErr := nft.verifyInputData_QueryOwnerSnftCollections(data)
+		inputDataErr := nft.verifyInputData_QueryCollectionAllSnft(data)
 		if inputDataErr != nil {
 			httpResponseData.Code = "500"
 			httpResponseData.Msg = inputDataErr.Error()
 			httpResponseData.Data = []interface{}{}
 		} else {
-			collections, recount, err := nd.QueryOwnerSnftCollection(data["owner_addr"], data["categories"], data["start_index"], data["count"], data["status"])
-			//collections, err := nd.QueryOwnerSnftCollection(data["owner_addr"], data["categories"], "0", "16")
+			snfts, err := nd.QueryCollectionAllSnft(data["createaddr"], data["name"])
 			if err != nil {
 				if err == gorm.ErrRecordNotFound || err == models.ErrNftNotExist {
 					httpResponseData.Code = "200"
@@ -49,45 +48,46 @@ func (nft *NftExchangeControllerV2) QueryOwnerSnftCollections() {
 				httpResponseData.Data = []interface{}{}
 			} else {
 				httpResponseData.Code = "200"
-				httpResponseData.TotalCount = uint64(recount)
-				httpResponseData.Data = collections
+				httpResponseData.Data = snfts
 			}
 		}
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
-	fmt.Println("QueryOwnerSnftCollections()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+	fmt.Println("QuerySnftByCollection()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-func (nft *NftExchangeControllerV2) verifyInputData_QueryOwnerSnftCollections(data map[string]string) error {
+func (nft *NftExchangeControllerV2) verifyInputData_QueryCollectionAllSnft(data map[string]string) error {
 	regString, _ := regexp.Compile(PattenString)
 	regNumber, _ := regexp.Compile(PattenNumber)
 
 	if data["start_index"] != "" {
 		match := regNumber.MatchString(data["start_index"])
 		if !match {
+			fmt.Println("verifyInputData_QuerySnftByCollection createaddr error", data["start_index"])
 			return ERRINPUTINVALID
 		}
 	}
 	if data["count"] != "" {
 		match := regNumber.MatchString(data["count"])
 		if !match {
+			fmt.Println("verifyInputData_QuerySnftByCollection createaddr error", data["count"])
 			return ERRINPUTINVALID
 		}
 	}
-	if data["owner_addr"] != "" {
-		match := regString.MatchString(data["owner_addr"])
+	if data["createaddr"] != "" {
+		match := regString.MatchString(data["createaddr"])
 		if !match {
+			fmt.Println("verifyInputData_QuerySnftByCollection createaddr error", data["createaddr"])
 			return ERRINPUTINVALID
 		}
 	}
-	if data["categories"] != "" {
-		if data["categories"] != "*" {
-			match := regString.MatchString(data["categories"])
-			if !match {
-				return ERRINPUTINVALID
-			}
+	/*if data["name"] != "" {
+		match := regString.MatchString(data["name"])
+		if !match {
+			fmt.Println("verifyInputData_QuerySnftByCollection name error", data["name"])
+			return ERRINPUTINVALID
 		}
-	}
+	}*/
 	return nil
 }

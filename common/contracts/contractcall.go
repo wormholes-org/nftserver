@@ -15,6 +15,8 @@ import (
 	"github.com/nftexchange/nftserver/common/contracts/nft1155"
 	"github.com/nftexchange/nftserver/common/contracts/trade"
 	"github.com/nftexchange/nftserver/common/contracts/weth9"
+	"sync"
+
 	//"github.com/nftexchange/nftserver/ethhelper"
 	"golang.org/x/crypto/sha3"
 	"log"
@@ -288,7 +290,7 @@ type WormholesPledge struct {
 	NftAddress string `json:"nft_address"`
 }
 
-type AccountNFT struct {
+/*type AccountNFT struct {
 	//Account
 	Name                  string
 	Symbol                string
@@ -305,6 +307,29 @@ type AccountNFT struct {
 	Exchanger common.Address
 	MetaURL   string
 }
+*/
+
+type AccountNFT struct {
+	//Account
+	Name   string
+	Symbol string
+	//Price                 *big.Int
+	//Direction             uint8 // 0:un_tx,1:buy,2:sell
+	Owner                 common.Address
+	NFTApproveAddressList common.Address
+	//Auctions map[string][]common.Address
+	// MergeLevel is the level of NFT merged
+	MergeLevel            uint8
+	MergeNumber           uint32
+	PledgedFlag           bool
+	NFTPledgedBlockNumber *big.Int
+
+	Creator   common.Address
+	Royalty   uint32
+	Exchanger common.Address
+	MetaURL   string
+}
+
 type Account struct {
 	Nonce   uint64
 	Balance *big.Int
@@ -326,8 +351,57 @@ type Account struct {
 	// ApproveAddress have the right to handle all nfts of the account
 	ApproveAddressList []common.Address
 	// NFTBalance is the nft number that the account have
-	NFTBalance uint64
+	NFTBalance            uint64
+	NFTPledgedBlockNumber uint64
 	AccountNFT
+}
+
+type TransLock struct {
+	Mux         sync.Mutex
+	blocknumber uint64
+	nonce       uint64
+	initTime    time.Time
+}
+
+func (t *TransLock) Init(c *ethclient.Client, blocknumber uint64, address common.Address) {
+	t.Mux.Lock()
+	defer t.Mux.Unlock()
+	nonce, err := c.PendingNonceAt(context.Background(), address)
+	if err != nil {
+		log.Println("Init() err=", err)
+		return
+	}
+	t.nonce = nonce
+	t.blocknumber = blocknumber + 5
+	t.initTime = time.Now().Add(5 * time.Second)
+}
+
+func (t *TransLock) GetNonce(c *ethclient.Client, blocknumber uint64, address common.Address) (uint64, error) {
+	t.Mux.Lock()
+	defer t.Mux.Unlock()
+	if t.blocknumber <= blocknumber || t.initTime.Before(time.Now()) {
+		nonce, err := c.PendingNonceAt(context.Background(), address)
+		if err != nil {
+			log.Println("Init() err=", err)
+			return t.nonce, err
+		}
+		fmt.Println("GetNonce() get from chain  t.nonce=", t.nonce, " chain nonce=", nonce)
+		if nonce > t.nonce {
+			t.nonce = nonce
+		}
+		t.blocknumber = blocknumber + 1
+		t.initTime = time.Now().Add(5 * time.Second)
+	} else {
+		t.nonce = t.nonce + 1
+	}
+	fmt.Println("GetNonce() nonce=", t.nonce)
+	return t.nonce, nil
+}
+
+var transLock TransLock
+
+func init() {
+
 }
 
 func toBlockNumArg(number *big.Int) string {
@@ -351,6 +425,22 @@ func GetAccountInfo(nftaddr common.Address, blockNumber *big.Int) (*Account, err
 	err = client.CallContext(context.Background(), &result, "eth_getAccountInfo", nftaddr, toBlockNumArg(blockNumber))
 	if err != nil {
 		log.Println("GetAccountInfo() err=", err)
+		return nil, err
+	}
+	return &result, err
+}
+
+func GetLatestAccountInfo(nftaddr common.Address) (*Account, error) {
+	client, err := rpc.Dial(EthNode)
+	if err != nil {
+		log.Println("GetLatestAccountInfo() err=", err)
+		return nil, err
+	}
+	defer client.Close()
+	var result Account
+	err = client.CallContext(context.Background(), &result, "eth_getAccountInfo", nftaddr, "latest")
+	if err != nil {
+		log.Println("GetLatestAccountInfo() err=", err)
 		return nil, err
 	}
 	return &result, err
@@ -1730,6 +1820,7 @@ func GetBlockTxsNew(blockNum uint64) (*NftTrans, error) {
 					log.Println("GetBlockTxs() wormholes mint type err=", err)
 					continue
 				}
+				fmt.Println("14=", wormtrans)
 				if ExchangeOwer != wormtrans.Exchanger {
 					log.Println("GetBlockTxs() ExchangeOwer err=")
 					continue
@@ -3185,16 +3276,21 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 		return "", err
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		log.Println("AuthExchangerMint() err=", err)
-		return "", err
-	}
-	blocknum, err := client.BlockNumber(context.Background())
-	if err != nil {
-		log.Println("AuthExchangerMint() err=", err)
-		return "", err
-	}
+	//nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	//if err != nil {
+	//	log.Println("AuthExchangerMint() err=", err)
+	//	return "", err
+	//}
+	//blocknum, err := client.BlockNumber(context.Background())
+	//if err != nil {
+	//	log.Println("AuthExchangerMint() err=", err)
+	//	return "", err
+	//}
+	//nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	//if err != nil {
+	//	log.Println("AuthExchangeTrans() GetNonce err=", err)
+	//	return "", err
+	//}
 	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
@@ -3237,6 +3333,16 @@ func AuthExchangerMint(seller Seller2, buyer Buyer1, authSign string, fromprv st
 	sstr = sstr[1 : len(sstr)-1]
 	data := []byte(sstr)
 	log.Println("AuthExchangerMint() value=", value.String())
+	blocknum, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Println("AuthExchangerMint() err=", err)
+		return "", err
+	}
+	nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	if err != nil {
+		log.Println("AuthExchangeTrans() GetNonce err=", err)
+		return "", err
+	}
 	tx := types.NewTransaction(nonce, *toAddress, value, gasLimit, gasPrice, data)
 
 	log.Println("AuthExchangerMint() data=", sstr)
@@ -3355,16 +3461,21 @@ func AuthExchangeTrans(sell Seller1, buyer Buyer, authSign, fromprv string) (str
 		return "", nil
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		log.Println("AuthExchangeTrans() err=", err)
-		return "", err
-	}
-	blocknum, err := client.BlockNumber(context.Background())
-	if err != nil {
-		log.Println("AuthExchangeTrans() err=", err)
-		return "", err
-	}
+	//nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
+	//if err != nil {
+	//	log.Println("AuthExchangeTrans() err=", err)
+	//	return "", err
+	//}
+	//blocknum, err := client.BlockNumber(context.Background())
+	//if err != nil {
+	//	log.Println("AuthExchangeTrans() err=", err)
+	//	return "", err
+	//}
+	//nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	//if err != nil {
+	//	log.Println("AuthExchangeTrans() GetNonce err=", err)
+	//	return "", err
+	//}
 	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
@@ -3408,6 +3519,16 @@ func AuthExchangeTrans(sell Seller1, buyer Buyer, authSign, fromprv string) (str
 	data := []byte(sstr)
 	log.Println("AuthExchangeTrans() data=", sstr)
 	log.Println("AuthExchangeTrans() price=", value.String())
+	blocknum, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Println("AuthExchangeTrans() err=", err)
+		return "", err
+	}
+	nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	if err != nil {
+		log.Println("AuthExchangeTrans() GetNonce err=", err)
+		return "", err
+	}
 	tx := types.NewTransaction(nonce, *toAddress, value, gasLimit, gasPrice, data)
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {

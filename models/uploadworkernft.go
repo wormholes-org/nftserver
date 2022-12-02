@@ -2,65 +2,86 @@ package models
 
 import (
 	"fmt"
-	"log"
-	//"github.com/nftexchange/nftserver/ethhelper"
 	"gorm.io/gorm"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type WnftRecord struct {
-	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft owner address'"`
-	Md5            string `json:"md5" gorm:"type:longtext ;comment:'Picture md5 value'"`
-	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft name'"`
-	Desc           string `json:"desc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'nft description'"`
-	Meta           string `json:"meta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'meta information'"`
-	Nftmeta        string `json:"nftmeta" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'meta information,tokenid'"`
-	Url            string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nfc raw data hold address'"`
-	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) ;comment:'contract address'"`
-	Tokenid        string `json:"nft_token_id" gorm:"type:char(42) ;comment:'Uniquely identifies the nft flag'"`
-	Nftaddr        string `json:"nft_address" gorm:"type:char(42) DEFAULT NULL;comment:'Chain of wormholes uniquely identifies the nft'"`
-	Snftstage      string `json:"snftstage" gorm:"type:char(42) DEFAULT NULL;comment:'wormholes chain snft period'"`
-	Snftcollection string `json:"snftcollection" gorm:"type:char(42) DEFAULT NULL;comment:'Wormholes chain snft collection'"`
-	Snft           string `json:"snft" gorm:"type:char(42) ;comment:'wormholes chain snft'"`
-	Count          int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft sellable quantity'"`
-	Approve        string `json:"approve" gorm:"type:longtext ;comment:'Authorize'"`
-	Categories     string `json:"categories" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:''"`
-	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) ;comment:''"`
-	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 ;comment:'nft classification'"`
-	Image          string `json:"asset_sample" gorm:"type:longtext ;comment:'Collection creator address'"`
-	//Imageid			string 		`json:"imageid" gorm:"type:char(42) ;comment:'图片存储索引'"`
-	Hide         string `json:"hide" gorm:"type:char(20) ;comment:'Whether to let others see'"`
-	Signdata     string `json:"sig" gorm:"type:longtext ;comment:'Signature data, generated when created'"`
-	Createaddr   string `json:"user_addr" gorm:"type:char(42) ;comment:'Create nft address'"`
-	Verifyaddr   string `json:"vrf_addr" gorm:"type:char(42) ;comment:'Validator address'"`
-	Currency     string `json:"currency" gorm:"type:varchar(10) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'Transaction currency'"`
-	Price        uint64 `json:"price" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Price at creation time'"`
-	Royalty      int    `json:"royalty" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
-	Paychan      string `json:"paychan" gorm:"type:char(20) DEFAULT NULL;COMMENT:'trading channel'"`
-	TransCur     string `json:"trans_cur" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'Transaction currency'"`
-	Transprice   uint64 `json:"transprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'transaction price'"`
-	Transtime    int64  `json:"last_trans_time" gorm:"type:bigint DEFAULT NULL;comment:'Last trading time'"`
-	Createdate   int64  `json:"createdate" gorm:"type:bigint DEFAULT NULL;comment:'nft creation time'"`
-	Favorited    int    `json:"favorited" gorm:"type:int unsigned zerofill DEFAULT 0;comment:'Follow count'"`
-	Transcnt     int    `json:"transcnt" gorm:"type:int unsigned zerofill DEFAULT NULL;comment:'The number of transactions, plus one for each transaction'"`
-	Transamt     uint64 `json:"transamt" gorm:"type:bigint DEFAULT NULL;comment:'total transaction amount'"`
-	Verified     string `json:"verified" gorm:"type:char(20) DEFAULT NULL;comment:'Whether the nft work has passed the review'"`
-	Verifieddesc string `json:"Verifieddesc" gorm:"type:longtext CHARACTER SET utf8mb4  ;comment:'Review description: Failed review description'"`
-	Verifiedtime int64  `json:"vrf_time" gorm:"type:bigint DEFAULT NULL;comment:'Review time'"`
-	Selltype     string `json:"selltype" gorm:"type:char(20) DEFAULT NULL;COMMENT:'nft transaction type'"`
-	Mintstate    string `json:"mintstate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'minting status'"`
+func copySnftToSysnft(snft *Nfts) Sysnfts {
+	sysNft := Sysnfts{}
+	sysNft.Ownaddr = snft.Ownaddr
+	sysNft.Md5 = snft.Md5
+	sysNft.Name = snft.Name
+	sysNft.Desc = snft.Desc
+	sysNft.Meta = snft.Meta
+	sysNft.Nftmeta = snft.Nftmeta
+	sysNft.Url = snft.Url
+	sysNft.Contract = snft.Contract
+	sysNft.Tokenid = snft.Tokenid
+	sysNft.Nftaddr = snft.Nftaddr
+	sysNft.Snftstage = snft.Snftstage
+	sysNft.Snftcollection = snft.Snftcollection
+	sysNft.Snft = snft.Snft
+	sysNft.Count = snft.Count
+	sysNft.Approve = snft.Approve
+	sysNft.Categories = snft.Categories
+	sysNft.Collectcreator = snft.Collectcreator
+	sysNft.Collections = snft.Collections
+	sysNft.Image = snft.Image
+	sysNft.Hide = snft.Hide
+	sysNft.Signdata = snft.Signdata
+	sysNft.Createaddr = snft.Createaddr
+	sysNft.Verifyaddr = snft.Verifyaddr
+	sysNft.Currency = snft.Currency
+	sysNft.Price = snft.Price
+	sysNft.Royalty = snft.Royalty
+	sysNft.Paychan = snft.Paychan
+	sysNft.TransCur = snft.TransCur
+	sysNft.Transprice = snft.Transprice
+	sysNft.Transtime = snft.Transtime
+	sysNft.Createdate = snft.Createdate
+	sysNft.Favorited = snft.Favorited
+	sysNft.Transcnt = snft.Transcnt
+	sysNft.Transamt = snft.Transamt
+	sysNft.Verified = snft.Verified
+	sysNft.Verifieddesc = snft.Verifieddesc
+	sysNft.Verifiedtime = snft.Verifiedtime
+	sysNft.Selltype = snft.Selltype
+	sysNft.Mintstate = snft.Mintstate
+	sysNft.Pledgestate = snft.Pledgestate
+	return sysNft
 }
 
-type Wnfts struct {
-	gorm.Model
-	NftRecord
-}
-
-func (v Wnfts) TableName() string {
-	return "wnfts"
+func (nft NftDb) NewTokenId() (string, error) {
+	rand.Seed(time.Now().UnixNano())
+	var Tokenid string
+	var i int
+	for i = 0; i < genTokenIdRetry; i++ {
+		//NewTokenid := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
+		s := fmt.Sprintf("%d", rand.Int63())
+		if len(s) < 15 {
+			continue
+		}
+		s = s[len(s)-13:]
+		Tokenid = s
+		if s[0] == '0' {
+			continue
+		}
+		fmt.Println("UploadWNft() NewTokenid=", Tokenid)
+		nfttab := Nfts{}
+		err := nft.db.Where("tokenid = ? ", Tokenid).First(&nfttab)
+		if err.Error == gorm.ErrRecordNotFound {
+			break
+		}
+	}
+	if i >= 20 {
+		fmt.Println("UploadWNft() generate tokenId error.")
+		return "", ErrGenerateTokenId
+	}
+	return Tokenid, nil
 }
 
 func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
@@ -167,7 +188,6 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			}
 		}
 	}
-	var NewTokenid string
 	if nftExistFlag {
 		log.Println("UploadWNft() snft exist!")
 		/*nfttab := Nfts{}
@@ -220,73 +240,21 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 				log.Println("UploadWNft() err=", err.Error)
 				return err.Error
 			}
-			//if collectRec.Snftcollection != snftCollection {
 			err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
 				nftInfo.CollectionsCreator, collections).Update("totalcount", collectRec.Totalcount+1)
 			if err.Error != nil {
 				fmt.Println("UploadWNft() add collectins totalcount err= ", err.Error)
 				return err.Error
 			}
-			//}
-			/*	if (collectRec.Totalcount+1)%16 == 0 {
-				recCount := int64(0)
-				snft := nftaddress[:len(nftaddress)-1]
-				err := nft.db.Model(Nfts{}).Where("snft = ? and ownaddr != ?", snft, ZeroAddr).Count(&recCount)
-				if err.Error != nil {
-					log.Println("UploadWNft() recCount err=", err)
-					return err.Error
-				}
-				if recCount == 16 {
-					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
-					if err.Error != nil {
-						fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
-						return err.Error
-					}
-					GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
-						"queryStageList", "queryStageCollection", "queryNFTList", "search"})
-					GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
-				}
-			}*/
-			/*if nftaddress[len(nftaddress)-2:] == "00" {
-				//NftCatch.SetFlushFlag()
-				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
-					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
-				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
-
-				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
-				if err.Error != nil {
-					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
-					return err.Error
-				}
-			}*/
 			return nil
 		})
 	} else {
-		rand.Seed(time.Now().UnixNano())
-		var i int
-		for i = 0; i < genTokenIdRetry; i++ {
-			//NewTokenid := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
-			s := fmt.Sprintf("%d", rand.Int63())
-			if len(s) < 15 {
-				continue
-			}
-			s = s[len(s)-13:]
-			NewTokenid = s
-			if s[0] == '0' {
-				continue
-			}
-			fmt.Println("UploadWNft() NewTokenid=", NewTokenid)
-			nfttab := Nfts{}
-			err := nft.db.Where("tokenid = ? ", NewTokenid).First(&nfttab)
-			if err.Error == gorm.ErrRecordNotFound {
-				break
-			}
+		var nerr error
+		NewTokenid, nerr := nft.NewTokenId()
+		if nerr != nil {
+			fmt.Println("UploadWNft() generate tokenid err= ", nerr)
+			return nerr
 		}
-		if i >= 20 {
-			fmt.Println("UploadWNft() generate tokenId error.")
-			return ErrGenerateTokenId
-		}
-
 		nfttab := Nfts{}
 		nfttab.Tokenid = NewTokenid
 		nfttab.Nftaddr = nftaddress
@@ -311,11 +279,16 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 		nfttab.Count = count
 		nfttab.Verified = Passed.String()
 		nfttab.Verifiedtime = time.Now().Unix()
-
 		nfttab.Mintstate = Minted.String()
 		nfttab.Pledgestate = NoPledge.String()
 		nfttab.Createdate = time.Now().Unix()
 		nfttab.Royalty, _ = strconv.Atoi(royalty)
+		msnft := Nfts{}
+		err := nft.db.Select([]string{"id", "Chipcount"}).Where("nftaddr = ?", nftaddress[:len(nftaddress)-1]+"m").First(&msnft)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("UploadWNft() database err=", err.Error)
+			return ErrCollectionNotExist
+		}
 		sysInfo := SysInfos{}
 		dberr := nft.db.Model(&SysInfos{}).Last(&sysInfo)
 		if dberr.Error != nil {
@@ -325,53 +298,117 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			}
 		}
 		log.Println("UploadWNft() SysInfos snfttotal count=", sysInfo.Snfttotal)
+		sysNft := Sysnfts{}
+		err = nft.db.Where("snft = ?", nfttab.Snft).First(&sysNft)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("UploadWNft() database err=", err.Error)
+			return ErrCollectionNotExist
+		}
+		if err.Error == gorm.ErrRecordNotFound {
+			sysNft = copySnftToSysnft(&nfttab)
+			err := nft.db.Model(&Sysnfts{}).Create(&sysNft)
+			if err.Error != nil {
+				log.Println("UploadWNft() err=", err.Error)
+				return err.Error
+			}
+		}
 		return nft.db.Transaction(func(tx *gorm.DB) error {
 			err := tx.Model(&Nfts{}).Create(&nfttab)
 			if err.Error != nil {
-				fmt.Println("UploadWNft() err=", err.Error)
+				log.Println("UploadWNft() err=", err.Error)
 				return err.Error
 			}
-			//if collectRec.Snftcollection != snftCollection {
+			if nftaddress[len(nftaddress)-1:] == "0" {
+				nfttab.ID = 0
+				Tokenid, nerr := nft.NewTokenId()
+				if nerr != nil {
+					fmt.Println("UploadWNft() generate tokenid err= ", nerr)
+					return nerr
+				}
+				nfttab.Tokenid = Tokenid
+				nfttab.Chipcount = 1
+				nfttab.Mergetype = 1
+				nfttab.Ownaddr = ZeroAddr
+				nfttab.Nftaddr = nftaddress[:len(nftaddress)-1] + "m"
+				nfttab.Snftstage = nftaddress[:SnftStageOffset] + "m"
+				nfttab.Snftcollection = nftaddress[:snftCollectionOffset] + "m"
+				nfttab.Snft = nftaddress[:SnftOffset] + "m"
+				err = tx.Model(&Nfts{}).Create(&nfttab)
+				if err.Error != nil {
+					log.Println("UploadWNft() err=", err.Error)
+					return err.Error
+				}
+			}
+			if nftaddress[len(nftaddress)-2:] == "00" {
+				nfttab.ID = 0
+				Tokenid, nerr := nft.NewTokenId()
+				if nerr != nil {
+					fmt.Println("UploadWNft() generate tokenid err= ", nerr)
+					return nerr
+				}
+				nfttab.Tokenid = Tokenid
+				nfttab.Chipcount = 256
+				nfttab.Mergetype = 2
+				nfttab.Ownaddr = ZeroAddr
+				nfttab.Nftaddr = nftaddress[:len(nftaddress)-2] + "mm"
+				nfttab.Snftstage = nftaddress[:SnftStageOffset] + "m"
+				nfttab.Snftcollection = nftaddress[:snftCollectionOffset] + "m"
+				nfttab.Snft = nftaddress[:SnftOffset] + "m"
+				err = tx.Model(&Nfts{}).Create(&nfttab)
+				if err.Error != nil {
+					log.Println("UploadWNft() err=", err.Error)
+					return err.Error
+				}
+			}
+			if nftaddress[len(nftaddress)-3:] == "000" {
+				nfttab.ID = 0
+				Tokenid, nerr := nft.NewTokenId()
+				if nerr != nil {
+					fmt.Println("UploadWNft() generate tokenid err= ", nerr)
+					return nerr
+				}
+				nfttab.Tokenid = Tokenid
+				nfttab.Chipcount = 4096
+				nfttab.Mergetype = 3
+				nfttab.Ownaddr = ZeroAddr
+				nfttab.Nftaddr = nftaddress[:len(nftaddress)-3] + "mmm"
+				nfttab.Snftstage = nftaddress[:SnftStageOffset] + "m"
+				nfttab.Snftcollection = nftaddress[:snftCollectionOffset] + "m"
+				nfttab.Snft = nftaddress[:SnftOffset] + "m"
+				err = tx.Model(&Nfts{}).Create(&nfttab)
+				if err.Error != nil {
+					log.Println("UploadWNft() err=", err.Error)
+					return err.Error
+				}
+			}
+			if nftaddress[len(nftaddress)-1:] != "0" {
+				err = tx.Model(&Nfts{}).Where("id = ?", msnft.ID).Update("chipcount", msnft.Chipcount+1)
+				if err.Error != nil {
+					log.Println("UploadWNft() nft totalcount err= ", err.Error)
+					return err.Error
+				}
+			}
 			err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
 				nftInfo.CollectionsCreator, collections).Update("totalcount", collectRec.Totalcount+1)
 			if err.Error != nil {
-				fmt.Println("UploadWNft() add collectins totalcount err= ", err.Error)
+				log.Println("UploadWNft() add collectins totalcount err= ", err.Error)
 				return err.Error
 			}
-			//}
-			if (collectRec.Totalcount+1)%16 == 0 {
-				recCount := int64(0)
-				snft := nftaddress[:len(nftaddress)-1]
-				err := nft.db.Model(Nfts{}).Where("snft = ? and ownaddr != ?", snft, ZeroAddr).Count(&recCount)
-				if err.Error != nil {
-					log.Println("UploadWNft() recCount err=", err)
-					return err.Error
-				}
-				if recCount+1 == 16 {
-					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
-					if err.Error != nil {
-						fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
-						return err.Error
-					}
-					GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
-						"queryStageList", "queryStageCollection", "queryNFTList", "search"})
-					GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
-				}
+			err = tx.Model(&Sysnfts{}).Where("id = ?", sysNft.ID).Update("Chipcount", sysNft.Chipcount+1)
+			if err.Error != nil {
+				log.Println("UploadWNft() add Sysnfts chip count err= ", err.Error)
+				return err.Error
 			}
-			/*if nftaddress[len(nftaddress)-2:] == "00" {
-				//NftCatch.SetFlushFlag()
-				GetRedisCatch().SetDirtyFlag([]string{"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection",
-					"queryStageList", "queryStageCollection", "queryNFTList", "search"})
-				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+			if (sysNft.Chipcount + 1) == 16 {
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error
 				}
-			}*/
+				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+			}
 			return nil
 		})
 	}
-
 	return nil
 }

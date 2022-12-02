@@ -18,15 +18,17 @@ const (
 )
 
 var (
-	NftCacheDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch", "Search", "GetNftMarketInfo"}
-	UploadNftDirtyName = []string{"QueryNftByFilterNftSnft", "SnftSearch", "QueryNFTCollectionList", "QueryOwnerSnftChip", "Search", "GetNftMarketInfo"}
-	SetNftDirtyName    = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch", "Search"}
-	TradingDirtyName   = []string{"QueryMarketTradingHistory", "QueryNFTCollectionList"}
-	AnnouncementName   = []string{"Announcement"}
-	CollectionList     = []string{"QueryNFTCollectionList"}
-	MarketNftInfo      = []string{"GetNftMarketInfo"}
-	SnftExchange       = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection", "QueryOwnerSnftCollection", "QueryOwnerSnftChip"}
-	AllDirty           = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection",
+	NftCacheDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
+	UploadNftDirtyName = []string{"QueryNftByFilterNftSnft", "QueryNFTCollectionList", "QueryOwnerSnftChip",
+		"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection", "queryStageList",
+		"queryStageCollection", "queryNFTList"}
+	SetNftDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
+	TradingDirtyName = []string{"QueryMarketTradingHistory", "QueryNFTCollectionList"}
+	AnnouncementName = []string{"Announcement"}
+	CollectionList   = []string{"QueryNFTCollectionList"}
+	MarketNftInfo    = []string{"GetNftMarketInfo"}
+	SnftExchange     = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection", "QueryOwnerSnftCollection", "QueryOwnerSnftChip"}
+	AllDirty         = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection",
 		"QueryOwnerSnftCollection", "QueryOwnerSnftChip", "QueryNftByFilterNftSnft", "SnftSearch", "QueryNFTCollectionList",
 		"QueryOwnerSnftChip", "QueryMarketTradingHistory", "QueryNFTCollectionList", "Announcement", "QueryHomePage", "Search", "GetNftMarketInfo"}
 )

@@ -17,6 +17,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,10 +25,10 @@ import (
 	"time"
 )
 
-const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 
 //
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
 //
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
@@ -37,17 +38,12 @@ const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
 //const vpnsvr = "demo:123456@tcp(192.168.1.238:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
-//const dbNameT = "mynftdb"
-//const dbNameT = "tnftdb"
-const dbNameT = "c0x7cfbfeab24f646ab96b31da34ac689bc71faf655"
-
-//const dbNameT = "snftdb8012"
+//const dbNameT = "nftdb"
 
 //const dbNameT = "nftdb8011"
-//const dbNameT = "tttt"
-//const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
-
-//const dbNameT = "c0x655b762461ba84b9c55de7346729594ce6361ac7"
+//const dbNameT = "snftdb8012"
+//
+const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 
 //const dbNameT = "c0x544d5471284271f0cc0b48669d553c72a0877070"
 
@@ -56,6 +52,14 @@ const localtimeT = "?parseTime=true&loc=Local"
 //const localtimeT = "?charset=utf8mb4&parseTime=True&loc=Local"
 
 const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
+
+func init() {
+	NewQueryCatch("192.168.1.237:6379", "user123456")
+	GetRedisCatch().SetDirtyFlag(AllDirty)
+	contracts.EthNode = "http://43.129.181.130:8561"
+	//contracts.EthNode = "http://192.168.4.240:8561"
+	EthersNode = contracts.EthNode
+}
 
 func TestCreateDb(t *testing.T) {
 	nd := new(NftDb)
@@ -138,10 +142,11 @@ func TestModifyUserInfo(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	_, err = nd.QueryUserInfo("bbbbbbbbbbbbbbbbbbbbb")
+	data, err := nd.QueryUserInfo("0x2ef057f732c5ce94613e6a6994ecd636f25ce2f8")
 	if err != nil {
 		fmt.Println("QueryUserInfo() err=", err)
 	}
+	fmt.Println(data)
 	//err = nd.ModifyUserInfo("bbbbbbbbbbbbbbbbbbbbb", "renameuser",
 	//	"portrait", "my bio.", "test@test.com", "sigdata")
 	//if err != nil {
@@ -563,7 +568,7 @@ func TestQueryNftCurTransInfo(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	nftTranInfo, err := nd.QuerySingleNft("0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", "9985")
+	nftTranInfo, err := nd.QuerySingleNft("0x5051580802283c7b053d234d124b199045ead750", "6949269770719")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -592,6 +597,15 @@ func TestQueryMarketInfo(t *testing.T) {
 	minfo, _ := nd.QueryMarketInfo()
 	data, _ := json.Marshal(minfo)
 	fmt.Println(data)
+}
+
+func TestTimetest(t *testing.T) {
+	var initTime time.Time
+	if initTime.After(time.Now()) {
+		fmt.Printf("after.")
+	} else {
+		fmt.Printf("before.")
+	}
 }
 
 func TestInsertNft(t *testing.T) {
@@ -773,7 +787,7 @@ func TestQuerySnfChip(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	snftChip, count, err := nd.QuerySnftChip("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "5640175101587", "0", "10")
+	snftChip, count, err := nd.QuerySnftChip("0x5051580802283c7b053d234d124b199045ead750", "9548658763918", "0", "10")
 	if err != nil {
 		t.Fatalf("err = %v\n", err)
 	}
@@ -865,109 +879,23 @@ func TestQueryNftByFilterNew(t *testing.T) {
 	defer nd.Close()
 	NewQueryCatch("192.168.1.235:6379", "user123456")
 	GetRedisCatch().SetDirtyFlag(AllDirty)
-	nfilters := []StQueryField{
-		/*{
-			"selltype",
-			"=",
-			"FixPrice",
-		},*/
-		{
-			"selltype",
-			"=",
-			"HighestBid",
-		},
-		/*{
-			"offernum",
-			">",
-			"0",
-		},*/
-		/*{
-			"createdate",
-			">=",
-			"1654149924",
-		},
-		{
-			"collectcreator",
-			"=",
-			"0x01842a2cf56400a245a56955dc407c2c4137321e",
-		},
-		{
-			"collections",
-			"=",
-			"0x8000000000000000000000000000000000000.合集",
-		},*/
-		/*{
-			"sellprice",
-			">=",
-			"1000000000",
-		},
-		{
-			"sellprice",
-			"<=",
-			"6000000000",
-		},*/
-	}
-	nfilters = []StQueryField{
-		{
-			"collectcreator",
-			"=",
-			"0xbe8c75133a7e4f29b7cdc15d4a45f7593a4f8898",
-		},
-		{
-			"collections",
-			"=",
-			"测试1",
-		},
-	}
-	/*nfilters = []StQueryField{
-		{
-			"selltype",
-			"=",
-			"FixPrice",
-		},
-		{
-			"selltype",
-			"=",
-			"HighestBid",
-		},
-		{
-			"offernum",
-			">",
-			"0",
-		},
-		{
-			"createdate",
-			">=",
-			"1650609876",
-		},
-		{
-			"sellprice",
-			">=",
-			"10000000000",
-		},
-		{
-			"sellprice",
-			"<=",
-			"20000000000",
-		},
-	}*/
 
-	nfilters = []StQueryField{
-		//{
-		//	"collectcreator",
-		//	"=",
-		//	"0x7a149f02e5e4571c42d5cf69b4ccb5772fa1b275",
-		//},
-		//{
-		//	"collections",
-		//	"=",
-		//	"collect_test_0",
-		//},
-		//{
-		//	"selltype",
-		//	"=",
-		//	"FixPrice",
-		//},
+	nfilters := []StQueryField{
+		{
+			"collectcreator",
+			"=",
+			"0xf0125a2bef343a819d6b1a26b4b67d167d655368",
+		},
+		{
+			"collections",
+			"=",
+			"0-snftcollect2",
+		},
+		{
+			"selltype",
+			"=",
+			"FixPrice",
+		},
 		//{
 		//	"selltype",
 		//	"=",
@@ -988,39 +916,54 @@ func TestQueryNftByFilterNew(t *testing.T) {
 			"<=",
 			"20000000000",
 		},*/
-		{
-			"createdate",
-			">=",
-			"1662009658",
-		},
+		//{
+		//	"createdate",
+		//	">=",
+		//	"1662009658",
+		//},
 		/*{
 			"offernum",
 			">",
 			"0",
 		},*/
+		{
+			"snfttype",
+			"=",
+			"snft",
+		},
 	}
 	//sorts := []StSortField{{By: "createdate", Order: "desc"}}
 	//nfilters = []StQueryField{}
 	sorts := []StSortField{
+		//{
+		//	"sellprice",
+		//	"asc",
+		//},
 		{
-			"sellprice",
-			"asc",
-		},
-		/*{
 			"verifiedtime",
-			"asc",
-		},*/
+			"desc",
+		},
 	}
 	sorts = []StSortField{}
+	nfilters = []StQueryField{}
 	nftByFilter, count, err := nd.QueryNftByFilterNftSnft(nfilters, sorts, "snft", "0", "10")
 	if err != nil {
 		t.Fatalf("err = %v\n", err)
 	}
-	nftByFilter, count, err = nd.QueryNftByFilterNew(nfilters, sorts, "nftsnft", "5", "10")
-	if err != nil {
-		t.Fatalf("err = %v\n", err)
-	}
+
 	t.Logf("nft = %v %v\n", nftByFilter, count)
+}
+
+func TestCancelBuy(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	defer nd.Close()
+	err = nd.CancelBuy("0x5051580802283c7b053d234d124b199045ead750", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"5810814317974", "", "")
+	fmt.Println(err)
 }
 
 func TestNftDb_BuyingNft(t *testing.T) {
@@ -1573,20 +1516,48 @@ func TestBidPriceWithTime(t *testing.T) {
 	}
 }
 
+func TestClearRedis(t *testing.T) {
+	NewQueryCatch("192.168.1.237:6379", "user123456")
+	GetRedisCatch().SetDirtyFlag(AllDirty)
+}
+
 func TestQueryMarketTradingHistory(t *testing.T) {
 	nd, err := NewNftDb(sqldsnT)
 	if err != nil {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-
-	sorts := []StSortField{{By: "transtime", Order: "desc"}}
-
-	history, i, err := nd.QueryMarketTradingHistory(nil, sorts, "0", "10")
+	NewQueryCatch("192.168.1.235:6379", "user123456")
+	GetRedisCatch().SetDirtyFlag(AllDirty)
+	//sorts := []StSortField{{By: "Verifiedtime", Order: "desc"}}
+	//sorts := []StSortField{{By: "transamt", Order: "desc"}}
+	sorts := []StSortField{{By: "sellprice", Order: "desc"}}
+	filer := []StQueryField{
+		{Field: "selltype", Operation: "=", Value: "FixPrice"},
+		//{Field: "mergetype", Operation: "=", Value: "3"},
+		{Field: "categories", Operation: "=", Value: "Art"},
+		{Field: "sellprice", Operation: ">=", Value: "10000000000"},
+		{Field: "sellprice", Operation: "<=", Value: "20000000000"},
+	}
+	history, i, err := nd.QueryMarketTradingHistory("snft", filer, sorts, "0", "10")
 
 	t.Log(history)
 	t.Log(i)
 	t.Log(err)
+}
+
+func TestGetMergeLevel(t *testing.T) {
+	mergelevel, _, err := GetMergeLevel("0x8000000000000000000000000000000000000000", "32448")
+	mergelevel, _, err = GetMergeLevel("0x800000000000000000000000000000000000000", "32448")
+	mergelevel, _, err = GetMergeLevel("0x80000000000000000000000000000000000000", "32448")
+	mergelevel, _, err = GetMergeLevel("0x8000000000000000000000000000000000000", "32448")
+
+	mergelevel, _, err = GetMergeLevel("0x8000000000000000000000000000000000001311", "32448")
+	mergelevel, _, err = GetMergeLevel("0x800000000000000000000000000000000000131", "32448")
+	mergelevel, _, err = GetMergeLevel("0x80000000000000000000000000000000000013", "32448")
+	mergelevel, _, err = GetMergeLevel("0x8000000000000000000000000000000000001", "32448")
+
+	t.Log(mergelevel, err)
 }
 
 func TestAnnouncements(t *testing.T) {
@@ -1768,7 +1739,7 @@ func TestQueryUserOfferList(t *testing.T) {
 		fmt.Printf("connect database err = %s\n", err)
 	}
 	defer nd.Close()
-	_, _, _ = nd.QueryUserOfferList("0x572bcacb7ae32db658c8dee49e156d455ad59ec8",
+	_, _, _ = nd.QueryUserOfferList("0x1bc6cc18b84008e5c9bfae2b9c1f0c6759ed7cef",
 		"0", "10")
 }
 
@@ -2083,7 +2054,7 @@ func TestQueryUserBidList(t *testing.T) {
 	}
 	defer nd.Close()
 
-	userOffers, totalCount, gerr := nd.QueryUserBidList("0x9aa8fef730ebf39660cc444919e9f314645e155b", "0", "10")
+	userOffers, totalCount, gerr := nd.QueryUserBidList("0x1bc6cc18b84008e5c9bfae2b9c1f0c6759ed7cef", "0", "10")
 	//data, gerr := nd.GetNftMarketInfo()
 	if gerr != nil {
 		fmt.Println(gerr)
@@ -2443,38 +2414,6 @@ func TestAddDirtyQuery(t *testing.T) {
 	qCatch.scanDirtyQuery(mCatch)
 }
 
-func TestSig_recover(t *testing.T) {
-
-	sigdata := "{\"user_addr\":\"0x36a6bfa3f64a6cd668645a979edc6436257f9ea2\",\"buyer_Addr\":\"0x36a6bfa3f64a6cd668645a979edc6436257f9ea2\",\"nft_contract_addr\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"nft_token_id\":\"3556780204294\",\"price\":\"1000000000\",\"buyer_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x67dd81\\\",\\\"sig\\\":\\\"0xf6fd493cfbff6639f9f0855752a4af09bf35bc4e0fab7674c041ab2161c5d3c27540d63ac46885754bba808637e16583d1fc8136d16a38ff62b20c9e8f8eb70c1b\\\"}\",\"seller_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"royalty\\\":\\\"0x64\\\",\\\"meta_url\\\":\\\"7b226d657461223a222f697066732f516d6538586b6a665155706167755a64624e577035644368366d704c6b66586152625a3637437367796769553151222c22746f6b656e5f6964223a2233353536373830323034323934227d\\\",\\\"exclusive_flag\\\":\\\"1\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x6748af\\\",\\\"sig\\\":\\\"0x2f1680c2a35527a1daf33d2c18af7e9fbe892ea1756d0535b2d7ed51b5457c29382e69f234e69aea08a2c78ce78cfb5d24fce15399be4c1f10a3230dedfc21ce1c\\\"}\",\"vote_stage\":\"\"}"
-	sigdata = "{\"user_addr\":\"0xf2edd6638a965e1b540d9c081df092e67dd36026\",\"nft_contract_addr\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"nft_token_id\":\"3556780204294\",\"pay_channel\":\"ERB\",\"currency_type\":\"ERB\",\"price\":\"1000000000\",\"trade_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x8ae25\\\",\\\"sig\\\":\\\"0xa1e2591ee7c6e182019429d7b3e564753174e95dc9a7d3f3343c6cbc9aeeee6d6eb5b2cb9f5d445bfb56e8acfb4eeae43ddde649f1e95ec0f0322659206efe4c1b\\\"}\",\"dead_time\":\"1658566687\",\"vote_stage\":\"\"}"
-	sigdata = "{\"user_addr\":\"0xf2edd6638a965e1b540d9c081df092e67dd36026\",\"buyer_Addr\":\"0xf2edd6638a965e1b540d9c081df092e67dd36026\",\"nft_contract_addr\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"nft_token_id\":\"3556780204294\",\"price\":\"1000000000\",\"buyer_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x67de77\\\",\\\"sig\\\":\\\"0x86b2ea329ee83526cdd163c5a60f78573b09b9c9be44ae7d654c4ee447d1b8be6d963df09888a61c58188346b148fc9f6e3cb63a67470f012d5035496a5a12601c\\\"}\",\"seller_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"royalty\\\":\\\"0x64\\\",\\\"meta_url\\\":\\\"7b226d657461223a222f697066732f516d6538586b6a665155706167755a64624e577035644368366d704c6b66586152625a3637437367796769553151222c22746f6b656e5f6964223a2233353536373830323034323934227d\\\",\\\"exclusive_flag\\\":\\\"1\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x6748af\\\",\\\"sig\\\":\\\"0x2f1680c2a35527a1daf33d2c18af7e9fbe892ea1756d0535b2d7ed51b5457c29382e69f234e69aea08a2c78ce78cfb5d24fce15399be4c1f10a3230dedfc21ce1c\\\"}\",\"vote_stage\":\"\"}"
-	sigdata = `{"user_addr":"0xf2edd6638a965e1b540d9c081df092e67dd36026","buyer_Addr":"0xf2edd6638a965e1b540d9c081df092e67dd36026","nft_contract_addr":"0xbacd84846337bf50532cd3a32fe48bbeded102b3","nft_token_id":"3556780204294","price":"1000000000","buyer_sig":"{\"price\":\"0xde0b6b3a7640000\",\"exchanger\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"block_number\":\"0x67de77\",\"sig\":\"0x86b2ea329ee83526cdd163c5a60f78573b09b9c9be44ae7d654c4ee447d1b8be6d963df09888a61c58188346b148fc9f6e3cb63a67470f012d5035496a5a12601c\"}","seller_sig":"{\"price\":\"0xde0b6b3a7640000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d6538586b6a665155706167755a64624e577035644368366d704c6b66586152625a3637437367796769553151222c22746f6b656e5f6964223a2233353536373830323034323934227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"block_number\":\"0x6748af\",\"sig\":\"0x2f1680c2a35527a1daf33d2c18af7e9fbe892ea1756d0535b2d7ed51b5457c29382e69f234e69aea08a2c78ce78cfb5d24fce15399be4c1f10a3230dedfc21ce1c\"}","vote_stage":""}`
-	sigdata = "{\"user_addr\":\"0x389a82b54d1c8d3c803b56973fe75f20865eb8dc\",\"buyer_Addr\":\"0xf2edd6638a965e1b540d9c081df092e67dd36026\",\"nft_contract_addr\":\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\",\"nft_token_id\":\"3556780204294\",\"price\":\"1000000000\",\"buyer_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x67de77\\\",\\\"sig\\\":\\\"0x86b2ea329ee83526cdd163c5a60f78573b09b9c9be44ae7d654c4ee447d1b8be6d963df09888a61c58188346b148fc9f6e3cb63a67470f012d5035496a5a12601c\\\"}\",\"seller_sig\":\"{\\\"price\\\":\\\"0xde0b6b3a7640000\\\",\\\"royalty\\\":\\\"0x64\\\",\\\"meta_url\\\":\\\"7b226d657461223a222f697066732f516d6538586b6a665155706167755a64624e577035644368366d704c6b66586152625a3637437367796769553151222c22746f6b656e5f6964223a2233353536373830323034323934227d\\\",\\\"exclusive_flag\\\":\\\"1\\\",\\\"exchanger\\\":\\\"0xbacd84846337bf50532cd3a32fe48bbeded102b3\\\",\\\"block_number\\\":\\\"0x6748af\\\",\\\"sig\\\":\\\"0x2f1680c2a35527a1daf33d2c18af7e9fbe892ea1756d0535b2d7ed51b5457c29382e69f234e69aea08a2c78ce78cfb5d24fce15399be4c1f10a3230dedfc21ce1c\\\"}\",\"vote_stage\":\"\"}"
-	sig := "0xfc143e7844c53170b003cd2edd2f55f149ec5bd22ab09dbab7288b0c1c0c7aca0aed47e5c06a0ce0a15efb3c50a3f28c98fa5f67dbcef210e2ba97b8bd6c03b91c"
-	sig = "0xaa1135121983e991f38fb01f7b9efabe0c942e33a3384578cb8b3f2c994ea9a43b30e7c29bcf2c765317ad7ed5873dcb2769c560d382abd1f101fe5cc61c6db01c"
-	sig = "0x317fb3d50c8a7bb9895fa1279439c043879ec8325ff78b1fd9c46514cac31cd5522cc0c2078821eb9cca62276d57bbfba18dd225f550b236b9726954cdbec9a31b"
-	sig = "0xa7949dd6c3bea22ff18030b5b8b07ed50f1d84b7d2956d2f9906c451a9efe5446040b36be59d02fd6668924564e30a1af100541a4b0388c6b7e252c694cbbce91c"
-	sig = "0x175c54e06d44d32140d67a4d93310d814845197e2c627f0a136d2c758d4fa32f371e832f13ef54e39049be6d3950fc708b7c2076fa04c31535ae89aa87c0ae001b"
-	sig = "0xcc4fe96e9155fa84cf86b1e34c88096955b6d5e4a1fe663565926d64502e59d5447567b65624c64751cb1518d0ace6ceeb6f2d6d658e1b04bdea577435d825b31c"
-	sig = "0x5981a44574412756ac8ffec8a24a712060d1a97f44c277b4aede8e5cc2c678722e08225df725608f1347639f783352e166a85d568cc2a3461143a5c75d66bcfa1c"
-	addr := strings.ToLower("0xf2edd6638a965e1b540d9c081df092e67dd36026")
-	verificationAddr, err := GetEthAddr(sigdata, sig)
-	if err != nil {
-	}
-
-	verificationAddrS := verificationAddr.String()
-	verificationAddrS = strings.ToLower(verificationAddrS)
-
-	addr = strings.ToLower(addr)
-	fmt.Printf("sigdebug verificationAddrS = [%s], approveAddr's addr = [%s]\n", verificationAddrS, addr)
-	if verificationAddrS == addr {
-		fmt.Println("sigdebug verify [Y]")
-	}
-	fmt.Println("sigdebug verify [N]")
-	//return true, nil
-
-}
-
 func TestNftDb_UserKYC(t *testing.T) {
 	nd, err := NewNftDb(sqldsnT)
 	if err != nil {
@@ -2616,6 +2555,7 @@ func TestHomePageRenew(t *testing.T) {
 		}
 		i++
 	}
+
 	//err := HomePageRenew()
 	//if err != nil {
 	//	fmt.Println(err)
@@ -2638,21 +2578,37 @@ func TestAlice(t *testing.T) {
 }
 
 func TestRecover(t *testing.T) {
+	fmt.Println(strings.ToLower("0xE38709Be33Db14B01dA5085c68369c0F9B8e0bB9"))
 	sig := "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
 	sig = "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
 	sig = "{\"price\":\"0x56bc75e2d63100000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x603fb9\",\"seller\":\"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900\",\"sig\":\"0x694c643f462931444abc52752b24af61f58cfdc37ab891632734a384b8108f6f69093339d0760313f88ade72e22a5e630c7c767a316ad02c1abd6d865684a0fd1c\"}"
-	buyer := contracts.Buyer{}
+	sig = "{\"price\":\"0x8ac7230489e80000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d654b62787545385a4476413337704e5a5351396434416341516b356d326673774b564277766135394a6e6253222c22746f6b656e5f6964223a2238333533313234333432383734227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x612d49\",\"sig\":\"0xdba0884a5ddea38f6d920c8f105c688780e512bbba75c58187c1a6ae0eca511439b9a8b3f69097cd500b46792d11e18ca1217886e240909b0a3e10cd793886b41c\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d646f76676937765364344b35337a45555151313765443468475453384e5841716d716e7671426a374e374552222c22746f6b656e5f6964223a2237323337383231323132383530227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x19a94\",\"sig\":\"0x89de4b4d66f71f5d7ab4acb8f961daba069a1ff54cd3dcfcdced0ed15e9540fd72ff2126903af8b3359d39456c2dca8ce21f172e32ef94b0d2670fdade79187a1c\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"nft_address\":\"\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x19a94\",\"sig\":\"0x89de4b4d66f71f5d7ab4acb8f961daba069a1ff54cd3dcfcdced0ed15e9540fd72ff2126903af8b3359d39456c2dca8ce21f172e32ef94b0d2670fdade79187a1c\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d646f76676937765364344b35337a45555151313765443468475453384e5841716d716e7671426a374e374552222c22746f6b656e5f6964223a2237323337383231323132383530227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x19a94\",\"sig\":\"0x89de4b4d66f71f5d7ab4acb8f961daba069a1ff54cd3dcfcdced0ed15e9540fd72ff2126903af8b3359d39456c2dca8ce21f172e32ef94b0d2670fdade79187a1c\"}"
+	sig = "{\"price\":\"0x1bc16d674ec80000\",\"royalty\":\"0x12c\",\"meta_url\":\"7b226d657461223a222f697066732f516d51334d4e6f4a4243423156616545393658516559414c7764784d73425566656b316f47683338525667625571222c22746f6b656e5f6964223a2232313332393133333331383936227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x1a14b\",\"sig\":\"0x7f14ab6121b205efef9495a2903418fe773f95374cd4b49e400d13477ca49e6837abc2e46ea750b929368c7f382fcdecd390d0fee6d0da7d8cd72312a96415a21b\"}"
+	sig = "{\"price\":\"0x8ac7230489e80000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d626d7a47584b3172586e6145346834344665636f4d5a533175666e5358534e5a4377564b3246483962705648222c22746f6b656e5f6964223a2235323137323034353233343937227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x6155bc\",\"sig\":\"0xe8346ebf966babbb63300f62de41a17b78325e311bc87a87c2849cb19bd79cb20f29f309129f807f5fabbecb299354c575e92b93cba5589b314d288b50424fbb1b\"}"
+	buyer := SellerVerify{}
 	err := json.Unmarshal([]byte(sig), &buyer)
 	if err != nil {
 		log.Println("SigVerify Unmarshal err=", err)
 	}
-	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	msg := buyer.Price + buyer.Nftaddress + buyer.Royalty + buyer.Metaurl + buyer.Exclusiveflag + buyer.Exchanger + buyer.Blocknumber
 	msg = "0x8ac7230489e800000x647b226d657461223a222f697066732f516d5174556351744168423941533169427a6a7354675742343967776d6655323743344133724a387a5132556b71222c22746f6b656e5f6964223a2238343236373938323735333537227d10xb146bf8b0a069630ac5d151c5bf87fad77a479f70x12016307200100"
 	sig = "0x7417a8ae80c7dd4e61077cfd6ee9c007a2c703e18308de64544fd3e174a6e9922ed2cbfed5e28fe044a907c68f18cb3f67f1ea96fe8a28c4c39cda878b37744b1c"
 	sig = "0x382d215867c00889117a16b22cb37c90a817264491e48eb479b1fa098577f76152b2df9f1042d690e17f1d3fbd37297a882cad4148d29ae58d6827d382d1aa4e1b"
 	msg = "0xde0b6b3a76400000x647b226d657461223a222f697066732f516d5757326f447a4d486638335664704e6d426450524a754a3151536a54596a5651315350365358744b326f3842222c22746f6b656e5f6964223a2231363731333633333535393439227d10x01842a2cf56400a245a56955dc407c2c4137321e0x64f626"
 	sig = "0x3a1055b1c1a0194e2b5ab08b6c5e8caf0a54edfd4456854089f58475aaf89a936e0455edabe18f99b09eeaa7f7bac1b319d1bc82529003f92a3d7bc0defb65ca1c"
 	msg = "user"
+	msg = "0x3635c9adc5dea000000x8000000000000000000000000000000000028b620x83c80534f316148b726646d1c1cfd81fcb2096450x60f49a"
+	sig = "0xc258a9e11a6ca091be34b98ee9577bb0cf054fc6c77b81b4f66aa6bb99e4d36b47ebac2883ed85718cc5a8cfd3f5c09df534c40245fa00fd67579c824fd8bfa41b"
+	msg = "0xde0b6b3a76400000x647b226d657461223a222f697066732f516d654b62787545385a4476413337704e5a5351396434416341516b356d326673774b564277766135394a6e6253222c22746f6b656e5f6964223a2238333533313234333432383734227d10xd4947f643ef5f1420519e6c6b71d443914efa7430x610565"
+	sig = "0x147ecbc75b34ecfef0c90e3cfccd17d79c0b1dac9c1b114abfa4ec773ad269bd75c1c1c9ac155b629c7f5d1916b433bf06021d0bbb2fd7c1a4b623715a1d3a861b"
+	//{\"price\":\"\",\"\",\"block_number\":\"\",\"sig\":\"\"}
+	msg = "0x8ac7230489e800000x647b226d657461223a222f697066732f516d654b62787545385a4476413337704e5a5351396434416341516b356d326673774b564277766135394a6e6253222c22746f6b656e5f6964223a2238333533313234333432383734227d0xd4947f643ef5f1420519e6c6b71d443914efa7430x612d49"
+	msg = buyer.Price + buyer.Nftaddress + buyer.Royalty + buyer.Metaurl + buyer.Exclusiveflag + buyer.Exchanger + buyer.Blocknumber
+
+	sig = buyer.Sig
 	toaddr, rerr := contracts.RecoverAddress(msg, sig)
 	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =")
 	if rerr != nil {
@@ -2661,6 +2617,56 @@ func TestRecover(t *testing.T) {
 
 }
 
+func TestBuyerRecover(t *testing.T) {
+	//royalt, _ := strconv.Atoi("500")
+	//royalt = royalt / 10000
+	//royaltstr := strconv.Itoa(royalt / 10000)
+	v1, _ := strconv.ParseFloat("500", 64)
+	fmt.Println(strconv.FormatFloat(v1/10000, 'E', -1, 64))
+	fmt.Println(int(500000000000 * v1))
+	royaltflo := strconv.FormatFloat(500000000000*v1, 'E', 01, 64)
+
+	fmt.Println(royaltflo)
+	fmt.Println(strings.ToLower("0xE38709Be33Db14B01dA5085c68369c0F9B8e0bB9"))
+	sig := "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"nft_address\":\"\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x1541c\",\"seller\":\"\",\"sig\":\"0x27d4462dc6957a1a6c5da42342b96e7170c5a44724045721c8577a686dd5329508b90e402669aaed9e1e221ddf11480f4698b22f93d9639483d61beb1c8b82b51b\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d646f76676937765364344b35337a45555151313765443468475453384e5841716d716e7671426a374e374552222c22746f6b656e5f6964223a2237323337383231323132383530227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x19a94\",\"sig\":\"0x89de4b4d66f71f5d7ab4acb8f961daba069a1ff54cd3dcfcdced0ed15e9540fd72ff2126903af8b3359d39456c2dca8ce21f172e32ef94b0d2670fdade79187a1c\"}"
+	buyer := contracts.Buyer{}
+	err := json.Unmarshal([]byte(sig), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+	}
+	msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	sig = buyer.Sig
+	toaddr, rerr := contracts.RecoverAddress(msg, sig)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =")
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+	}
+
+}
+func TestLoginRecover(t *testing.T) {
+
+	sig := "{\"price\":\"0x6046f37e5945c0000\",\"nft_address\":\"0x0000000000000000000000000000000000000001\",\"exchanger\":\"0xd4947f643ef5f1420519e6c6b71d443914efa743\",\"block_number\":\"0x8b88\",\"sig\":\"0x753bb26209021610ad003b3f42656a056c94b4e5e0ed70340c760f9282f6f1e94372a6be920082d7176d44dd20e23ed4693331125a6193de2e5430dffa04b77f1c\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"nft_address\":\"\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x1541c\",\"seller\":\"\",\"sig\":\"0x27d4462dc6957a1a6c5da42342b96e7170c5a44724045721c8577a686dd5329508b90e402669aaed9e1e221ddf11480f4698b22f93d9639483d61beb1c8b82b51b\"}"
+	sig = "{\"price\":\"0x3782dace9d900000\",\"royalty\":\"0x64\",\"meta_url\":\"7b226d657461223a222f697066732f516d646f76676937765364344b35337a45555151313765443468475453384e5841716d716e7671426a374e374552222c22746f6b656e5f6964223a2237323337383231323132383530227d\",\"exclusive_flag\":\"1\",\"exchanger\":\"0xdf129ff495cb69b87ba3c65ea4bfb6398b479d56\",\"block_number\":\"0x19a94\",\"sig\":\"0x89de4b4d66f71f5d7ab4acb8f961daba069a1ff54cd3dcfcdced0ed15e9540fd72ff2126903af8b3359d39456c2dca8ce21f172e32ef94b0d2670fdade79187a1c\"}"
+	sig = "{\"user_addr\":\"0xe3C0C3A09Dcb132828CbbB4728338b8236492E9e\",\"approve_addr\":\"0xf4b3CD854639d881AF36e48BD0A6f8768368B320\",\"result\":\"7177\",\"time_stamp\":\"1666344590\"}"
+	sig = "{\"user_addr\":\"0xe3C0C3A09Dcb132828CbbB4728338b8236492E9e\",\"result\":\"4692\",\"time_stamp\":\"1666345051\"}"
+	msgd := "0xa25378219426634ba4ad6a5f8e8a8fecd91e4b5769ef428019a9877346b691d23081c23da10933a6ea664877849f4c60d895f355d271ff2b2e441e4e4d5ecceb1b"
+	buyer := contracts.Buyer{}
+	err := json.Unmarshal([]byte(sig), &buyer)
+	if err != nil {
+		log.Println("SigVerify Unmarshal err=", err)
+	}
+	//msg := buyer.Price + buyer.Nftaddress + buyer.Exchanger + buyer.Blocknumber + buyer.Seller
+	//sig = buyer.Sig
+	toaddr, rerr := contracts.RecoverAddress(sig, msgd)
+	fmt.Println("toaddr =", toaddr.String(), "  buyaddr =")
+	if rerr != nil {
+		log.Println("SigVerify() recoverAddress() err=", err)
+	}
+
+}
 func TestDelFavor(t *testing.T) {
 	nd, nerr := NewNftDb(sqldsnT)
 	if nerr != nil {
@@ -2680,5 +2686,204 @@ func TestDelFavor(t *testing.T) {
 		fmt.Println("DelCollection() delete collection under nfts err= ", err.Error)
 	}
 	fmt.Println(favorited)
+
+}
+
+func TestNftDb_QuerySnftByCollection(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	data, err := nd.QuerySnftByCollection("0x362f5838fa6530ed721d63a8be266d72fc63e5ca",
+		"0xc5871d1ee9ffb443cc05897df6f624d0c77fa5d6", "0-collection1",
+		"0", "16")
+	if err != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err)
+	}
+	fmt.Println(data)
+}
+
+func TestAddrMerge(t *testing.T) {
+	nftaddr := "0x8000000000000000000000000000000000000000"
+	addr := common.HexToAddress(nftaddr)
+	bigAddr, berr := big.NewInt(0).SetString(nftaddr[2:], 16)
+	if !berr {
+		fmt.Println("addr error.")
+		return
+	}
+	for i := 0; i < 4096; i++ {
+		addr = common.BigToAddress(bigAddr)
+		fmt.Println("i=", i, " nftaddr=", addr.String())
+		bigAddr.Add(bigAddr, big.NewInt(1))
+		accountInfo, err := contracts.GetAccountInfo(addr, nil)
+		if err != nil {
+			log.Println("TestAddrMerge() GetAccountInfo err =", err, "NftAddress= ", addr)
+			return
+		}
+		if accountInfo.Owner.String() == ZeroAddr {
+			nftaddr := addr.String()
+			addr = common.HexToAddress(nftaddr[:40] + "00")
+			accountInfo, err = contracts.GetAccountInfo(addr, nil)
+			if err != nil {
+				log.Println("TestAddrMerge() GetAccountInfo err =", err, "NftAddress= ", addr)
+				return
+			}
+			if accountInfo.Owner.String() == ZeroAddr {
+				nftaddr := addr.String()
+				addr = common.HexToAddress(nftaddr[:39] + "000")
+				accountInfo, err = contracts.GetAccountInfo(addr, nil)
+				if err != nil {
+					log.Println("TestAddrMerge() GetAccountInfo err =", err, "NftAddress= ", addr)
+					return
+				}
+				if accountInfo.Owner.String() == ZeroAddr {
+				}
+			}
+		}
+		if strings.ToLower(accountInfo.Owner.String()) != "0x362f5838fa6530ed721d63a8be266d72fc63e5ca" {
+			t.Error("owner error i=", i, "nftaddr=", addr.String(), " own=", strings.ToLower(accountInfo.Owner.String()))
+			return
+		}
+		fmt.Println("i=", i, " mergelevel=", accountInfo.MergeLevel)
+	}
+
+}
+
+func TestQueryCollectionAllSnft(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	data, err := nd.QueryCollectionAllSnft("0xc5871d1ee9ffb443cc05897df6f624d0c77fa5d6", "0-collection1")
+	if err != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err)
+	}
+	fmt.Println(data)
+}
+
+func TestQueryOwnerSnftChipAmount(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	data, err := nd.QueryOwnerSnftChipAmount("0xb17fae1710f80eb9a39732862b0058077f338b21", "*")
+	if err != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err)
+	}
+	fmt.Println(data)
+}
+
+func TestQueryUserNFTList(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	data, count, err := nd.QueryUserNFTList("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "0", "10")
+	if err != nil {
+		fmt.Println("TestQueryUserNFTList()  err= ", err)
+	}
+	data, count, err = nd.QueryUserNFTList("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "10", "20")
+	if err != nil {
+		fmt.Println("TestQueryUserNFTList()  err= ", err)
+	}
+	fmt.Println(data, count)
+}
+
+func TestNftDb_QueryOwnerSnftCollection(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	//data, recount, err := nd.QueryOwnerSnftCollection("0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+	data, recount, err := nd.QueryOwnerSnftCollection("0x362f5838fa6530ed721d63a8be266d72fc63e5ca",
+		"*", "0", "20", "NoPledge")
+	if err != nil {
+		fmt.Println("DelCollection() delete collection under nfts err= ", err)
+	}
+	fmt.Println(recount)
+	fmt.Println(data)
+}
+
+func TestGetSnftPeriodNum(t *testing.T) {
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+
+	recount, err := nd.GetSnftPeriodNum("0xf0125a2bef343a819d6b1a26b4b67d167d655368")
+	if err != nil {
+		fmt.Println("GetSnftPeriodNum() delete collection under nfts err= ", err)
+	}
+	fmt.Println(recount)
+}
+
+func QueryHash(data string) string {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte(data))
+	hash := hasher.Sum(nil)
+	return hexutil.Encode(hash)
+}
+
+func TestNewRedisCatch2(t *testing.T) {
+	err := NewQueryCatch("192.168.1.235:6379", "user123456")
+	fmt.Println(err)
+	mCatch := GetRedisCatch()
+	ckey := QueryHash("c0xb9fdb3579ee6253c067d77d0fe3f966094e1499d" + "Search" + "count")
+	datas, err := mCatch.GetRedisData(ckey)
+	fmt.Println(ckey, " ", datas)
+	var result = map[string]int{
+		"城市A": 233420,
+		"城市B": 199233,
+		"城市C": 50026,
+		"城市D": 1039,
+		"城市E": 33333,
+	}
+
+	type KVPair struct {
+		Key string
+		Val int
+	}
+
+	tmpList := make([]KVPair, 0)
+
+	for k, v := range result {
+		tmpList = append(tmpList, KVPair{Key: k, Val: v})
+	}
+
+	sort.Slice(tmpList, func(i, j int) bool {
+		//return tmpList[i].Val > tmpList[j].Val // 降序
+		return tmpList[i].Val > tmpList[j].Val // 升序
+	})
+	fmt.Println(tmpList)
+	fmt.Println(tmpList[0])
+	//for _, pair := range tmpList {
+	//	fmt.Printf("key: %v value: %v \n", pair.Key, pair.Val)
+	//}
+}
+
+func TestGetSnftPeriodNum2(t *testing.T) {
+	fmt.Println(time.Unix(1667712122, 0).String())
+
+	nd, nerr := NewNftDb(sqldsnT)
+	if nerr != nil {
+		fmt.Printf("connect database err = %s\n", nerr)
+	}
+	defer nd.Close()
+	daystartstr := fmt.Sprint(time.Now().Unix())
+	fmt.Println(daystartstr)
+	var data int64
+	err := nd.db.Model(&Nfts{}).Debug().Where("royalty > ? ", time.Now().Unix()).Count(&data)
+	fmt.Println(err)
 
 }

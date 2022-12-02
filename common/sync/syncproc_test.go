@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -134,14 +135,17 @@ func TestSyncBlockTxsNew(t *testing.T) {
 }
 
 func TestSync(t *testing.T) {
-	const sqlsvrLcT = "admin:user123456@tcp(192.168.56.122:3306)/"
-	const dbNameT = "snftdb"
+	const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+	const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 	const localtimeT = "?parseTime=true&loc=Local"
 	const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
-
+	models.TransferSNFT = false
+	models.NftIpfsServerIP = "192.168.1.235"
+	models.NftstIpfsServerPort = "5001"
 	contracts.EthNode = "http://43.129.181.130:8561"
-	contracts.ExchangeOwer = "0x62e0c8032fb51bc401558b58b1e7733276c1ec8a"
-	models.ExchangeOwer = "0x62e0c8032fb51bc401558b58b1e7733276c1ec8a"
+	contracts.ExchangeOwer = "0xaf459b02ada089963a22ffff9fef69dd55c2ef60"
+	models.ExchangeOwer = "0xaf459b02ada089963a22ffff9fef69dd55c2ef60"
+	models.NftScanServer = "http://192.168.1.235:8081"
 	nd, err := models.NewNftDb(sqldsnT)
 	if err != nil {
 		log.Printf("SelfSync() connect database err = %s\n", err)
@@ -163,7 +167,7 @@ func TestSync(t *testing.T) {
 			return
 		}
 	}
-	blockS = 34032
+	blockS = 1
 	for curBlock := contracts.GetCurrentBlockNumber(); blockS <= curBlock; {
 		if models.TransferSNFT {
 			log.Println("SelfSync() call ScanWorkerNft() blockNum=", blockS)
@@ -174,8 +178,9 @@ func TestSync(t *testing.T) {
 			}
 			fmt.Println("SelfSync() sync ScanWorkerNft ok.  blockNum=", blockS)
 		}
-		//txs, err := contracts.GetBlockTxsNew(blockS)
-		txs, err := contracts.SelfGetBlockTxs(blockS)
+		blockStr := strconv.FormatUint(blockS, 10)
+		txs, err := models.GetBlockTrans(blockStr)
+		//txs, err := contracts.SelfGetBlockTxs(blockS)
 		if err != nil {
 			fmt.Println("SelfSync() call GetBlockTxs() err=", err)
 			return

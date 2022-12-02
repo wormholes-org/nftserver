@@ -7,6 +7,7 @@ import (
 
 var mqr *queryRedisCatch
 
+
 func NewQueryMainCatch(redisIP, passwd string) error {
 	mqr = new(queryRedisCatch)
 	mqr.pool = &redis.Pool{

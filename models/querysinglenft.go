@@ -66,6 +66,9 @@ type NftSingleInfo struct {
 	Selltype              string `json:"selltype"`
 	Mintstate             string `json:"mintstate"`
 	Pledgestate           string `json:"pledgestate"`
+	Exchange              uint8  `json:"exchange"`
+	Mergetype             uint8  `json:"mergetype"`
+	Mergelevel            uint8  `json:"mergelevel"`
 	Likes                 int    `json:"likes"`
 
 	Auction NftAuction `json:"auction"`
@@ -79,7 +82,7 @@ func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error)
 	var nftInfo NftSingleInfo
 
 	var nftRecord Nfts
-	err := nft.db.Where("contract = ? AND tokenid = ?", contract, tokenId).First(&nftRecord)
+	err := nft.db.Where("contract = ? AND tokenid = ? and exchange = 0", contract, tokenId).First(&nftRecord)
 	if err.Error != nil {
 		return NftSingleInfo{}, ErrNftNotExist
 	}
@@ -102,6 +105,9 @@ func (nft NftDb) QuerySingleNft(contract, tokenId string) (NftSingleInfo, error)
 	nftInfo.Selltype = nftRecord.Selltype
 	nftInfo.Mintstate = nftRecord.Mintstate
 	nftInfo.Pledgestate = nftRecord.Pledgestate
+	nftInfo.Exchange = nftRecord.Exchange
+	nftInfo.Mergelevel = nftRecord.Mergelevel
+	nftInfo.Mergetype = nftRecord.Mergetype
 	nftInfo.Likes = nftRecord.Favorited
 
 	user := Users{}

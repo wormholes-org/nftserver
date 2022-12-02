@@ -28,10 +28,10 @@ import (
 }*/
 
 type ResponseGetBlockTrans struct {
-	Code       string            `json:"code"`
-	Msg        string            `json:"msg"`
+	Code       string     `json:"code"`
+	Msg        string     `json:"msg"`
 	Data       []contracts.NftTx `json:"data"`
-	TotalCount uint64            `json:"total_count"`
+	TotalCount uint64     `json:"total_count"`
 }
 
 func GetBlockTrans(blocknumber string) ([]contracts.NftTx, error) {
@@ -46,7 +46,7 @@ func GetBlockTrans(blocknumber string) ([]contracts.NftTx, error) {
 	}
 	var revData ResponseGetBlockTrans
 	err = json.Unmarshal([]byte(b), &revData)
-	if err != nil {
+	if err !=nil {
 		fmt.Println("QueryNFT() Unmarshal err=", err)
 		return nil, err
 	}

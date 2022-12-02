@@ -1,10 +1,13 @@
 package models
 
 import (
+	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"gorm.io/gorm"
 	"log"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -435,17 +438,199 @@ func (nft NftDb) BuyResultWithAmount(from, to, contractAddr, tokenId, amount, pr
 	return nil
 }
 
+func SnftMerge(nftaddr, toAddr string, mnft *Nfts, mergerlevel uint8, NftTx *contracts.NftTx, tx *gorm.DB) error {
+	switch len(nftaddr) {
+	case SnftExchangeStage:
+		//nfttab := Nfts{}
+		//nfttab.Ownaddr = toAddr
+		//fmt.Println("SnftMerge() blocknumber=", NftTx.BlockNumber, " nftaddr=", NftTx.NftAddr, " to=", nfttab.Ownaddr)
+		//err := tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Updates(&nfttab)
+		//if err.Error != nil {
+		//	fmt.Println("SnftMerge() create nfts record err=", err.Error)
+		//	return err.Error
+		//}
+		nfttab := Nfts{}
+		nfttab.Ownaddr = toAddr
+		nfttab.Mergelevel = mergerlevel
+		err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").Updates(&nfttab)
+		if err.Error != nil {
+			log.Println("SnftMerge() update nfts record err=", err.Error)
+			return err.Error
+		}
+		return nil
+	case SnftExchangeColletion:
+		//nfttab := Nfts{}
+		//nfttab.Ownaddr = toAddr
+		//fmt.Println("SnftMerge() blocknumber=", NftTx.BlockNumber, " nftaddr=", NftTx.NftAddr, " to=", nfttab.Ownaddr)
+		//err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Updates(&nfttab)
+		//if err.Error != nil {
+		//	fmt.Println("SnftMerge() create nfts record err=", err.Error)
+		//	return err.Error
+		//}
+		nfttab := Nfts{}
+		nfttab.Ownaddr = toAddr
+		nfttab.Mergelevel = mergerlevel
+		err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").Updates(&nfttab)
+		if err.Error != nil {
+			log.Println("SnftMerge() update nfts record err=", err.Error)
+			return err.Error
+		}
+		if mergerlevel == 3 {
+			nfttab = Nfts{}
+			nfttab.Ownaddr = toAddr
+			nfttab.Mergelevel = mergerlevel
+			err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-1]+"mmm").Updates(&nfttab)
+			if err.Error != nil {
+				log.Println("SnftMerge() update nfts record err=", err.Error)
+				return err.Error
+			}
+			nfttab = Nfts{}
+			nfttab.Ownaddr = toAddr
+			nfttab.Mergelevel = mergerlevel
+			err = tx.Model(&Nfts{}).Where("snftstage = ?", mnft.Snftstage).Updates(&nfttab)
+			if err.Error != nil {
+				log.Println("SnftMerge() update nfts record err=", err.Error)
+				return err.Error
+			}
+		}
+		return nil
+	case SnftExchangeSnft:
+		//nfttab := Nfts{}
+		//nfttab.Ownaddr = toAddr
+		//fmt.Println("SnftMerge() blocknumber=", NftTx.BlockNumber, " nftaddr=", NftTx.NftAddr, " to=", nfttab.Ownaddr)
+		//err := tx.Model(&Nfts{}).Where("snft = ?", nftaddr).Updates(&nfttab)
+		//if err.Error != nil {
+		//	fmt.Println("SnftMerge() create nfts record err=", err.Error)
+		//	return err.Error
+		//}
+		nfttab := Nfts{}
+		nfttab.Ownaddr = toAddr
+		nfttab.Mergelevel = mergerlevel
+		err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").Updates(&nfttab)
+		if err.Error != nil {
+			log.Println("SnftMerge() update nfts record err=", err.Error)
+			return err.Error
+		}
+		if mergerlevel > 1 {
+			switch mergerlevel {
+			case 2:
+				nfttab = Nfts{}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-1]+"mm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("Snftcollection = ?", mnft.Snftcollection).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			case 3:
+				nfttab = Nfts{}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-2]+"mmm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("snftstage = ?", mnft.Snftstage).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			}
+		}
+		return nil
+	case SnftExchangeChip:
+		nfttab := Nfts{}
+		//nfttab.Ownaddr = toAddr
+		if nftaddr[:3] == "0x8" && mergerlevel != 0 {
+			nfttab.Ownaddr = toAddr
+			nfttab.Mergelevel = 1
+		}
+		fmt.Println("SnftMerge() blocknumber=", NftTx.BlockNumber, " nftaddr=", NftTx.NftAddr, " to=", nfttab.Ownaddr)
+		err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Updates(&nfttab)
+		if err.Error != nil {
+			fmt.Println("SnftMerge() update nfts record err=", err.Error)
+			return err.Error
+		}
+		if nftaddr[:3] == "0x8" && mergerlevel != 0 {
+			nfttab = Nfts{}
+			if mergerlevel != 0 {
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("snft = ?", nftaddr[:len(nftaddr)-1]).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			}
+			switch mergerlevel {
+			case 1:
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", mnft.Nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			case 2:
+				nfttab = Nfts{}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-2]+"mm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("Snftcollection = ?", mnft.Snftcollection).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			case 3:
+				nfttab = Nfts{}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-3]+"mmm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab.Ownaddr = toAddr
+				nfttab.Mergelevel = mergerlevel
+				err = tx.Model(&Nfts{}).Where("snftstage = ?", mnft.Snftstage).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("SnftMerge() update nfts record err=", err.Error)
+					return err.Error
+				}
+			}
+		}
+		return nil
+	}
+	return nil
+}
+
 func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 	from := strings.ToLower(nftTx.From)
 	to := strings.ToLower(nftTx.To)
 	contractAddr := strings.ToLower(nftTx.Contract)
 	tokenId := strings.ToLower(nftTx.TokenId)
 	nftaddr := strings.ToLower(nftTx.NftAddr)
+	OldNftaddr := nftaddr
 	txhash := strings.ToLower(nftTx.TxHash)
 	txtime, _ := strconv.ParseInt(nftTx.Ts, 10, 64)
-	if contractAddr != ExchangeOwer && nftaddr[:3] != "0x8" {
-		return nil
-	}
+	//if contractAddr != ExchangeOwer && nftaddr[:3] != "0x8" {
+	//	return nil
+	//}
 
 	var price string
 	if len(nftTx.Price) >= 9 {
@@ -458,6 +643,14 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 	//	fmt.Println("BuyResultWithWAmount() price err")
 	//	return ErrPrice
 	//}
+	switch len(nftaddr) {
+	case SnftExchangeStage:
+		nftaddr = nftaddr + "mmm"
+	case SnftExchangeColletion:
+		nftaddr = nftaddr + "mm"
+	case SnftExchangeSnft:
+		nftaddr = nftaddr + "m"
+	}
 	fmt.Println(time.Now().String()[:25], "BuyResultWithWAmount() Begin", " from=", from, " to=", to, " price=", nftTx.Price,
 		" contractAddr=", contractAddr, " tokenId=", tokenId, " txhash=", txhash, " nftaddr=", nftaddr)
 	trans := Trans{}
@@ -486,7 +679,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			return ErrNftNotExist
 		}
 		aucFlag := false
-		aucSellType := ""
+		//aucSellType := ""
 		var auctionRec Auction
 		count, _ := strconv.Atoi(nftTx.Value)
 		if count > nftRec.Count {
@@ -501,8 +694,72 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 				return err.Error
 			}
 		} else {
-			aucSellType = auctionRec.Selltype
+			//aucSellType = auctionRec.Selltype
 			aucFlag = true
+		}
+		sysNft := Sysnfts{}
+		if nftaddr[:3] == "0x8" {
+			if nftRec.Mergetype != 0 {
+				if nftRec.Mergelevel != 3 && nftRec.Mergelevel != 2 {
+					err = nft.db.Where("snft = ?", nftRec.Snft[:len(nftRec.Snft)-1]).First(&sysNft)
+					if err.Error != nil {
+						log.Println("BuyResultWithWAmount() database err=", err.Error)
+						return ErrNftNotExist
+					}
+				}
+			} else {
+				err = nft.db.Where("snft = ?", nftRec.Snft).First(&sysNft)
+				if err.Error != nil {
+					log.Println("BuyResultWithWAmount() database err=", err.Error)
+					return ErrNftNotExist
+				}
+			}
+
+		}
+		MnftRec := Nfts{}
+		var mergelevel uint8
+		if nftaddr[:3] == "0x8" {
+			var gerr error
+			mergelevel, _, gerr = GetMergeLevel(OldNftaddr, nftTx.BlockNumber)
+			if gerr != nil {
+				log.Println("BuyResultWithWAmount() ger mergelevel error.")
+				return ErrBlockchain
+			}
+			switch len(OldNftaddr) {
+			case SnftExchangeChip:
+				if mergelevel > 0 {
+					err := nft.db.Where("nftaddr = ?", OldNftaddr[:len(OldNftaddr)-1]+"m").First(&MnftRec)
+					if err.Error != nil {
+						log.Println("BuyResultWithWAmount() database err =", err.Error)
+						return err.Error
+					}
+				}
+			case SnftExchangeSnft:
+				if mergelevel > 1 {
+					err := nft.db.Where("nftaddr = ?", OldNftaddr+"m").First(&MnftRec)
+					if err.Error != nil {
+						log.Println("BuyResultWithWAmount() database err =", err.Error)
+						return err.Error
+					}
+				}
+			case SnftExchangeColletion:
+				if mergelevel > 2 {
+					err := nft.db.Where("nftaddr = ?", OldNftaddr+"0m").First(&MnftRec)
+					if err.Error != nil {
+						log.Println("BuyResultWithWAmount() database err =", err.Error)
+						return err.Error
+					}
+				}
+				/*	case SnftExchangeStage:
+					if accountInfo.MergeLevel > 3 {
+						err := nft.db.Where("nftaddr = ?", nftaddr+"m").First(&MnftRec)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() database err =", err.Error)
+							return err.Error
+						}
+					}*/
+			}
+
 		}
 		return nft.db.Transaction(func(tx *gorm.DB) error {
 			trans := Trans{}
@@ -514,6 +771,11 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			trans.Toaddr = to
 			trans.Tokenid = nftRec.Tokenid
 			trans.Nftaddr = nftaddr
+			if nftaddr[:3] == "0x8" {
+				trans.Nfttype = "snft"
+			} else {
+				trans.Nfttype = "nft"
+			}
 			if aucFlag {
 				trans.Auctionid = auctionRec.ID
 				trans.Nftid = auctionRec.Nftid
@@ -569,59 +831,86 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 					tonftRec.Transcnt = nftRec.Transcnt + 1
 				}
 			}
-			err = tx.Model(&Nfts{}).Where("id = ?", nftRec.ID).Updates(&tonftRec)
+			nfttab := map[string]interface{}{
+				"Selltype":    SellTypeNotSale.String(),
+				"Transtime":   txtime,
+				"Sellprice":   0,
+				"Offernum":    0,
+				"Maxbidprice": 0,
+			}
+			if nftTx.Status {
+				nfttab["Ownaddr"] = to
+				if contractAddr == ExchangeOwer {
+					nfttab["Transprice"] = trans.Price
+					nfttab["Transamt"] = nftRec.Transamt + trans.Price
+					nfttab["Transcnt"] = nftRec.Transcnt + 1
+				}
+			}
+			err = tx.Model(&Nfts{}).Where("id = ?", nftRec.ID).Updates(&nfttab)
 			if err.Error != nil {
 				fmt.Println("BuyResultWithWAmount() update record err=", err.Error)
 				return err.Error
 			}
-			if aucFlag {
-				if aucSellType == SellTypeHighestBid.String() {
-					if nftTx.Status {
-						bidRec := Bidding{}
-						err = nft.db.Model(&Bidding{}).Where("bidaddr = ? and Auctionid = ?", to, auctionRec.ID).First(&bidRec)
-						if err.Error != nil {
-							fmt.Println("BuyResultWithWAmount() get bid record err=", err.Error)
-							return err.Error
-						}
-						if bidRec.VoteStage != "" {
-							snftP := SnftPhase{}
-							err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).First(&snftP)
-							if err.Error != nil {
-								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-								return err.Error
-							}
-							vote := snftP.Vote
-							snftP = SnftPhase{}
-							snftP.Vote = vote + 1
-							err = tx.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).Updates(&snftP)
-							if err.Error != nil {
-								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-								return err.Error
-							}
-						}
-					}
-				} else {
-					if nftTx.Status {
-						fmt.Println("BuyResultWithWAmount() auctionRec.VoteStage=", auctionRec.VoteStage)
-						if auctionRec.VoteStage != "" {
-							snftP := SnftPhase{}
-							err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).First(&snftP)
-							if err.Error != nil {
-								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-								return err.Error
-							}
-							vote := snftP.Vote
-							fmt.Println("BuyResultWithWAmount() snftP.Vote=", snftP.Vote)
-							snftP = SnftPhase{}
-							snftP.Vote = vote + 1
-							err = tx.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).Updates(&snftP)
-							if err.Error != nil {
-								fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
-								return err.Error
-							}
-						}
-					}
+			if nftaddr[:3] == "0x8" {
+				snt := Sysnfts{}
+				snt.Transcnt = sysNft.Transcnt + 1
+				snt.Transamt = sysNft.Transamt + trans.Price
+				snt.Transprice = (snt.Transamt / uint64(snt.Transcnt))
+				err = tx.Model(&Sysnfts{}).Where("id = ?", sysNft.ID).Updates(&snt)
+				if err.Error != nil {
+					fmt.Println("BuyResultWithWAmount() update record err=", err.Error)
+					return err.Error
 				}
+			}
+			if aucFlag {
+				/* vote cancel
+				if aucSellType == SellTypeHighestBid.String() {
+						if nftTx.Status {
+							bidRec := Bidding{}
+							err = nft.db.Model(&Bidding{}).Where("bidaddr = ? and Auctionid = ?", to, auctionRec.ID).First(&bidRec)
+							if err.Error != nil {
+								fmt.Println("BuyResultWithWAmount() get bid record err=", err.Error)
+								return err.Error
+							}
+							if bidRec.VoteStage != "" {
+								snftP := SnftPhase{}
+								err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).First(&snftP)
+								if err.Error != nil {
+									fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+									return err.Error
+								}
+								vote := snftP.Vote
+								snftP = SnftPhase{}
+								snftP.Vote = vote + 1
+								err = tx.Model(&SnftPhase{}).Where("tokenid = ?", bidRec.VoteStage).Updates(&snftP)
+								if err.Error != nil {
+									fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+									return err.Error
+								}
+							}
+						}
+					} else {
+						if nftTx.Status {
+							fmt.Println("BuyResultWithWAmount() auctionRec.VoteStage=", auctionRec.VoteStage)
+							if auctionRec.VoteStage != "" {
+								snftP := SnftPhase{}
+								err = nft.db.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).First(&snftP)
+								if err.Error != nil {
+									fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+									return err.Error
+								}
+								vote := snftP.Vote
+								fmt.Println("BuyResultWithWAmount() snftP.Vote=", snftP.Vote)
+								snftP = SnftPhase{}
+								snftP.Vote = vote + 1
+								err = tx.Model(&SnftPhase{}).Where("tokenid = ?", auctionRec.VoteStage).Updates(&snftP)
+								if err.Error != nil {
+									fmt.Println("BuyResultWithWAmount() get bidRec.VoteStage record err=", err.Error)
+									return err.Error
+								}
+							}
+						}
+					}*/
 				err = tx.Model(&Auction{}).Where("id = ?", auctionRec.ID).Delete(&Auction{})
 				if err.Error != nil {
 					fmt.Println("BuyResultWithWAmount() delete auction record err=", err.Error)
@@ -632,6 +921,9 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 					fmt.Println("BuyResultWithWAmount() delete bid record err=", err.Error)
 					return err.Error
 				}
+			}
+			if nftaddr[:3] == "0x8" {
+				SnftMerge(OldNftaddr, to, &MnftRec, mergelevel, nftTx, tx)
 			}
 			fmt.Println("BuyResultWithWAmount() from != Null && to != Null --> price != Null OK")
 			return nil
@@ -820,25 +1112,23 @@ type NftSysMintInfo struct {
 }
 
 type SnftInfo struct {
-	CreatorAddr string  `json:"creator_addr"`
-	Ownaddr     string  `json:"ownaddr"`
-	Contract    string  `json:"nft_contract_addr"`
-	Nftaddr     string  `json:"nft_address"`
-	Name        string  `json:"name"`
-	Desc        string  `json:"desc"`
-	Meta        string  `json:"meta"`
-	Category    string  `json:"category"`
-	Royalty     float64 `json:"royalty"`
-	//Royalty              string `json:"royalty"`
-	SourceUrl string `json:"source_url"`
-	Md5       string `json:"md5"`
-	//Collections          string  `json:"collections"`
-	CollectionsName      string `json:"collections_name"`
-	CollectionsCreator   string `json:"collections_creator"`
-	CollectionsExchanger string `json:"collections_exchanger"`
-	CollectionsCategory  string `json:"collections_category"`
-	CollectionsImgUrl    string `json:"collections_img_url"`
-	CollectionsDesc      string `json:"collections_desc"`
+	CreatorAddr          string  `json:"creator_addr"`
+	Ownaddr              string  `json:"ownaddr"`
+	Contract             string  `json:"nft_contract_addr"`
+	Nftaddr              string  `json:"nft_address"`
+	Name                 string  `json:"name"`
+	Desc                 string  `json:"desc"`
+	Meta                 string  `json:"meta"`
+	Category             string  `json:"category"`
+	Royalty              float64 `json:"royalty"`
+	SourceUrl            string  `json:"source_url"`
+	Md5                  string  `json:"md5"`
+	CollectionsName      string  `json:"collections_name"`
+	CollectionsCreator   string  `json:"collections_creator"`
+	CollectionsExchanger string  `json:"collections_exchanger"`
+	CollectionsCategory  string  `json:"collections_category"`
+	CollectionsImgUrl    string  `json:"collections_img_url"`
+	CollectionsDesc      string  `json:"collections_desc"`
 }
 
 func GetNftSysMintInfo(blockNum string) ([]NftSysMintInfo, error) {
@@ -914,10 +1204,45 @@ func (nft NftDb) BuyResultWRoyalty(mintTx *contracts.NftTx) error {
 	return nil
 }
 
+func ClearAuction(tx *gorm.DB, nftRec *Nfts) *gorm.DB {
+	var auctionRec Auction
+	err := tx.Where("tokenid = ? AND ownaddr =?", nftRec.Tokenid, nftRec.Ownaddr).First(&auctionRec)
+	if err.Error != nil {
+		if err.Error != gorm.ErrRecordNotFound {
+			log.Println("ClearAuction() auction not find err=", err.Error)
+			return err
+		} else {
+			return nil
+		}
+	}
+	nfttab := map[string]interface{}{
+		"Selltype":    SellTypeNotSale.String(),
+		"Sellprice":   0,
+		"Offernum":    0,
+		"Maxbidprice": 0,
+	}
+	err = tx.Model(&Nfts{}).Where("id = ?", nftRec.ID).Updates(&nfttab)
+	if err.Error != nil {
+		fmt.Println("ClearAuction() update record err=", err.Error)
+		return err
+	}
+	err = tx.Model(&Auction{}).Where("id = ?", auctionRec.ID).Delete(&Auction{})
+	if err.Error != nil {
+		log.Println("ClearAuction() delete auction record err=", err.Error)
+		return err
+	}
+	err = tx.Model(&Bidding{}).Where("Auctionid = ?", auctionRec.ID).Delete(&Bidding{})
+	if err.Error != nil {
+		log.Println("ClearAuction() delete bid record err=", err.Error)
+		return err
+	}
+	return nil
+}
+
 func (nft NftDb) BuyResultWTransfer(mintTx *contracts.NftTx) error {
 	to := strings.ToLower(mintTx.To)
 	//contractAddr := strings.ToLower(mintTx.Contract)
-	transTime, _ := strconv.ParseInt(mintTx.Ts, 10, 64)
+	//transTime, _ := strconv.ParseInt(mintTx.Ts, 10, 64)
 	//tokenId := strings.ToLower(mintTx.TokenId)
 	txhash := strings.ToLower(mintTx.TxHash)
 	nftaddr := strings.ToLower(mintTx.NftAddr)
@@ -940,83 +1265,419 @@ func (nft NftDb) BuyResultWTransfer(mintTx *contracts.NftTx) error {
 		fmt.Println("BuyResultWTransfer() err =", err.Error)
 		return err.Error
 	}*/
-	var nftRec Nfts
-	err := nft.db.Where("nftaddr = ?", nftaddr).First(&nftRec)
-	if err.Error != nil {
-		if err.Error != gorm.ErrRecordNotFound {
-			fmt.Println("BuyResultWTransfer() database err =", err.Error)
-			return err.Error
+	var mergelevel uint8
+	if nftaddr[:3] == "0x8" {
+		var gerr error
+		mergelevel, _, gerr = GetMergeLevel(nftaddr, mintTx.BlockNumber)
+		if gerr != nil {
+			log.Println("BuyResultWTransfer() ger mergelevel error.")
+			return ErrBlockchain
 		}
-	} else {
-		nfttab := Nfts{}
-		nfttab.Ownaddr = to
-		trans := Trans{}
-		trans.Contract = nftRec.Contract
-		trans.Fromaddr = ZeroAddr
-		trans.Toaddr = to
-		trans.Tokenid = nftRec.Tokenid
-		trans.Nftaddr = nftaddr
-		trans.Transtime = transTime
-		trans.Txhash = txhash
-		trans.Count = nftRec.Count
-		trans.Selltype = SellTypeTransfer.String()
-		trans.Txhash = txhash
-		return nft.db.Transaction(func(tx *gorm.DB) error {
-			/*err := tx.Model(&trans).Create(&trans)
-			if err.Error != nil {
-				fmt.Println("BuyResultWTransfer() royalty create trans err=", err.Error)
-				return err.Error
-			}*/
-			err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Updates(&nfttab)
-			if err.Error != nil {
-				fmt.Println("BuyResultWTransfer() create nfts record err=", err.Error)
+	}
+	switch len(nftaddr) {
+	case SnftExchangeStage:
+		if nftaddr[:3] != "0x8" {
+			return nil
+		}
+		var nftRec Nfts
+		err := nft.db.Where("nftaddr = ?", nftaddr+"mmm").First(&nftRec)
+		if err.Error != nil {
+			if err.Error != gorm.ErrRecordNotFound {
+				fmt.Println("BuyResultWTransfer() database err =", err.Error)
 				return err.Error
 			}
-			fmt.Println("BuyResultWTransfer() Ok blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
+		} else {
+			nfttab := Nfts{}
+			nfttab.Ownaddr = to
+			fmt.Println("BuyResultWTransfer() blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
+			return nft.db.Transaction(func(tx *gorm.DB) error {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWTransfer() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWTransfer() create nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab = Nfts{}
+				nfttab.Ownaddr = to
+				nfttab.Mergelevel = mergelevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+					return err.Error
+				}
+				return nil
+			})
+		}
+	case SnftExchangeColletion:
+		if nftaddr[:3] != "0x8" {
 			return nil
-		})
+		}
+		var nftRec Nfts
+		err := nft.db.Where("nftaddr = ?", nftaddr+"mm").First(&nftRec)
+		if err.Error != nil {
+			if err.Error != gorm.ErrRecordNotFound {
+				fmt.Println("BuyResultWTransfer() database err =", err.Error)
+				return err.Error
+			}
+		} else {
+			var mnftRec Nfts
+			if mergelevel == 3 {
+				err := nft.db.Where("nftaddr = ?", nftaddr+"mm").First(&mnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() database err =", err.Error)
+					return err.Error
+				}
+			}
+			nfttab := Nfts{}
+			nfttab.Ownaddr = to
+			fmt.Println("BuyResultWTransfer() blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
+			return nft.db.Transaction(func(tx *gorm.DB) error {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWTransfer() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWTransfer() create nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab = Nfts{}
+				nfttab.Ownaddr = to
+				nfttab.Mergelevel = mergelevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+					return err.Error
+				}
+				if mergelevel == 3 {
+					nfttab = Nfts{}
+					nfttab.Ownaddr = to
+					nfttab.Mergelevel = mergelevel
+					err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-1]+"mmm").Updates(&nfttab)
+					if err.Error != nil {
+						log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+						return err.Error
+					}
+					nfttab = Nfts{}
+					nfttab.Ownaddr = to
+					nfttab.Mergelevel = mergelevel
+					err = tx.Model(&Nfts{}).Where("snftstage = ?", mnftRec.Snftstage).Updates(&nfttab)
+					if err.Error != nil {
+						log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+						return err.Error
+					}
+				}
+				return nil
+			})
+		}
+	case SnftExchangeSnft:
+		if nftaddr[:3] != "0x8" {
+			return nil
+		}
+		var nftRec Nfts
+		err := nft.db.Where("nftaddr = ?", nftaddr+"m").First(&nftRec)
+		if err.Error != nil {
+			if err.Error != gorm.ErrRecordNotFound {
+				fmt.Println("BuyResultWTransfer() database err =", err.Error)
+				return err.Error
+			}
+		} else {
+			var mnftRec Nfts
+			if mergelevel > 1 {
+				err := nft.db.Where("nftaddr = ?", nftaddr+"m").First(&mnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() database err =", err.Error)
+					return err.Error
+				}
+			}
+			nfttab := Nfts{}
+			nfttab.Ownaddr = to
+			fmt.Println("BuyResultWTransfer() blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
+			return nft.db.Transaction(func(tx *gorm.DB) error {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWTransfer() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("snft = ?", nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWTransfer() create nfts record err=", err.Error)
+					return err.Error
+				}
+				nfttab = Nfts{}
+				nfttab.Ownaddr = to
+				nfttab.Mergelevel = mergelevel
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+					return err.Error
+				}
+				if mergelevel > 1 {
+					switch mergelevel {
+					case 2:
+						nfttab = Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-1]+"mm").Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("Snftcollection = ?", mnftRec.Snftcollection).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					case 3:
+						nfttab = Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-2]+"mmm").Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("snftstage = ?", mnftRec.Snftstage).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					}
+				}
+				return nil
+			})
+		}
+	case SnftExchangeChip:
+		var nftRec Nfts
+		err := nft.db.Where("nftaddr = ?", nftaddr).First(&nftRec)
+		if err.Error != nil {
+			if err.Error != gorm.ErrRecordNotFound {
+				fmt.Println("BuyResultWTransfer() database err =", err.Error)
+				return err.Error
+			}
+		} else {
+			var mnftRec Nfts
+			if nftaddr[:3] == "0x8" && mergelevel != 0 {
+				err := nft.db.Where("nftaddr = ?", nftaddr[:len(nftaddr)-1]+"m").First(&mnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() database err =", err.Error)
+					return err.Error
+				}
+			}
+			nfttab := Nfts{}
+			nfttab.Ownaddr = to
+			fmt.Println("BuyResultWTransfer() blocknumber=", mintTx.BlockNumber, " nftaddr=", mintTx.NftAddr, " to=", nfttab.Ownaddr)
+			return nft.db.Transaction(func(tx *gorm.DB) error {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWTransfer() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				if nftaddr[:3] == "0x8" && mergelevel != 0 {
+					nfttab.Mergelevel = 1
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+					return err.Error
+				}
+				if nftaddr[:3] == "0x8" && mergelevel != 0 {
+					nfttab = Nfts{}
+					if mergelevel != 0 {
+						nfttab.Mergelevel = 1
+						err = tx.Model(&Nfts{}).Where("snft = ?", nftaddr[:len(nftaddr)-1]).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					}
+					switch mergelevel {
+					case 1:
+						nfttab := Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("nftaddr = ?", mnftRec.Nftaddr).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					case 2:
+						nfttab = Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-2]+"mm").Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+						nfttab = Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("Snftcollection = ?", mnftRec.Snftcollection).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					case 3:
+						nfttab = Nfts{}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr[:len(nftaddr)-3]+"mmm").Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+						nfttab.Ownaddr = to
+						nfttab.Mergelevel = mergelevel
+						err = tx.Model(&Nfts{}).Where("snftstage = ?", mnftRec.Snftstage).Updates(&nfttab)
+						if err.Error != nil {
+							log.Println("BuyResultWTransfer() update nfts record err=", err.Error)
+							return err.Error
+						}
+					}
+				}
+				return nil
+			})
+		}
 	}
 	return nil
+}
+
+func GetMergeLevel(OldNftaddr string, blocknumber string) (uint8, string, error) {
+	switch len(OldNftaddr) {
+	case SnftExchangeChip:
+		addr := common.HexToAddress(OldNftaddr[:41] + "0")
+		nb, _ := big.NewInt(0).SetString(blocknumber, 10)
+		accountInfo, err := contracts.GetAccountInfo(addr, nb)
+		if err != nil {
+			log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+			return 0, "", err
+		}
+		if accountInfo.MergeLevel == 1 {
+			mergelevel := accountInfo.MergeLevel
+			addr := common.HexToAddress(OldNftaddr[:40] + "00")
+			accountInfo, err = contracts.GetAccountInfo(addr, nb)
+			if err != nil {
+				log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+				return 0, "", err
+			}
+			if accountInfo.MergeLevel == 2 {
+				addr := common.HexToAddress(OldNftaddr[:39] + "000")
+				accountInfo, err = contracts.GetAccountInfo(addr, nb)
+				if err != nil {
+					log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+					return 0, "", err
+				}
+				if accountInfo.MergeLevel != 3 {
+					mergelevel = 2
+				} else {
+					mergelevel = 3
+				}
+			}
+			accountInfo.MergeLevel = mergelevel
+		}
+		return accountInfo.MergeLevel, accountInfo.Owner.String(), nil
+	case SnftExchangeSnft:
+		addr := common.HexToAddress(OldNftaddr[:40] + "00")
+		nb, _ := big.NewInt(0).SetString(blocknumber, 10)
+		accountInfo, err := contracts.GetAccountInfo(addr, nb)
+		if err != nil {
+			log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+			return 0, "", err
+		}
+		if accountInfo.MergeLevel == 2 {
+			addr := common.HexToAddress(OldNftaddr[:39] + "000")
+			accountInfo, err = contracts.GetAccountInfo(addr, nb)
+			if err != nil {
+				log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+				return 0, "", err
+			}
+			if accountInfo.MergeLevel != 3 {
+				accountInfo.MergeLevel = 2
+			}
+		}
+		return accountInfo.MergeLevel, accountInfo.Owner.String(), nil
+	case SnftExchangeColletion:
+		addr := common.HexToAddress(OldNftaddr[:39] + "000")
+		nb, _ := big.NewInt(0).SetString(blocknumber, 10)
+		accountInfo, err := contracts.GetAccountInfo(addr, nb)
+		if err != nil {
+			log.Println("BuyResultWTransfer() GetAccountInfo err =", err, "NftAddress= ", addr)
+			return 0, "", err
+		}
+		if accountInfo.MergeLevel != 3 {
+			accountInfo.MergeLevel = 2
+		}
+		return accountInfo.MergeLevel, "", nil
+	default:
+		return 3, "", nil
+	}
+	return 0, "", errors.New("nftaddr err.")
 }
 
 func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 	nftaddr := strings.ToLower(exchangeTx.NftAddr)
 	nftaddress := ""
-	recCount := int64(0)
+	OldNftaddr := nftaddr
+	nftRec := Nfts{}
 	switch len(nftaddr) {
 	case SnftExchangeStage:
 		nftaddress = nftaddr + "000"
+		err := nft.db.Model(&Nfts{}).Where("snftstage = ?", nftaddr).First(&nftRec)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() dbase error.")
+			return ErrDataBase
+		}
+		if err.Error == gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() snft not find error.")
+			return nil
+		}
 	case SnftExchangeColletion:
 		nftaddress = nftaddr + "00"
+		err := nft.db.Model(&Nfts{}).Where("snftcollection = ?", nftaddr).First(&nftRec)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() dbase error.")
+			return ErrDataBase
+		}
+		if err.Error == gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() snft not find error.")
+			return nil
+		}
 	case SnftExchangeSnft:
 		nftaddress = nftaddr + "0"
+		err := nft.db.Model(&Nfts{}).Where("Snft = ?", nftaddr).First(&nftRec)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() dbase error.")
+			return ErrDataBase
+		}
+		if err.Error == gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() snft not find error.")
+			return nil
+		}
 	case SnftExchangeChip:
 		nftaddress = nftaddr
-		snft := nftaddress[:len(nftaddress)-1]
-		err := nft.db.Model(Nfts{}).Where("snft = ? and ownaddr = ?", snft, ZeroAddr).Count(&recCount)
-		if err.Error != nil {
-			log.Println("BuyResultExchange() recCount err=", err)
-			return err.Error
+		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).First(&nftRec)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() dbase error.")
+			return ErrDataBase
+		}
+		if err.Error == gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() snft not find error.")
+			return nil
 		}
 	}
-	fmt.Println("BuyResultExchange() beging. nftaddr=", nftaddr)
-	nftRec := Nfts{}
-	//err := nft.db.Select([]string{"collectcreator", "Collections"}).Where("nftaddr = ?", nftaddress).First(&nftRec)
-	err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).First(&nftRec)
-	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-		log.Println("BuyResultExchange() dbase error.")
-		return ErrDataBase
-	}
-	if err.Error == gorm.ErrRecordNotFound {
-		log.Println("BuyResultExchange() snft not find error.")
-		return nil
-	}
-	if nftRec.Ownaddr == ZeroAddr {
-		log.Println("BuyResultExchange() snft already exchange.")
-		return nil
-	}
+	fmt.Println("BuyResultExchange() begin. nftaddr=", nftaddr)
 	collectRec := Collects{}
-	err = nft.db.Where("createaddr = ? AND  name=?",
+	err := nft.db.Where("createaddr = ? AND  name=?",
 		nftRec.Collectcreator, nftRec.Collections).First(&collectRec)
 	if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 		log.Println("BuyResultExchange() database err=", err.Error)
@@ -1026,30 +1687,104 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 		log.Println("BuyResultExchange() snft not find error.")
 		return nil
 	}
-	sysInfo := SysInfos{}
-	err = nft.db.Model(&SysInfos{}).Last(&sysInfo)
-	if err.Error != nil {
-		if err.Error != gorm.ErrRecordNotFound {
-			log.Println("UploadWNft() SysInfos err=", err)
-			return ErrCollectionNotExist
+	MnftRec := Nfts{}
+	var to string
+	var mergelevel uint8
+	if nftaddr[:3] == "0x8" {
+		var gerr error
+		mergelevel, to, gerr = GetMergeLevel(OldNftaddr, exchangeTx.BlockNumber)
+		if gerr != nil {
+			log.Println("BuyResultExchange() ger mergelevel error.")
+			return ErrBlockchain
 		}
+		switch len(OldNftaddr) {
+		case SnftExchangeChip:
+			if mergelevel > 0 {
+				err := nft.db.Where("nftaddr = ?", OldNftaddr[:len(OldNftaddr)-1]+"m").First(&MnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultExchange() database err =", err.Error)
+					return err.Error
+				}
+			}
+		case SnftExchangeSnft:
+			if mergelevel > 1 {
+				err := nft.db.Where("nftaddr = ?", OldNftaddr+"m").First(&MnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultExchange() database err =", err.Error)
+					return err.Error
+				}
+			}
+		case SnftExchangeColletion:
+			if mergelevel > 2 {
+				err := nft.db.Where("nftaddr = ?", OldNftaddr+"mm").First(&MnftRec)
+				if err.Error != nil {
+					log.Println("BuyResultExchange() database err =", err.Error)
+					return err.Error
+				}
+			}
+			/*	case SnftExchangeStage:
+				if accountInfo.MergeLevel > 3 {
+					err := nft.db.Where("nftaddr = ?", nftaddr+"m").First(&MnftRec)
+					if err.Error != nil {
+						log.Println("BuyResultWTransfer() database err =", err.Error)
+						return err.Error
+					}
+				}*/
+		}
+
 	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
+		sysInfo := SysInfos{}
+		err = tx.Model(&SysInfos{}).Last(&sysInfo)
+		if err.Error != nil {
+			if err.Error != gorm.ErrRecordNotFound {
+				log.Println("BuyResultExchange() SysInfos err=", err)
+				return ErrCollectionNotExist
+			}
+		}
+		sysNft := Sysnfts{}
+		snft := nftaddress[:len(nftaddress)-1]
+		err := tx.Where("snft = ?", snft).First(&sysNft)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("BuyResultExchange() database err=", err.Error)
+			return ErrCollectionNotExist
+		}
 		switch len(nftaddr) {
 		case SnftExchangeStage:
 			fmt.Println("BuyResultExchange() exchange 38 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
-			err := tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("ownaddr", ZeroAddr)
+			//err := tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Delete(&Nfts{})
+			//if err.Error != nil {
+			//	log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+			//	return err.Error
+			//}
+			err := tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("exchange", 1)
 			if err.Error != nil {
 				log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
 				return err.Error
 			}
+			err = tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr+"m").Update("exchange", 1)
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+				return err.Error
+			}
+			//err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").Update("exchange", 1)
+			//if err.Error != nil {
+			//	log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+			//	return err.Error
+			//}
+			err = tx.Model(&Sysnfts{}).Where("Snftstage = ?", nftaddr).Delete(&Sysnfts{})
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+				return err.Error
+			}
+			nftcount := err.RowsAffected
 			err = tx.Model(&Collects{}).Where("Snftstage = ?", nftaddr).Delete(&Collects{})
 			if err.Error != nil {
 				log.Println("BuyResultExchange() 38 exchange deleted collect recorde err= ", err.Error)
 				return err.Error
 			}
 			if sysInfo.Snfttotal >= 256 {
-				sysInfo.Snfttotal -= 256
+				sysInfo.Snfttotal -= uint64(nftcount)
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 				if err.Error != nil {
 					log.Println("BuyResultExchange() 38 exchange sub SysInfos snfttotal err=", err.Error)
@@ -1061,9 +1796,30 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeColletion:
 			fmt.Println("BuyResultExchange() exchange 40 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
-			err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("ownaddr", ZeroAddr)
+			/*	err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Delete(&Nfts{})
+				if err.Error != nil {
+					log.Println("BuyResultExchange() exchange 40 Snftstage err=", err.Error)
+					return err.Error
+				}*/
+			err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("Exchange", 1)
 			if err.Error != nil {
 				log.Println("BuyResultExchange() exchange 40 Snftstage err=", err.Error)
+				return err.Error
+			}
+			err = tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr+"m").Update("Exchange", 1)
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 40 Snftstage err=", err.Error)
+				return err.Error
+			}
+			//err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").Update("Exchange", 1)
+			//if err.Error != nil {
+			//	log.Println("BuyResultExchange() exchange 40 Snftstage err=", err.Error)
+			//	return err.Error
+			//}
+			nftcount := uint64(err.RowsAffected)
+			err = tx.Model(&Sysnfts{}).Where("Snftcollection = ?", nftaddr).Delete(&Sysnfts{})
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
 				return err.Error
 			}
 			err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
@@ -1073,7 +1829,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				return err.Error
 			}
 			if sysInfo.Snfttotal >= 16 {
-				sysInfo.Snfttotal -= 16
+				sysInfo.Snfttotal -= nftcount / 16
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
 				if err.Error != nil {
 					log.Println("BuyResultExchange() 39 exchange sub SysInfos snfttotal err=", err.Error)
@@ -1085,27 +1841,44 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeSnft:
 			fmt.Println("BuyResultExchange() exchange 41 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
-			err := tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("ownaddr", ZeroAddr)
+			err := tx.Model(&Sysnfts{}).Where("Snft = ?", nftaddr).Delete(&Sysnfts{})
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+				return err.Error
+			}
+			/*	err = tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Delete(&Nfts{})
+				if err.Error != nil {
+					log.Println("BuyResultExchange() exchange 41 Snftstage err=", err.Error)
+					return err.Error
+				}*/
+			err = tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("Exchange", 1)
 			if err.Error != nil {
 				log.Println("BuyResultExchange() exchange 41 Snftstage err=", err.Error)
 				return err.Error
 			}
+			err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").Update("Exchange", 1)
+			if err.Error != nil {
+				log.Println("BuyResultExchange() exchange 41 Snftstage err=", err.Error)
+				return err.Error
+			}
+			nftcount := int(err.RowsAffected)
 			if collectRec.Totalcount >= 16 {
-				collectRec.Totalcount -= 16
-				err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
-					nftRec.Collectcreator, nftRec.Collections).Update("totalcount", collectRec.Totalcount)
-				if err.Error != nil {
-					log.Println("BuyResultExchange() 40 exchange update collect recorde err= ", err.Error)
-					return err.Error
-				}
-				/*if collectRec.Totalcount == 0 {
+				collectRec.Totalcount -= nftcount
+				if collectRec.Totalcount != 0 {
+					err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
+						nftRec.Collectcreator, nftRec.Collections).Update("totalcount", collectRec.Totalcount)
+					if err.Error != nil {
+						log.Println("BuyResultExchange() 40 exchange update collect recorde err= ", err.Error)
+						return err.Error
+					}
+				} else {
 					err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
 						nftRec.Collectcreator, nftRec.Collections).Delete(&Collects{})
 					if err.Error != nil {
 						log.Println("BuyResultExchange() 40 exchange deleted collect recorde err= ", err.Error)
 						return err.Error
 					}
-				}*/
+				}
 			}
 			if sysInfo.Snfttotal > 0 {
 				sysInfo.Snfttotal -= 1
@@ -1120,35 +1893,50 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeChip:
 			fmt.Println("BuyResultExchange() exchange 42 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
-			err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).Update("ownaddr", ZeroAddr)
+			//err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).Delete(&Nfts{})
+			//if err.Error != nil {
+			//	log.Println("BuyResultExchange() err=", err.Error)
+			//	return err.Error
+			//}
+			err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).Update("exchange", 1)
 			if err.Error != nil {
 				log.Println("BuyResultExchange() err=", err.Error)
 				return err.Error
 			}
 			if collectRec.Totalcount >= 1 {
 				collectRec.Totalcount -= 1
-				err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
-					nftRec.Collectcreator, nftRec.Collections).Update("totalcount", collectRec.Totalcount)
-				if err.Error != nil {
-					fmt.Println("BuyResultExchange() add collectins totalcount err= ", err.Error)
-					return err.Error
-				}
-				/*if collectRec.Totalcount == 0 {
+				if collectRec.Totalcount != 0 {
+					err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
+						nftRec.Collectcreator, nftRec.Collections).Update("totalcount", collectRec.Totalcount)
+					if err.Error != nil {
+						log.Println("BuyResultExchange() 40 exchange update collect recorde err= ", err.Error)
+						return err.Error
+					}
+				} else {
 					err = tx.Model(&Collects{}).Where("createaddr = ? AND  name=?",
 						nftRec.Collectcreator, nftRec.Collections).Delete(&Collects{})
 					if err.Error != nil {
-						log.Println("BuyResultExchange() deleted collect recorde err= ", err.Error)
+						log.Println("BuyResultExchange() 40 exchange deleted collect recorde err= ", err.Error)
 						return err.Error
 					}
-				}*/
-				if recCount+1 == 16 {
-					if sysInfo.Snfttotal > 0 {
-						sysInfo.Snfttotal -= 1
-						err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
-						if err.Error != nil {
-							log.Println("BuyResultExchange() add  SysInfos snfttotal err=", err.Error)
-							return err.Error
-						}
+				}
+				if sysNft.Chipcount-1 != 0 {
+					err = tx.Model(&Sysnfts{}).Where("Snft = ?", snft).Update("chipcount", sysNft.Chipcount-1)
+					if err.Error != nil {
+						log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+						return err.Error
+					}
+				} else {
+					err = tx.Model(&Sysnfts{}).Where("Snft = ?", snft).Delete(&sysNft)
+					if err.Error != nil {
+						log.Println("BuyResultExchange() exchange 38 Snftstage err=", err.Error)
+						return err.Error
+					}
+					sysInfo.Snfttotal -= 1
+					err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal)
+					if err.Error != nil {
+						log.Println("BuyResultExchange() add  SysInfos snfttotal err=", err.Error)
+						return err.Error
 					}
 				}
 				//NftCatch.SetFlushFlag()
@@ -1156,6 +1944,7 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				GetRedisCatch().SetDirtyFlag(SnftExchange)
 			}
 		}
+		SnftMerge(OldNftaddr, to, &MnftRec, mergelevel, exchangeTx, tx)
 		return nil
 	})
 	return nil
@@ -1163,51 +1952,141 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 
 func (nft NftDb) BuyResultWPledge(Tx *contracts.NftTx) error {
 	nftaddr := strings.ToLower(Tx.NftAddr)
+	if nftaddr[:3] != "0x8" {
+		fmt.Println("BuyResultWPledge() nftaddr=", nftaddr, " err=not snft")
+		return nil
+	}
 	fmt.Println("BuyResultWPledge() nftaddr=", nftaddr, " transType=", Tx.TransType)
 	fmt.Println("BuyResultWPledge() transType=", Tx.TransType)
 	switch len(nftaddr) {
+	//case SnftExchangeChip:
+	//	if Tx.TransType == contracts.WormHolesPledge {
+	//		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Update("Pledgestate", Pledge.String())
+	//		if err.Error != nil {
+	//			log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+	//			return err.Error
+	//		}
+	//	} else {
+	//		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Update("Pledgestate", NoPledge.String())
+	//		if err.Error != nil {
+	//			log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+	//			return err.Error
+	//		}
+	//	}
 	case SnftExchangeSnft:
-		if Tx.TransType == contracts.WormHolesPledge {
-			err := nft.db.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("Pledgestate", Pledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
-				return err.Error
-			}
-		} else {
-			err := nft.db.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("Pledgestate", NoPledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
-				return err.Error
-			}
+		nftRec := Nfts{}
+		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").First(&nftRec)
+		if err.Error != nil {
+			log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+			return err.Error
 		}
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			if Tx.TransType == contracts.WormHolesPledge {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWPledge() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+					return err.Error
+				}
+			} else {
+				err = tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"m").Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+					return err.Error
+				}
+			}
+			return nil
+		})
 	case snftCollectionOffset:
-		if Tx.TransType == contracts.WormHolesPledge {
-			err := nft.db.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("Pledgestate", Pledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
-				return err.Error
-			}
-		} else {
-			err := nft.db.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("Pledgestate", NoPledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
-				return err.Error
-			}
+		nftRec := Nfts{}
+		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").First(&nftRec)
+		if err.Error != nil {
+			log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+			return err.Error
 		}
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			if Tx.TransType == contracts.WormHolesPledge {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWPledge() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
+					return err.Error
+				}
+			} else {
+				err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mm").Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() snftCollectionOffset err=", err.Error)
+					return err.Error
+				}
+			}
+			return nil
+		})
 	case SnftExchangeStage:
-		if Tx.TransType == contracts.WormHolesPledge {
-			err := nft.db.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("Pledgestate", Pledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
-				return err.Error
-			}
-		} else {
-			err := nft.db.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("Pledgestate", NoPledge.String())
-			if err.Error != nil {
-				log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
-				return err.Error
-			}
+		nftRec := Nfts{}
+		err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").First(&nftRec)
+		if err.Error != nil {
+			log.Println("BuyResultWPledge() SnftExchangeSnft err=", err.Error)
+			return err.Error
 		}
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			if Tx.TransType == contracts.WormHolesPledge {
+				err = ClearAuction(tx, &nftRec)
+				if err != nil {
+					log.Println("BuyResultWPledge() ClearAuction err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").Update("Pledgestate", Pledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
+					return err.Error
+				}
+			} else {
+				err = tx.Model(&Nfts{}).Where("Snftstage = ?", nftaddr).Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
+					return err.Error
+				}
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr+"mmm").Update("Pledgestate", NoPledge.String())
+				if err.Error != nil {
+					log.Println("BuyResultWPledge() SnftExchangeStage err=", err.Error)
+					return err.Error
+				}
+			}
+			return nil
+		})
 	}
 	return nil
 }

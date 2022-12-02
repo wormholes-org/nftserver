@@ -1,9 +1,12 @@
 package models
 
 import (
+	"flag"
 	"fmt"
 	beego "github.com/beego/beego/v2/server/web"
 	"log"
+	"os"
+	"testing"
 )
 
 var sqldsn string
@@ -11,7 +14,20 @@ var sqldsndb string
 var Sqldsndb string
 var sqllocaldsndb string
 
+const version = "0.8.6"
+
+func DisplayVersion() {
+	v := flag.Bool("version", false, "display version")
+	testing.Init()
+	flag.Parse()
+	if *v {
+		fmt.Println("version =", version)
+		os.Exit(0)
+	}
+}
+
 func init() {
+	DisplayVersion()
 	log.SetPrefix("TRACE: ")
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
 	DbName, _ = beego.AppConfig.String("dbname")
@@ -68,6 +84,7 @@ func init() {
 	LimitWritesDatabase, _ = beego.AppConfig.Bool("limitwritesdatabase")
 	AnnouncementRequired = true
 	NftScanServer, _ = beego.AppConfig.String("NftScanServer")
+	fmt.Println("NftScanServer=", NftScanServer)
 	AgentExchangePrv, _ = beego.AppConfig.String("AgentExchangePrv")
 	LimitFileSize, _ = beego.AppConfig.String("LimitFileSize")
 	if LimitFileSize == "" {
@@ -75,4 +92,5 @@ func init() {
 	} else {
 		LimitTotalSize = true
 	}
+	DefaultExchangeAuth, _ = beego.AppConfig.String("Exchangerauth")
 }

@@ -168,6 +168,8 @@ func (nft NftDb) UploadNft(
 			nfttab.Verifiedtime = time.Now().Unix()
 		}
 		nfttab.Mintstate = NoMinted.String()
+		nfttab.Mergetype = 1
+		nfttab.Mergelevel = 1
 		/*if collectRec.Contract == strings.ToLower(NFT1155Addr) {
 			nfttab.Mintstate = NoMinted.String()
 		} else {

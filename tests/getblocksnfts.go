@@ -47,7 +47,7 @@ func GetBlockSnfts(blocknumber string) (*[]SnftInfo, error) {
 	}
 	var revData ResponseGetBlockSnfts
 	err = json.Unmarshal([]byte(b), &revData)
-	if err != nil {
+	if err !=nil {
 		fmt.Println("QueryNFT() Unmarshal err=", err)
 		return nil, err
 	}

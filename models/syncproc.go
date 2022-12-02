@@ -86,30 +86,23 @@ func UpdateBlockNumber(sqldsn string) {
 	}
 }
 
-func GetCurrentBlockNumber() uint64 {
+func GetCurrentBlockNumber() (int64, error) {
 	var client *ethclient.Client
 	var err error
-	for {
-		client, err = ethclient.Dial(InfuraWssPoint)
-		if err != nil {
-			log.Println("GetCurrentBlockNumber() connect err=", err)
-			fmt.Println("GetCurrentBlockNumber() connect err=", err)
-			time.Sleep(ReDialDelyTime * time.Second)
-		} else {
-			//log.Println("GetCurrentBlockNumber() connect OK!")
-			//fmt.Println("GetCurrentBlockNumber() connect OK!")
-			break
-		}
+	client, err = ethclient.Dial(EthersNode)
+	if err != nil {
+		log.Println("GetCurrentBlockNumber() connect err=", err)
+		return 0, err
 	}
-	for {
-		header, err := client.HeaderByNumber(context.Background(), nil)
-		if err != nil {
-			fmt.Println("GetCurrentBlockNumber() get HeaderByNumber err=", err)
-			continue
-		} else {
-			fmt.Println("GetCurrentBlockNumber() header.Number=", header.Number.String())
-			return header.Number.Uint64()
-		}
+	defer client.Close()
+	fmt.Println("GetCurrentBlockNumber() connect OK! ")
+	header, err := client.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		log.Println("GetCurrentBlockNumber() get HeaderByNumber err=", err)
+		return 0, err
+	} else {
+		log.Println("GetCurrentBlockNumber() header.Number=", header.Number.String())
+		return header.Number.Int64(), nil
 	}
 }
 

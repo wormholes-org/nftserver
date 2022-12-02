@@ -21,6 +21,13 @@ type UserInfo struct {
 	TradeAvgPrice   uint64 `json:"trade_avg_price"`   //Average price of user-created NFTs,
 	TradeFloorPrice uint64 `json:"trade_floor_price"` //Lowest price for user-created NFTs
 	Identity        string `json:"identity"`          //user ID
+	Country         string `json:"country"`
+	Countrycode     string `json:"countrycode"`
+	RealName        string `json:"real_name"`
+	Certificate     string `json:"certificate"`
+	Certifyimg      string `json:"certifyimg"`
+	Certifyimgs     string `json:"certifyimgs"`
+	Certifycheck    string `json:"certifycheck"`
 }
 
 func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
@@ -44,8 +51,16 @@ func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
 	uinfo.Link = user.Link
 	uinfo.Bio = user.Bio
 	uinfo.Verified = user.Verified
+	uinfo.Country = user.Country
+	uinfo.Countrycode = user.Countrycode
+	uinfo.RealName = user.Realname
+	uinfo.Certificate = user.Certificate
+	uinfo.Certifyimg = user.Certifyimg
+	uinfo.Certifyimgs = user.Certifyimgs
+	uinfo.Certifycheck = user.Certifycheck
 	var recCount int64
-	err = nft.db.Model(Nfts{}).Where("ownaddr = ?", userAddr).Count(&recCount)
+	nftCountSql := `ownaddr = ? and exchange = 0 and ( mergetype = mergelevel) and deleted_at is null`
+	err = nft.db.Model(Nfts{}).Where(nftCountSql, userAddr).Count(&recCount)
 	if err.Error == nil {
 		uinfo.NftCount = int(recCount)
 	}

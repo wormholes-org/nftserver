@@ -15,16 +15,17 @@ import (
 )
 
 const (
-	DeleteMapList = time.Second * 1
+	DeleteMapList   = time.Second * 1
 	PrintMapListLog = time.Minute * 10
 	MapListItemsNum = 59
-	ResultScope = 10000
-	EXPIREDURATION = 60 * 60 * 10
+	ResultScope     = 10000
+	EXPIREDURATION  = 60 * 60 * 10
 )
 
 var answerMapList AnswerMapList
 var tokenMap TokenMap
 var approveAddrsMap ApproveAddrsMap
+
 func init() {
 	answerMapList.MapList = make(map[int64]map[string]int64)
 	go answerMapList.DeleteLoop()
@@ -36,7 +37,7 @@ func init() {
 }
 
 type AnswerMapList struct {
-	Mux sync.Mutex
+	Mux     sync.Mutex
 	MapList map[int64]map[string]int64
 }
 
@@ -91,7 +92,7 @@ func (mapList *AnswerMapList) DeleteLoop() {
 	tickLog := time.Tick(PrintMapListLog)
 	for {
 		select {
-		case <- tick:
+		case <-tick:
 			deleteKey := time.Now().Unix() - MapListItemsNum
 			mapList.Mux.Lock()
 			for k, _ := range mapList.MapList {
@@ -100,7 +101,7 @@ func (mapList *AnswerMapList) DeleteLoop() {
 				}
 			}
 			mapList.Mux.Unlock()
-		case <- tickLog:
+		case <-tickLog:
 			fmt.Println("AnswerMapList len =", len(mapList.MapList))
 			var total int
 			for _, v := range mapList.MapList {
@@ -112,18 +113,18 @@ func (mapList *AnswerMapList) DeleteLoop() {
 }
 
 type TokenMap struct {
-	Mux sync.Mutex
+	Mux    sync.Mutex
 	Tokens map[string]TokenInfo
 }
 type TokenInfo struct {
-	Token string
+	Token     string
 	TimeStamp int64
 }
 
 func (tokenMap *TokenMap) AddToken(userAddr string, token string) {
 	tokenMap.Mux.Lock()
 	tokenInfo := TokenInfo{
-		Token: token,
+		Token:     token,
 		TimeStamp: time.Now().Unix(),
 	}
 	tokenMap.Tokens[userAddr] = tokenInfo
@@ -166,11 +167,10 @@ func (tokenMap *TokenMap) DeleteExpireTokens() {
 		//if !validToken {
 		//	deleteTokenKeys = append(deleteTokenKeys, tokenKey)
 		//}
-		if nowStamp - tokenInfo.TimeStamp > EXPIREDURATION {
+		if nowStamp-tokenInfo.TimeStamp > EXPIREDURATION {
 			deleteTokenKeys = append(deleteTokenKeys, tokenKey)
 		}
 	}
-
 
 	for _, v := range deleteTokenKeys {
 		delete(tokenMap.Tokens, v)
@@ -182,37 +182,35 @@ func (tokenMap *TokenMap) DeleteTokensLoop() {
 	tick := time.Tick(time.Second * 10)
 	for {
 		select {
-		case <- tick:
+		case <-tick:
 			tokenMap.DeleteExpireTokens()
 		}
 	}
 }
 
 type ApproveAddrsMap struct {
-	Mux sync.Mutex
+	Mux          sync.Mutex
 	ApproveAddrs map[string]AddrInfo
 }
 type AddrInfo struct {
-	Addr string
+	Addr      string
 	TimeStamp int64
 }
 
 func (approveAddrsMap *ApproveAddrsMap) AddApproveAddr(userAddr string, approveAddr string) {
 	approveAddrsMap.Mux.Lock()
 	addrInfo := AddrInfo{
-		Addr: approveAddr,
+		Addr:      approveAddr,
 		TimeStamp: time.Now().Unix(),
 	}
 	approveAddrsMap.ApproveAddrs[userAddr] = addrInfo
 	approveAddrsMap.Mux.Unlock()
 }
 
-func(approveAddrsMap *ApproveAddrsMap) GetApproveAddr(userAddr string) (string, error) {
+func (approveAddrsMap *ApproveAddrsMap) GetApproveAddr(userAddr string) (string, error) {
 	approveAddrInfo, ok := approveAddrsMap.ApproveAddrs[userAddr]
 	if ok {
 		return approveAddrInfo.Addr, nil
 	}
 	return "", errors.New("Not Exist!")
 }
-
-

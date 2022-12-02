@@ -280,15 +280,16 @@ func TestPrice(t *testing.T) {
 }
 
 func TestGetSnftInfo(t *testing.T) {
-	EthNode = "https://api.wormholestest.com"
-	snftAddr, err := GetSnftAddressList(big.NewInt(53668), true)
-	if err != nil {
-		t.Fatal("GetSnftInfo() err=", err)
-	}
-	fmt.Println(snftAddr)
+	//EthNode = "https://api.wormholestest.com"
+	EthNode = "http://192.168.4.240:8561"
+	//snftAddr, err := GetSnftAddressList(big.NewInt(53668), true)
+	//if err != nil {
+	//	t.Fatal("GetSnftInfo() err=", err)
+	//}
+	//fmt.Println(snftAddr)
 	addr := common.HexToAddress("0x8000000000000000000000000000000000000390")
-	snftInfo, err := GetAccountInfo(addr, big.NewInt(53668))
-	fmt.Println(snftInfo)
+	snftInfo, err := GetAccountInfo(addr, big.NewInt(926))
+	fmt.Println(snftInfo, err)
 }
 
 func TestGetNominatedNFTInfo(t *testing.T) {

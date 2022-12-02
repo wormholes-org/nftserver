@@ -146,7 +146,7 @@ func (c *queryRedisCatch) CatchQueryData(queryname, querysql string, queryData i
 	fmt.Println("CatchQueryData() key = ", ExchangeOwer+"."+queryname+"."+querysql)
 	ckey := c.QueryHash(ExchangeOwer + queryname + "count")
 	hkey := c.QueryHash(ExchangeOwer + queryname)
-	skey := c.QueryHash(querysql)
+	//skey := c.QueryHash(querysql)
 	catchCount := make(map[string]int)
 	datas, err := c.GetRedisData(ckey)
 	if err == nil && datas != nil {
@@ -156,7 +156,7 @@ func (c *queryRedisCatch) CatchQueryData(queryname, querysql string, queryData i
 			for s, i := range catchCount {
 				fmt.Println("CatchQueryData() key, count=", s, ":", i)
 			}
-			_, ok := catchCount[skey]
+			_, ok := catchCount[querysql]
 			if !ok {
 				if len(catchCount) > queryCatchMax {
 					k := 0
@@ -177,11 +177,11 @@ func (c *queryRedisCatch) CatchQueryData(queryname, querysql string, queryData i
 		}
 	}
 	queryDatas, _ := json.Marshal(queryData)
-	err = c.HsetRedisData(hkey, skey, queryDatas)
+	err = c.HsetRedisData(hkey, querysql, queryDatas)
 	if err != nil {
 		log.Println("CatchQueryData() CatchQueryData  err=", err)
 	}
-	catchCount[skey] = catchCount[skey] + 1
+	catchCount[querysql] = catchCount[querysql] + 1
 	datas, err = json.Marshal(catchCount)
 	err = c.SetRedisData(ckey, datas)
 	return err

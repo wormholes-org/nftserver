@@ -7,13 +7,17 @@ import (
 	"testing"
 )
 
-const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+
 //const sqlsvrLcT = "demo:123456@tcp(192.168.56.128:3306)/"
 //const vpnsvr = "demo:123456@tcp(192.168.1.238:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
 //const dbNameT = "nftdbdemo"
-const dbNameT = "nftdb"
+//const dbNameT = "nftdb"
+const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 const localtimeT = "?parseTime=true&loc=Local"
+
 //const localtimeT = "?charset=utf8mb4&parseTime=True&loc=Local"
 
 const sqldsnT = sqlsvrLcT + dbNameT + localtimeT
@@ -40,7 +44,7 @@ func TestForeignContract(t *testing.T) {
 		"0x91C308955eeA74f17079BE2c0dF635406Bd0Ac15",
 		"foreign-test.",
 		"art",
-		"sigedata",
+		"sigedata", "",
 	)
 	if err != nil {
 		fmt.Println("NewCollections() err=", err)
@@ -74,7 +78,7 @@ func TestForeignContract(t *testing.T) {
 		"0x91C308955eeA74f17079BE2c0dF635406Bd0Ac15",
 		"foreign-test.",
 		"art",
-		"sigedata",
+		"sigedata", "",
 	)
 	if err != nil {
 		fmt.Println("NewCollections() err=", err)

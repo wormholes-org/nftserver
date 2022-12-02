@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -64,8 +65,19 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 		t = t.Add(time.Hour)
 		mInfo.Dayinfo[i].Tindex = t.Format("02/15:00")
 	}
+	params, qerr := nft.QuerySysParams()
+	if qerr != nil {
+		fmt.Printf("InitSysParams() QuerySysParams() err = %s\n", qerr)
+		return nil, ErrDataBase
+	}
+	//royalt, _ := strconv.Atoi(params.Royalty)
+	//royalt = royalt / 100
+	//royaltstr := strconv.Itoa(royalt)
+	royalt, _ := strconv.ParseFloat(params.Royalty, 64)
+	royaltstr := strconv.FormatFloat(royalt/10000, 'E', -1, 64)
+
 	var eInft []Info
-	rsql := "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * 0.025) as nftearings, " +
+	rsql := "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * " + royaltstr + " ) as nftearings, " +
 		"round(avg(price)) as nftavprice, max(price) as nfthighprice, min(price) as nftlowprice " +
 		"from (select id, updated_at, DATE_FORMAT(updated_at,\"%d/%H:00\") as tindex, (price) " +
 		"from trans " +
@@ -96,7 +108,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 		mInfo.Weekinfo[i].Tindex = t.Format("01-02")
 	}
 	eInft = []Info{}
-	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * 0.025) as nftearings, " +
+	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * " + royaltstr + " ) as nftearings, " +
 		"round(avg(price)) as nftavprice, max(price) as nfthighprice, min(price) as nftlowprice " +
 		"from (select id, updated_at, DATE_FORMAT(updated_at,\"%m-%d\") as tindex, (price) " +
 		"from trans " +
@@ -126,7 +138,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 		mInfo.Monthinfo[i].Tindex = t.Format("01-02")
 	}
 	eInft = []Info{}
-	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * 0.025) as nftearings, " +
+	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * " + royaltstr + ") as nftearings, " +
 		"round(avg(price)) as nftavprice, max(price) as nfthighprice, min(price) as nftlowprice " +
 		"from (select id, updated_at, DATE_FORMAT(updated_at,\"%m-%d\") as tindex, (price) " +
 		"from trans " +
@@ -155,7 +167,7 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 
 	}
 	eInft = []Info{}
-	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * 0.025) as nftearings, " +
+	rsql = "select tindex, count(*) as nfttrans,sum(price) as nftsumprice, round(sum(price) * " + royaltstr + ") as nftearings, " +
 		"round(avg(price)) as nftavprice, max(price) as nfthighprice, min(price) as nftlowprice " +
 		"from (select id, updated_at, DATE_FORMAT(updated_at,\"%Y-%m\") as tindex, (price) " +
 		"from trans " +
@@ -235,9 +247,10 @@ func (nft *NftDb) QueryMarketInfo() (*MarketInfo, error) {
 	type likes struct {
 		Tokenid string
 		Count   int
+		Name    string
 	}
 	like := []likes{}
-	rsql = "select tokenid, count(*) as count from nftfavoriteds where deleted_at is null group by tokenid ORDER BY count(*) desc limit 0, 20"
+	rsql = "select tokenid,name, count(*) as count from nftfavoriteds where deleted_at is null group by tokenid,name ORDER BY count(*) desc limit 0, 20"
 	err = nft.db.Raw(rsql).Scan(&like)
 	if err.Error != nil {
 		fmt.Println("QueryMarketInfo() likes err=", err)

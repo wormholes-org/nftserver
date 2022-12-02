@@ -49,6 +49,7 @@ func (nft *NftExchangeControllerV2) SaveToIpfs(fromfile string) (string, error) 
 		return "", err
 	}
 	defer file.Close()
+	fmt.Println("SaveToIpfs() file.name=", fileh.Filename, " file.size=", fileh.Size)
 	if fileh.Size > int64(models.UploadSize) {
 		log.Println("SaveToIpfs() upload size too big!")
 		return "", errors.New("upload size too big!")
@@ -104,6 +105,7 @@ func (nft *NftExchangeControllerV2) UploadNftImage() {
 				httpResponseData.Msg = err.Error()
 				httpResponseData.Data = []interface{}{}
 			} else {
+				fmt.Println("UploadNftImage() GetFile()")
 				f, h, err := nft.GetFile("myfile")
 				if err != nil {
 					httpResponseData.Code = "500"
@@ -111,6 +113,7 @@ func (nft *NftExchangeControllerV2) UploadNftImage() {
 					httpResponseData.Data = []interface{}{}
 				} else {
 					f.Close()
+					fmt.Println("UploadNftImage() SaveToIpfs() ")
 					imageHash, err := nft.SaveToIpfs("myfile")
 					if err != nil {
 						httpResponseData.Code = "500"

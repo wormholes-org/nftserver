@@ -182,11 +182,21 @@ func (nft NftDb) BuyingNft(userAddr,
 		fmt.Println("BuyingNft() bidprice not find nft err= ", err.Error)
 		return ErrNftNotExist
 	}
+	if nftrecord.Mergetype != nftrecord.Mergelevel {
+		fmt.Println("BuyingNft() snft has been merged")
+		return ErrNftMerged
+	}
 	rerr := BuySigVerify(buyerSig, userAddr)
 	if rerr != nil {
 		log.Println("BuyingNft() SigVerify buyerSig err=", rerr)
 		return rerr
 	}
+
+	//rerr = SellSigVerify(sellerSig, userAddr)
+	//if rerr != nil {
+	//	log.Println("SellSigVerify() SigVerify buyerSig err=", rerr)
+	//	return rerr
+	//}
 	if userAddr == buyerAddr {
 		//err := WormTrans(nftrecord.Mintstate, auctionRec.Tradesig, buyerSig)
 		//ExchangerAuth = `{"exchanger_owner":"0x01842a2cf56400a245a56955dc407c2c4137321e","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900","block_number":"0x2540be400","sig":"0x7f1ca96714208959c5a75bdbf4770893b76b13c0bca26da2086c3365e537d57444f79b31498301c5c1d55400eec4b469c83a88a527159112f27ff934c222e4191b"}`

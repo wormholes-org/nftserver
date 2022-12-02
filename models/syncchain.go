@@ -59,7 +59,8 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 		}
 		if nftTx.TransType == contracts.WormHolesExToBuyTransfer ||
 			nftTx.TransType == contracts.WormHolesBuyFromSellTransfer ||
-			nftTx.TransType == contracts.WormHolesExAuthToExBuyTransfer {
+			nftTx.TransType == contracts.WormHolesExAuthToExBuyTransfer ||
+			nftTx.TransType == contracts.WormHolesExSellNoAuthTransfer {
 			err = nd.BuyResultWithWAmount(&nftTx)
 			if err != nil {
 				fmt.Println("SyncBlockTxs() BuyResultWithWAmount() err=", err)
@@ -80,6 +81,7 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 			}
 			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 			GetRedisCatch().SetDirtyFlag(TradingDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 			continue
 		}
 		if nftTx.TransType == contracts.WormHolesExchange {
@@ -93,6 +95,7 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 			}
 			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 			GetRedisCatch().SetDirtyFlag(TradingDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 			continue
 		}
 		if nftTx.TransType == contracts.WormHolesPledge || nftTx.TransType == contracts.WormHolesUnPledge {
@@ -106,6 +109,7 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 			}
 			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 			GetRedisCatch().SetDirtyFlag(TradingDirtyName)
+			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		}
 	}
 	return nil

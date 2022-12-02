@@ -28,6 +28,9 @@ type SnftChipInfo struct {
 	Transamt       uint64 `json:"transamt" gorm:"type:bigint DEFAULT NULL;comment:'total transaction amount'"`
 	Pledgestate    string `json:"pledgestate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'Pledgestate status'"`
 	Chipcount      int
+	MergeLevel     uint8
+	MergeNumber    uint32
+	BlockNumber    uint64
 	//Sellprice		uint64		`json:"sellprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'price being sold'"`
 }
 
@@ -38,6 +41,7 @@ type SnftChipCatch struct {
 
 func (nft NftDb) QuerySnftChip(contract, tokenid, start_Index, count string) ([]SnftChipInfo, uint64, error) {
 	spendT := time.Now()
+
 	queryCatchSql := contract + tokenid + start_Index + count
 	nftCatch := SnftChipCatch{}
 	cerr := GetRedisCatch().GetCatchData("QuerySnftChip", queryCatchSql, &nftCatch)
@@ -49,7 +53,10 @@ func (nft NftDb) QuerySnftChip(contract, tokenid, start_Index, count string) ([]
 	err := nft.db.Model(&Nfts{}).Select("snft").Where("contract = ? AND tokenid = ?", contract, tokenid).First(&nftRec)
 	if err.Error != nil {
 		log.Println("QuerySnftChip() Select(snft) err=", err.Error)
-		return nil, 0, ErrNotFound
+		return nil, 0, ErrNftNotExist
+	}
+	if nftRec.Snft[len(nftRec.Snft)-1:len(nftRec.Snft)] == "m" {
+		nftRec.Snft = nftRec.Snft[:len(nftRec.Snft)-1]
 	}
 	var recCount int64
 	err = nft.db.Model(Nfts{}).Where("snft = ?", nftRec.Snft).Count(&recCount)

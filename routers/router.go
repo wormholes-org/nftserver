@@ -153,6 +153,8 @@ func registRouterV2() {
 	beego.Router("/v2/queryUserInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryUserInfo")
 	//Query single NFT information
 	beego.Router("/v2/queryNFT", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryNft")
+	//Query tokenId by nft_addr
+	beego.Router("/v2/queryTokenIdByNftaddr", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryTokenIdByNftaddr")
 	//Querying information about a single SNFT fragment
 	beego.Router("/v2/querySnftChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QuerySnftChip")
 	//Query SNFT information in a certain period
@@ -163,6 +165,8 @@ func registRouterV2() {
 	beego.Router("/v2/queryOwnerSnftChipAmount", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerSnftChipAmount")
 	//Query snft in the collection according to the creator, collection name
 	beego.Router("/v2/querySnftByCollection", &nftexchangev2.NftExchangeControllerV2{}, "post:QuerySnftByCollection")
+	//Query snft in the collection according to the creator, collection name with deleted
+	beego.Router("/v2/queryCollectionAllSnft", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryCollectionAllSnft")
 	//Inquiry period information
 	beego.Router("/v2/queryStageList", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryStageList")
 	//Query period collection information
@@ -252,6 +256,11 @@ func registRouterV2() {
 	beego.Router("/v2/authcaptcha", &nftexchangev2.NftExchangeControllerV2{}, "post:AuthCaptcha")
 	//admin login
 	beego.Router("/v2/adminlogin", &nftexchangev2.NftExchangeControllerV2{}, "post:AdminLogin")
+	//get nft server  overview
+	beego.Router("/v2/getoverview", &nftexchangev2.NftExchangeControllerV2{}, "get:GetOverview")
+	//get exchange injection number
+	beego.Router("/v2/getSnftPeriodNum", &nftexchangev2.NftExchangeControllerV2{}, "post:GetSnftPeriodNum")
+	beego.Router("/v2/getSnftPledge", &nftexchangev2.NftExchangeControllerV2{}, "get:GetSnftPledge")
 
 }
 

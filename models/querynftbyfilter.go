@@ -54,6 +54,10 @@ type NftInfo struct {
 	//Extend			string		`json:"extend" gorm:"type:longtext NOT NULL;comment:'extend data'"`
 	Offernum    uint64 `json:"offernum" gorm:"type:bigint unsigned DEFAULT NULL;comment:'number of bids'"`
 	Maxbidprice uint64 `json:"maxbidprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Highest bid price'"`
+	Mergetype   uint8  `json:"mergetype" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'merge type 0,1'"`
+	Mergelevel  uint8  `json:"mergelevel" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'merge level 0,1,2,3'"`
+	Exchange    uint8  `json:"exchange" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'exchange flag'"`
+	Chipcount   int    `json:"chipcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'snft slice count.'"`
 }
 
 type SnftAddr struct {
@@ -433,7 +437,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 					log.Println("QueryNftByFilter() Raw(countSql).Scan(&snftCount) err=", err.Error)
 					return nil, uint64(0), ErrDataBase
 				}
-				fmt.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+				log.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 				spendStart = time.Now()
 				totalCount = snftCount
 				snftSql := `select min(nftaddr) from nfts where snft != "" group by snft `
@@ -444,7 +448,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 					log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftAddrs) err=", err.Error)
 					return nil, uint64(0), ErrDataBase
 				}
-				fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+				log.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 				spendStart = time.Now()
 				fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
 				err = nft.db.Model(&Nfts{}).Where("nftaddr in ?", snftAddrs).Scan(&snftInfo)
@@ -600,7 +604,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				log.Println("QueryNftByFilter() Raw(countSql).Scan(&snftCount) err=", err.Error)
 				return nil, uint64(0), ErrDataBase
 			}
-			fmt.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			log.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			totalCount = snftCount
 			snftInfo := []NftInfo{}
 			spendStart = time.Now()
@@ -611,7 +615,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftAddrs) err=", err)
 				return nil, uint64(0), ErrDataBase
 			}
-			fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			log.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			spendStart = time.Now()
 			fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
 			err = nft.db.Model(&Nfts{}).Where("nftaddr in ?", snftAddrs).Scan(&snftInfo)
@@ -630,7 +634,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				log.Println("QueryNftByFilter() Raw(countSql).Scan(&snftCount) err=", err.Error)
 				return nil, uint64(0), ErrDataBase
 			}
-			fmt.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			log.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			spendStart = time.Now()
 			var nftCount int64
 			countSql = `select count(id) from nfts where snft = "" and deleted_at  is null  `
@@ -664,7 +668,7 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftAddrs) err=", err)
 				return nil, uint64(0), ErrDataBase
 			}
-			fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			log.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			spendStart = time.Now()
 			fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
 
@@ -738,20 +742,21 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 		"FROM nfts LEFT JOIN (select * from auctions WHERE deleted_at IS NULL ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid  LEFT JOIN " +
 		"(SELECT contract, tokenid, COUNT(*) AS offernum, MAX(price) AS maxbidprice FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid) bidcount " +
 		"ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid " + ") a "*/
-	if len(sort) > 0 {
-		for k, v := range sort {
-			if k > 0 {
-				orderBy = orderBy + ", "
-			}
-			orderBy += v.By + " " + v.Order
-		}
-	}
-	if len(orderBy) > 0 {
-		orderBy = orderBy + ", id desc"
-	} else {
-		orderBy = "createdate desc, id desc"
-	}
+
 	if len(filter) > 0 {
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				orderBy += v.By + " " + v.Order
+			}
+		}
+		if len(orderBy) > 0 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = "createdate desc, id desc"
+		}
 		queryWhere = nft.joinFilters(filter)
 		/*nftCatchHash := NftCatch.NftCatchHash(queryWhere + orderBy + startIndex + count)
 		nftCatch := NftCatch.GetByHash(nftCatchHash, NftFlushTypeAuction)
@@ -759,248 +764,41 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 			log.Printf("QueryNftByFilter() filter spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}*/
-		queryCatchSql := queryWhere + orderBy + startIndex + count
+		queryCatchSql := queryWhere + orderBy + startIndex + count + "nft"
 		nftCatch := NftFilter{}
 		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
 			log.Printf("QueryNftByFilter() default spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}
-		querySplit := QueryWhereSplit(queryWhere)
-		if querySplit["selltype"] == "" && querySplit["offernum"] == "" && querySplit["sellprice"] == "" {
-			spendStart := time.Now()
-			whereFlag := false
-			nftItem := `Ownaddr, nfts.Name, nfts.Desc, Contract, Tokenid, Nftaddr, Count, Categories, Collectcreator, Collections, Hide, Createaddr, Price, Transprice, Royalty, Createdate, Favorited, Transcnt, Transamt, Verified, Selltype, Mintstate `
-			nftSql := `select ` + nftItem + ` ,transprice as sellprice from nfts  `
-			nftCountSql := `select count(id) from nfts `
-			if querySplit["createdate"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					nftSql = nftSql + " where " + querySplit["createdate"]
-					nftCountSql = nftCountSql + " where " + querySplit["createdate"]
-				} else {
-					nftSql = nftSql + " and " + querySplit["createdate"]
-					nftCountSql = nftCountSql + " and " + querySplit["createdate"]
-				}
-			}
-			if querySplit["categories"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					nftSql = nftSql + " where " + querySplit["categories"]
-					nftCountSql = nftCountSql + " where " + querySplit["categories"]
-				} else {
-					nftSql = nftSql + " and " + querySplit["categories"]
-					nftCountSql = nftCountSql + " and " + querySplit["categories"]
-				}
-			}
-			if querySplit["collectcreator"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					nftSql = nftSql + " where " + querySplit["collectcreator"]
-					nftCountSql = nftCountSql + " where " + querySplit["collectcreator"]
-				} else {
-					nftSql = nftSql + " and " + querySplit["collectcreator"]
-					nftCountSql = nftCountSql + " and " + querySplit["collectcreator"]
-				}
-			}
-			if querySplit["collections"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					nftSql = nftSql + " where " + querySplit["collections"]
-					nftCountSql = nftCountSql + " where " + querySplit["collections"]
-				} else {
-					nftSql = nftSql + " and " + querySplit["collections"]
-					nftCountSql = nftCountSql + " and " + querySplit["collections"]
-				}
-			}
-			if whereFlag == false {
-				whereFlag = true
-				nftSql = nftSql + " where " + " (nfts.deleted_at is null) "
-				nftCountSql = nftCountSql + " where " + " (nfts.deleted_at is null) "
-			} else {
-				nftSql = nftSql + " and " + " (nfts.deleted_at is null) "
-				nftCountSql = nftCountSql + " and " + " (nfts.deleted_at is null) "
-			}
-			//snftSql = snftSql + " group by snft "
-			//nftCountSql = nftCountSql + " ) as a"
-			nftSql = nftSql + " order by " + orderBy
-			if len(startIndex) > 0 && len(count) > 0 {
-				nftSql = nftSql + " limit " + startIndex + ", " + count
-			} else {
-				nftSql = nftSql + " limit " + "0" + ", " + "1"
-			}
-			//nftInfo := []NftInfo{}
-			log.Printf("QueryNftByFilter() nftSql=%s\n", nftSql)
-			err := nft.db.Raw(nftSql).Scan(&nftInfo)
-			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-				log.Println("QueryNftByFilter() Scan(&snftInfo) err=", err)
-				return nil, uint64(0), ErrDataBase
-			}
-			//nftInfo = append(nftInfo, snftInfo...)
-			log.Printf("QueryNftByFilter() nftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
-			spendT = time.Now()
-			log.Printf("QueryNftByFilter() nftCountSql=%s\n", nftCountSql)
-			var nftCount int64
-			if querySplit["collectcreator"] != "" && querySplit["collections"] != "" {
-				nftCountSql := `select totalcount from collects where `
-				createaddr := querySplit["collectcreator"]
-				createaddr = strings.Replace(createaddr, "collectcreator", "createaddr", -1)
-				name := querySplit["collections"]
-				name = strings.Replace(name, "collections", "name", -1)
-				nftCountSql = nftCountSql + createaddr + " and " + name + " and " + " deleted_at IS NULL "
-				err = nft.db.Raw(nftCountSql).Scan(&nftCount)
-				if err.Error != nil {
-					log.Println("QueryNftByFilter() Raw(countSql).Scan(&nftCount) err=", err.Error)
-					return []NftInfo{}, uint64(0), err.Error
-				}
-			} else {
-				err = nft.db.Raw(nftCountSql).Scan(&nftCount)
-				if err.Error != nil {
-					log.Println("QueryNftByFilter() Raw(countSql).Scan(&nftCount) err=", err.Error)
-					return []NftInfo{}, uint64(0), err.Error
-				}
-			}
-			nftTokenIds := []string{}
-			for _, info := range nftInfo {
-				nftTokenIds = append(nftTokenIds, info.Tokenid)
-			}
-			sellPrices := []struct {
-				Tokenid string
-				Price   uint64
-			}{}
-			err = nft.db.Model(&Auction{}).Select("tokenid, startprice as price").Where("tokenid in ?", nftTokenIds).Scan(&sellPrices)
-			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-				log.Println("QueryNftByFilter() Scan(&sellPrices) err=", err)
-				return nil, uint64(0), ErrDataBase
-			}
-			offerPrices := []struct {
-				Tokenid     string
-				Offernum    uint64
-				Maxbidprice uint64
-			}{}
-			err = nft.db.Model(&Bidding{}).Select("tokenid, count(id) as offernum, max(price) as maxbidprice").Where("tokenid in ?", nftTokenIds).Group("tokenid").Scan(&offerPrices)
-			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-				log.Println("QueryNftByFilter() Select(snft) err=", err.Error)
-				return nil, 0, ErrDataBase
-			}
-
-			for i, info := range nftInfo {
-				for _, price := range sellPrices {
-					if info.Tokenid == price.Tokenid {
-						nftInfo[i].Sellprice = price.Price
-					}
-				}
-				for _, price := range offerPrices {
-					if info.Tokenid == price.Tokenid {
-						nftInfo[i].Offernum = price.Offernum
-						nftInfo[i].Maxbidprice = price.Maxbidprice
-					}
-				}
-			}
-			totalCount = nftCount
-			log.Printf("QueryNftByFilter() nftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
-			//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
-			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
-			return nftInfo, uint64(totalCount), nil
-		} else {
-			snftSql := `SELECT nfts.*, auctionstemp.startprice AS sellprice, offernum, maxbidprice FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid, COUNT(*) AS offernum, MAX(price) AS maxbidprice FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
-			snftCountSql := `SELECT count(nfts.id) FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid, COUNT(*) AS offernum, MAX(price) AS maxbidprice FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
-			if querySplit["selltype"] != "" {
-				snftSql = strings.Replace(snftSql, "selltype_condition", "and "+querySplit["selltype"], -1)
-				snftCountSql = strings.Replace(snftCountSql, "selltype_condition", "and "+querySplit["selltype"], -1)
-			} else {
-				snftSql = strings.Replace(snftSql, "selltype_condition", " ", -1)
-				snftCountSql = strings.Replace(snftCountSql, "selltype_condition", " ", -1)
-			}
-			if querySplit["sellprice"] != "" {
-				snftSql = strings.Replace(snftSql, "price_condition", "and "+querySplit["sellprice"], -1)
-				snftCountSql = strings.Replace(snftCountSql, "price_condition", "and "+querySplit["sellprice"], -1)
-			} else {
-				snftSql = strings.Replace(snftSql, "price_condition", " ", -1)
-				snftCountSql = strings.Replace(snftCountSql, "price_condition", " ", -1)
-			}
-			whereFlag := false
-			if querySplit["createdate"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					snftSql = snftSql + " where " + querySplit["createdate"]
-					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
-				} else {
-					snftSql = snftSql + " and " + querySplit["createdate"]
-					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
-				}
-			}
-			if querySplit["offernum"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					snftSql = snftSql + " where " + querySplit["offernum"]
-					snftCountSql = snftCountSql + " where " + querySplit["offernum"]
-				} else {
-					snftSql = snftSql + " and " + querySplit["offernum"]
-					snftCountSql = snftCountSql + " and " + querySplit["offernum"]
-				}
-			}
-			if querySplit["collectcreator"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					snftSql = snftSql + " where " + querySplit["collectcreator"]
-					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
-				} else {
-					snftSql = snftSql + " and " + querySplit["collectcreator"]
-					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
-				}
-			}
-			if querySplit["collections"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					snftSql = snftSql + " where " + querySplit["collections"]
-					snftCountSql = snftCountSql + " where " + querySplit["collections"]
-				} else {
-					snftSql = snftSql + " and " + querySplit["collections"]
-					snftCountSql = snftCountSql + " and " + querySplit["collections"]
-				}
-			}
-			if querySplit["categories"] != "" {
-				if whereFlag == false {
-					whereFlag = true
-					snftSql = snftSql + " where " + querySplit["categories"]
-					snftCountSql = snftCountSql + " where " + querySplit["categories"]
-				} else {
-					snftSql = snftSql + " and " + querySplit["categories"]
-					snftCountSql = snftCountSql + " and " + querySplit["categories"]
-				}
-			}
-			if whereFlag == false {
-				whereFlag = true
-				snftSql = snftSql + " where " + " (nfts.deleted_at is null) "
-				snftCountSql = snftCountSql + " where " + " (nfts.deleted_at is null) "
-			} else {
-				snftSql = snftSql + " and " + " (nfts.deleted_at is null) "
-				snftCountSql = snftCountSql + " and " + " (nfts.deleted_at is null) "
-			}
-			snftSql = snftSql + " order by " + orderBy
-			if len(startIndex) > 0 && len(count) > 0 {
-				snftSql = snftSql + " limit " + startIndex + ", " + count
-			} else {
-				snftSql = snftSql + " limit " + "0" + ", " + "1"
-			}
-			log.Println("QueryNftByFilter() snftSql=", snftSql)
-			err := nft.db.Raw(snftSql).Scan(&nftInfo)
-			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&nftInfo) err=", err.Error)
-				return nil, uint64(0), ErrDataBase
-			}
-			log.Println("QueryNftByFilter() snftCountSql=", snftCountSql)
-			err = nft.db.Raw(snftCountSql).Scan(&totalCount)
-			if err.Error != nil {
-				log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
-				return nil, uint64(0), ErrDataBase
-			}
-			log.Printf("QueryNftByFilter() normal spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
-			//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
-			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
-			return nftInfo, uint64(totalCount), nil
+		sql := `select ` + " * " + ` from nfts where snft = "" and deleted_at is null `
+		countSql := `select ` + "count(id)" + ` from nfts where snft = "" and deleted_at  is null `
+		if len(queryWhere) > 0 {
+			sql = sql + " and " + queryWhere
+			countSql = countSql + " and " + queryWhere
 		}
+		sql = sql + " order by " + orderBy
+		if len(startIndex) > 0 && len(count) > 0 {
+			sql = sql + " limit " + startIndex + ", " + count
+		} else {
+			sql = sql + " limit " + "0" + ", " + "1"
+		}
+		log.Println("QueryNftByFilter() sql=", sql)
+		err := nft.db.Raw(sql).Scan(&nftInfo)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("QueryNftByFilter() Raw(sql).Scan(&nftInfo) err=", err.Error)
+			return nil, uint64(0), ErrDataBase
+		}
+		log.Println("QueryNftByFilter() countSql=", countSql)
+		err = nft.db.Raw(countSql).Scan(&totalCount)
+		if err.Error != nil {
+			log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+			return nil, uint64(0), ErrDataBase
+		}
+		log.Printf("QueryNftByFilter() normal spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+		//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
+		GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
+		return nftInfo, uint64(totalCount), nil
 	} else {
 		spendStart := time.Now()
 		/*nftCatchHash := NftCatch.NftCatchHash(startIndex + count)
@@ -1009,7 +807,20 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 			log.Printf("QueryNftByFilter() default spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}*/
-		queryCatchSql := startIndex + count
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				orderBy += v.By + " " + v.Order
+			}
+		}
+		if len(orderBy) > 0 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = "createdate desc, id desc"
+		}
+		queryCatchSql := startIndex + count + orderBy + "nft"
 		nftCatch := NftFilter{}
 		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
@@ -1030,52 +841,57 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 		}
 		log.Printf("QueryNftByFilter() nftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 		spendStart = time.Now()
-		nftItem := `Ownaddr, nfts.Name, nfts.Desc, Contract, Tokenid, Nftaddr, Count, Categories, Collectcreator, Collections, Hide, Createaddr, Price, Transprice, Royalty, Createdate, Favorited, Transcnt, Transamt, Verified, Selltype, Mintstate `
-		nftSql := `select ` + nftItem + ` from nfts where snft = "" and deleted_at  is null `
-		nftSql = nftSql + " order by " + orderBy + " limit " + startIndex + "," + count
+		//nftItem := `Ownaddr, nfts.Name, nfts.Desc, Contract, Tokenid, Nftaddr, Count, Categories, Collectcreator, Collections, Hide, Createaddr, Price, Transprice, Royalty, Createdate, Favorited, Transcnt, Transamt, Verified, Selltype, Mintstate `
+		nftSql := `select ` + "*" + ` from nfts where snft = "" and deleted_at  is null `
+		nftSql = nftSql + " order by " + orderBy
+		if len(startIndex) > 0 && len(count) > 0 {
+			nftSql = nftSql + " limit " + startIndex + ", " + count
+		} else {
+			nftSql = nftSql + " limit " + "0" + ", " + "1"
+		}
 		log.Printf("QueryNftByFilter() nftInfo sql = %s\n", nftSql)
 		err = nft.db.Raw(nftSql).Scan(&nftInfo)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			log.Println("QueryNftByFilter() Scan(&nftInfo) err=", err)
 			return nil, uint64(0), ErrDataBase
 		}
-		nftTokenIds := []string{}
-		for _, info := range nftInfo {
-			nftTokenIds = append(nftTokenIds, info.Tokenid)
-		}
-		sellPrices := []struct {
-			Tokenid string
-			Price   uint64
-		}{}
-		err = nft.db.Model(&Auction{}).Select("tokenid, startprice as price").Where("tokenid in ?", nftTokenIds).Scan(&sellPrices)
-		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-			log.Println("QueryNftByFilter() Scan(&sellPrices) err=", err)
-			return nil, uint64(0), ErrDataBase
-		}
-		offerPrices := []struct {
-			Tokenid  string
-			Offernum uint64
-			Price    uint64
-		}{}
-		err = nft.db.Model(&Bidding{}).Select("tokenid, count(id) as offernum, max(price) as price").Where("tokenid in ?", nftTokenIds).Group("tokenid").Scan(&offerPrices)
-		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-			log.Println("QueryNftByFilter() Select(snft) err=", err.Error)
-			return nil, 0, err.Error
-		}
-
-		for i, info := range nftInfo {
-			for _, price := range sellPrices {
-				if info.Tokenid == price.Tokenid {
-					nftInfo[i].Sellprice = price.Price
-				}
-			}
-			for _, price := range offerPrices {
-				if info.Tokenid == price.Tokenid {
-					nftInfo[i].Offernum = price.Offernum
-					nftInfo[i].Maxbidprice = price.Price
-				}
-			}
-		}
+		//nftTokenIds := []string{}
+		//for _, info := range nftInfo {
+		//	nftTokenIds = append(nftTokenIds, info.Tokenid)
+		//}
+		//sellPrices := []struct {
+		//	Tokenid string
+		//	Price   uint64
+		//}{}
+		//err = nft.db.Model(&Auction{}).Select("tokenid, startprice as price").Where("tokenid in ?", nftTokenIds).Scan(&sellPrices)
+		//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+		//	log.Println("QueryNftByFilter() Scan(&sellPrices) err=", err)
+		//	return nil, uint64(0), ErrDataBase
+		//}
+		//offerPrices := []struct {
+		//	Tokenid  string
+		//	Offernum uint64
+		//	Price    uint64
+		//}{}
+		//err = nft.db.Model(&Bidding{}).Select("tokenid, count(id) as offernum, max(price) as price").Where("tokenid in ?", nftTokenIds).Group("tokenid").Scan(&offerPrices)
+		//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+		//	log.Println("QueryNftByFilter() Select(snft) err=", err.Error)
+		//	return nil, 0, err.Error
+		//}
+		//
+		//for i, info := range nftInfo {
+		//	for _, price := range sellPrices {
+		//		if info.Tokenid == price.Tokenid {
+		//			nftInfo[i].Sellprice = price.Price
+		//		}
+		//	}
+		//	for _, price := range offerPrices {
+		//		if info.Tokenid == price.Tokenid {
+		//			nftInfo[i].Offernum = price.Offernum
+		//			nftInfo[i].Maxbidprice = price.Price
+		//		}
+		//	}
+		//}
 		totalCount = nftCount
 		log.Printf("QueryNftByFilter() nftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 		//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
@@ -1099,24 +915,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 	var totalCount int64
 	nftInfo := []NftInfo{}
 	spendT := time.Now()
-	snftAddrs := []string{}
 	snftTotalCount := 0
 
-	if len(sort) > 0 {
-		for k, v := range sort {
-			if k > 0 {
-				orderBy = orderBy + ", "
-			}
-			orderBy += v.By + " " + v.Order
-		}
-	}
-	if len(orderBy) > 0 {
-		//orderBy = orderBy + ", id desc"
-		orderBy = orderBy
-	} else {
-		//orderBy = "createdate desc, id desc"
-		orderBy = "createdate desc"
-	}
 	if len(filter) > 0 {
 		queryWhere = nft.joinFilters(filter)
 		/*nftCatchHash := NftCatch.NftCatchHash(queryWhere + orderBy + startIndex + count)
@@ -1125,7 +925,22 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			fmt.Printf("QueryNftByFilter() filter spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}*/
-		queryCatchSql := queryWhere + orderBy + startIndex + count
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				orderBy += v.By + " " + v.Order
+			}
+		}
+		if len(orderBy) > 0 {
+			//orderBy = orderBy + ", id desc"
+			orderBy = orderBy
+		} else {
+			//orderBy = "createdate desc, id desc"
+			orderBy = "createdate desc"
+		}
+		queryCatchSql := queryWhere + orderBy + startIndex + count + "snft"
 		nftCatch := NftFilter{}
 		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
@@ -1136,8 +951,10 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 		if querySplit["selltype"] == "" && querySplit["offernum"] == "" && querySplit["sellprice"] == "" {
 			spendStart := time.Now()
 			whereFlag := false
-			snftSql := `select min(nftaddr) as minnftaddr, sum(transamt) as transamt, sum(transprice) as sellprice,min(transtime) as transtime, min(verifiedtime) as verifiedtime, min(createdate) as createdate from nfts  `
-			snftCountSql := `select count(minnftaddr) from ( select min(nftaddr) as minnftaddr from nfts `
+			//snftSql := `select min(nftaddr) as minnftaddr, sum(transamt) as transamt, sum(transprice) as sellprice,min(transtime) as transtime, min(verifiedtime) as verifiedtime, min(createdate) as createdate from nfts  `
+			//snftCountSql := `select count(minnftaddr) from ( select min(nftaddr) as minnftaddr from nfts `
+			snftSql := `select * from nfts  `
+			snftCountSql := `select count(id) from nfts `
 			if querySplit["createdate"] != "" {
 				if whereFlag == false {
 					whereFlag = true
@@ -1180,14 +997,12 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			}
 			if whereFlag == false {
 				whereFlag = true
-				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
-				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftSql = snftSql + " where " + " Exchange = 0 and" + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + "" + " deleted_at is null "
+				snftCountSql = snftCountSql + " where " + " Exchange = 0 and" + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
 			} else {
-				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
-				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftSql = snftSql + " and Exchange = 0 " + " and " + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " and  Exchange = 0 " + " and " + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
 			}
-			snftSql = snftSql + " group by snft "
-			snftCountSql = snftCountSql + " group by snft ) as a"
 			snftSql = snftSql + " order by " + orderBy
 			if len(startIndex) > 0 && len(count) > 0 {
 				snftSql = snftSql + " limit " + startIndex + ", " + count
@@ -1195,27 +1010,16 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 				snftSql = snftSql + " limit " + "0" + ", " + "1"
 			}
 			fmt.Printf("QueryNftByFilter() snftSql=%s \n", snftSql)
-			var snftf []SnftFilters
-			err := nft.db.Raw(snftSql).Scan(&snftf)
+			snftInfo := []NftInfo{}
+			err := nft.db.Raw(snftSql).Scan(&snftInfo)
 			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftinfo) err=", err)
 				return nil, uint64(0), ErrDataBase
 			}
+			nftInfo = append(nftInfo, snftInfo...)
 			fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			spendStart = time.Now()
 			fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
-			var snftAddrs []string
-			for _, snft := range snftf {
-				snftAddrs = append(snftAddrs, snft.Minnftaddr)
-			}
-			snftInfo := []NftInfo{}
-			err = nft.db.Model(&Nfts{}).Where("nftaddr in ?", snftAddrs).Scan(&snftInfo)
-			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-				log.Println("QueryNftByFilter() Scan(&snftInfo) err=", err)
-				return nil, uint64(0), ErrDataBase
-			}
-			nftInfo = append(nftInfo, snftInfo...)
-			fmt.Printf("QueryNftByFilter() snftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 			spendT = time.Now()
 			var snftCount int64
 			err = nft.db.Raw(snftCountSql).Scan(&snftCount)
@@ -1229,8 +1033,8 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
 			return nftInfo, uint64(totalCount), nil
 		} else {
-			snftSql := `SELECT nfts.*, auctionstemp.startprice AS sellprice, offernum, maxbidprice FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid, COUNT(*) AS offernum, MAX(price) AS maxbidprice FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
-			snftCountSql := `SELECT count(nfts.id) FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid, COUNT(*) AS offernum, MAX(price) AS maxbidprice FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
+			snftSql := `SELECT nfts.* FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
+			snftCountSql := `SELECT count(nfts.id) FROM nfts JOIN (select * from auctions WHERE deleted_at IS NULL selltype_condition price_condition ) auctionstemp ON nfts.contract = auctionstemp.contract AND nfts.tokenid = auctionstemp.tokenid left Join (SELECT contract, tokenid FROM biddings WHERE deleted_at IS NULL GROUP BY contract, tokenid ) bidcount ON nfts.contract = bidcount.contract AND nfts.tokenid = bidcount.tokenid   `
 			if querySplit["selltype"] != "" {
 				snftSql = strings.Replace(snftSql, "selltype_condition", "and "+querySplit["selltype"], -1)
 				snftCountSql = strings.Replace(snftCountSql, "selltype_condition", "and "+querySplit["selltype"], -1)
@@ -1298,11 +1102,11 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			}
 			if whereFlag == false {
 				whereFlag = true
-				snftSql = snftSql + " where " + " Pledgestate != " + ` "Pledge" `
-				snftCountSql = snftCountSql + " where " + " Pledgestate != " + ` "Pledge" `
+				snftSql = snftSql + " where " + " Exchange = 0 and" + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" `
+				snftCountSql = snftCountSql + " where " + " Exchange = 0 and" + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" `
 			} else {
-				snftSql = snftSql + " and " + " Pledgestate != " + ` "Pledge" `
-				snftCountSql = snftCountSql + " and " + " Pledgestate != " + ` "Pledge" `
+				snftSql = snftSql + " and " + " Exchange = 0 " + " and " + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" `
+				snftCountSql = snftCountSql + " and " + " Exchange = 0 " + " and " + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" `
 			}
 			snftSql = snftSql + " order by " + orderBy
 			if len(startIndex) > 0 && len(count) > 0 {
@@ -1328,14 +1132,30 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 		}
 	} else {
 		spendStart := time.Now()
-		countSql := `select count(a.snft) from (select snft from nfts where snft != "" GROUP BY snft) as a`
 		/*nftCatchHash := NftCatch.NftCatchHash(countSql + startIndex + count)
 		nftCatch := NftCatch.GetByHash(nftCatchHash, NftFlushTypeNewNft)
 		if nftCatch != nil {
 			fmt.Printf("QueryNftByFilter() default spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}*/
-		queryCatchSql := countSql + startIndex + count
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				if v.By == "sellprice" {
+					orderBy += "Transprice" + " " + v.Order
+				} else {
+					orderBy += v.By + " " + v.Order
+				}
+			}
+		}
+		if len(orderBy) > 0 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = "createdate desc, id desc"
+		}
+		queryCatchSql := orderBy + startIndex + count + "snft"
 		nftCatch := NftFilter{}
 		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
@@ -1343,12 +1163,6 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}
 		var snftCount int64
-		//err := nft.db.Raw(countSql).Scan(&snftCount)
-		//if err.Error != nil {
-		//	log.Println("QueryNftByFilter() Raw(countSql).Scan(&snftCount) err=", err.Error)
-		//	return nil, uint64(0), ErrDataBase
-		//}
-		//
 		err := nft.db.Model(&SysInfos{}).Select("snfttotal").Last(&snftCount)
 		if err.Error != nil {
 			if err.Error == gorm.ErrRecordNotFound {
@@ -1358,29 +1172,24 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			log.Println("SnftFilterProc() select nfttotal err=", err.Error)
 			return nil, uint64(0), ErrDataBase
 		}
-		fmt.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+		fmt.Printf("SnftFilterProc() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 		totalCount = snftCount
-		snftInfo := []NftInfo{}
 		spendStart = time.Now()
-		//snftSql := ` select min(nftaddr) from nfts where snft != "" group by snft `
-		snftSql := `select min(nftaddr) from nfts where snft != "" and  Pledgestate != "Pledge" and deleted_at is null group by snft `
-		snftSql = snftSql + " limit " + startIndex + ", " + count
-		err = nft.db.Raw(snftSql).Scan(&snftAddrs)
+		//snftSql := `select ` + "*" + ` from sysnfts where deleted_at is null `
+		snftSql := `select ` + "*" + ` from nfts where Mergetype = 1 and exchange =0 and snft != "" and deleted_at is null `
+		snftSql = snftSql + " order by " + orderBy
+		if len(startIndex) > 0 && len(count) > 0 {
+			snftSql = snftSql + " limit " + startIndex + ", " + count
+		} else {
+			snftSql = snftSql + " limit " + "0" + ", " + "1"
+		}
+		fmt.Printf("SnftFilterProc() nftInfo snftSql = %s\n", snftSql)
+		err = nft.db.Raw(snftSql).Scan(&nftInfo)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-			log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftAddrs) err=", err)
+			log.Println("SnftFilterProc() Scan(&nftInfo) err=", err)
 			return nil, uint64(0), ErrDataBase
 		}
-		fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
-		spendStart = time.Now()
-		fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
-		err = nft.db.Model(&Nfts{}).Where("nftaddr in ?", snftAddrs).Scan(&snftInfo)
-		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-			log.Println("QueryNftByFilter() Scan(&snftInfo) err=", err)
-			return nil, uint64(0), ErrDataBase
-		}
-		nftInfo = append(nftInfo, snftInfo...)
-		fmt.Printf("QueryNftByFilter() snftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
-		//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
+		fmt.Printf("SnftFilterProc() snftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
 		GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
 		return nftInfo, uint64(totalCount), nil
 	}

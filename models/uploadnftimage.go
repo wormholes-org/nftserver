@@ -36,6 +36,7 @@ type nftInfo struct {
 	CollectionsImgUrl    string `json:"collections_img_url"`
 	CollectionsDesc      string `json:"collections_desc"`
 	Attributes           string `json:"attributes"`
+	AssetSample          string `json:"asset_sample"`
 }
 
 type NftImage struct {
@@ -200,6 +201,7 @@ func (nft NftDb) UploadNftImage(
 		nftMeta.CollectionsCategory = collectRec.Categories
 		nftMeta.CollectionsImgUrl = collectImageUrl
 		nftMeta.Attributes = attributes
+		nftMeta.AssetSample = asset_sample
 		metaStr, err := json.Marshal(&nftMeta)
 		meta, serr := SaveToIpfs(string(metaStr))
 		if serr != nil {
@@ -238,6 +240,8 @@ func (nft NftDb) UploadNftImage(
 			nfttab.Verifiedtime = time.Now().Unix()
 		}
 		nfttab.Mintstate = NoMinted.String()
+		nfttab.Mergetype = 1
+		nfttab.Mergelevel = 1
 		nfttab.Createdate = time.Now().Unix()
 		nfttab.Royalty, _ = strconv.Atoi(royalty)
 		nfttab.Count, _ = strconv.Atoi(count)

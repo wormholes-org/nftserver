@@ -58,7 +58,7 @@ func (nft NftDb) QueryAnnouncements(start_index, count string) (int, []Announces
 	nftCount, _ := strconv.Atoi(count)
 
 	var announces []Announcements
-	err = nft.db.Offset(startIndex).Limit(nftCount).Find(&announces)
+	err = nft.db.Order("id desc").Offset(startIndex).Limit(nftCount).Find(&announces)
 	if err.Error != nil {
 		if err.Error != gorm.ErrRecordNotFound {
 			fmt.Println("QuerySingleAnnouncement() dbase err=", err.Error)

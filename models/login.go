@@ -72,8 +72,10 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 		if db.Error == gorm.ErrRecordNotFound {
 			if KYCUploadAuditRequired {
 				user.Verified = NoVerify.String()
+				user.Certifycheck = "true"
 			} else {
 				user.Verified = Passed.String()
+				user.Certifycheck = "false"
 			}
 			user.Useraddr = userAddr
 			user.Signdata = sigData
@@ -97,17 +99,39 @@ func (nft NftDb) Login(userAddr, sigData string) error {
 				log.Println("Login default worm_blue to base64 err=", err)
 				return ErrIpfsImage
 			}
-			err = nft.NewUserCollection(userAddr, DefaultCollection, jpgbase, "NFT1155", "",
-				"mycollection", "Art", "")
-			if err != nil {
-				log.Println("Login new user create collection err=", err)
-				return err
+			if !KYCUploadAuditRequired {
+				err = nft.NewUserCollection(userAddr, DefaultCollection, jpgbase, "NFT1155", "",
+					"mycollection", "Art", "")
+				if err != nil {
+					log.Println("Login new user create collection err=", err)
+					return err
+				}
 			}
 			//GetRedisCatch().SetDirtyFlag(KYCListDirtyName)
 
 		}
 	} else {
 		newUser := Users{}
+		if user.Verified == Passed.String() {
+			collect := Collects{}
+			db = nft.db.Model(&Collects{}).Where("createaddr = ? and name = ?", userAddr, "mycollection").First(&collect)
+			if db.Error != nil {
+				if db.Error == gorm.ErrRecordNotFound {
+					jpgbase, err := IpfsTojpgbase64()
+					if err != nil {
+						log.Println("Login default worm_blue to base64 err=", err)
+						return ErrIpfsImage
+					}
+					err = nft.NewUserCollection(userAddr, DefaultCollection, jpgbase, "NFT1155", "",
+						"mycollection", "Art", "")
+					if err != nil {
+						log.Println("Login new user create collection err=", err)
+						return err
+					}
+				}
+			}
+		}
+
 		/*if user.Portrait == "" {
 			imagerr := SavePortrait(ImageDir, userAddr, PortraitImg)
 			if imagerr != nil {

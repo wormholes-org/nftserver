@@ -97,14 +97,14 @@ func SavePortrait(path, user_addr, image_base64 string) error {
 			fmt.Println("SavePortrait() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + "portrait." + imagetype
+		file = newPath + "portrait." + "jpg"
 	} else {
 		imagetype, img, err = ParseBase64Type(Default_image)
 		if err != nil {
 			fmt.Println("SavePortrait() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + "portrait." + imagetype
+		file = newPath + "portrait." + "jpg"
 	}
 	if img == "" || imagetype == "" {
 		fmt.Println("SavePortrait() imagetype error.")
@@ -141,14 +141,14 @@ func SaveBackground(path, user_addr, image_base64 string) error {
 			fmt.Println("SaveBackground() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + "background." + imagetype
+		file = newPath + "background." + "jpg"
 	} else {
 		imagetype, img, err = ParseBase64Type(Default_image)
 		if err != nil {
 			fmt.Println("SaveBackground() ParseBase64Type() err=", err)
 			return err
 		}
-		file = newPath + "background." + imagetype
+		file = newPath + "background." + "jpg"
 	}
 	if img == "" || imagetype == "" {
 		fmt.Println("SaveBackground() imagetype error.")
