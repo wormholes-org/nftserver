@@ -3,13 +3,9 @@ package sync
 import (
 	"context"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/nftexchange/nftserver/common/contracts"
-	"github.com/nftexchange/nftserver/common/contracts/nft1155"
-	"github.com/nftexchange/nftserver/common/contracts/trade"
 	"github.com/nftexchange/nftserver/models"
 	"log"
 	"time"
@@ -22,246 +18,246 @@ const (
 var EventCh chan interface{}
 
 //Royalty(uint256 id, uint256 royalty, address receiver);
-func EventRoyalty(sqldsn string) {
-	var client *ethclient.Client
-	var err error
-	for {
-		for  {
-			client, err = ethclient.Dial(contracts.EthWsNode)
-			if err != nil {
-				log.Println("EventRoyalty() connect err=", err)
-				fmt.Println("EventRoyalty() connect err=", err)
-				time.Sleep(ReDialDelyTime * time.Second)
-			} else {
-				log.Println("EventRoyalty() connect OK!")
-				fmt.Println("EventRoyalty() connect OK!")
-				break
-			}
-		}
-		RoyaltyCh := make(chan *nft1155.Nft1155Royalty)
-
-		address := common.HexToAddress(models.NFT1155Addr)
-		instance, err := nft1155.NewNft1155(address, client)
-		if err != nil {
-			log.Println("EventRoyalty() new NewNft1155 err=", err)
-			fmt.Println("EventRoyalty() new NewNft1155 err=", err)
-			client.Close()
-			continue
-		}
-		sub, err := instance.WatchRoyalty(&bind.WatchOpts{Start: nil, Context: context.Background()}, RoyaltyCh)
-		if err != nil {
-			log.Println("EventRoyalty() WatchRoyalty error=", err)
-			fmt.Println("EventRoyalty() WatchRoyalty error=", err)
-			client.Close()
-			continue
-		}
-		//var emptyaddr []common.Address
-		//TransferSingleCh := make(chan *nft1155.Nft1155TransferSingle)
-		//_, err = instance.WatchTransferSingle(&bind.WatchOpts{Start: nil, Context: context.Background()}, TransferSingleCh, emptyaddr, emptyaddr, emptyaddr)
-		//if err != nil {
-		//	log.Println("EventRoyalty() WatchTransferSingle error=", err)
-		//	fmt.Println("EventRoyalty() WatchTransferSingle error=", err)
-		//	client.Close()
-		//	continue
-		//}
-		te := make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(waitTime)
-			for {
-				select {
-				case <-ticker.C:
-					header, err := client.HeaderByNumber(context.Background(), nil)
-					if err != nil {
-						log.Println("EventRoyalty() get HeaderByNumber err=", err)
-						fmt.Println("EventRoyalty() get HeaderByNumber err=", err)
-						continue
-					}
-					block, err := client.BlockByNumber(context.Background(), header.Number)
-					if err != nil {
-						log.Println("EventRoyalty() get HeaderByNumber err=", err)
-						fmt.Println("EventRoyalty() get HeaderByNumber err=", err)
-						continue
-					}
-					fmt.Println("EventRoyalty() block.Number()=", block.Number())
-				case <-te:
-					te <- struct{}{}
-					fmt.Println("EventRoyalty() ticker end.")
-					return
-				}
-			}
-		}()
-		fmt.Println("EventRoyalty start!")
-	loop:
-		for {
-			select {
-			case look := <- RoyaltyCh:
-				EventCh <- look
-			case err := <-sub.Err():
-				fmt.Println("EventRoyalty() sub.err()=", err)
-				sub.Unsubscribe()
-				te <- struct{}{}
-				<- te
-				client.Close()
-				log.Println("EventRoyalty() restart.")
-				break loop
-			}
-		}
-	}
-}
+//func EventRoyalty(sqldsn string) {
+//	var client *ethclient.Client
+//	var err error
+//	for {
+//		for  {
+//			client, err = ethclient.Dial(contracts.EthWsNode)
+//			if err != nil {
+//				log.Println("EventRoyalty() connect err=", err)
+//				fmt.Println("EventRoyalty() connect err=", err)
+//				time.Sleep(ReDialDelyTime * time.Second)
+//			} else {
+//				log.Println("EventRoyalty() connect OK!")
+//				fmt.Println("EventRoyalty() connect OK!")
+//				break
+//			}
+//		}
+//		RoyaltyCh := make(chan *nft1155.Nft1155Royalty)
+//
+//		address := common.HexToAddress(models.NFT1155Addr)
+//		instance, err := nft1155.NewNft1155(address, client)
+//		if err != nil {
+//			log.Println("EventRoyalty() new NewNft1155 err=", err)
+//			fmt.Println("EventRoyalty() new NewNft1155 err=", err)
+//			client.Close()
+//			continue
+//		}
+//		sub, err := instance.WatchRoyalty(&bind.WatchOpts{Start: nil, Context: context.Background()}, RoyaltyCh)
+//		if err != nil {
+//			log.Println("EventRoyalty() WatchRoyalty error=", err)
+//			fmt.Println("EventRoyalty() WatchRoyalty error=", err)
+//			client.Close()
+//			continue
+//		}
+//		//var emptyaddr []common.Address
+//		//TransferSingleCh := make(chan *nft1155.Nft1155TransferSingle)
+//		//_, err = instance.WatchTransferSingle(&bind.WatchOpts{Start: nil, Context: context.Background()}, TransferSingleCh, emptyaddr, emptyaddr, emptyaddr)
+//		//if err != nil {
+//		//	log.Println("EventRoyalty() WatchTransferSingle error=", err)
+//		//	fmt.Println("EventRoyalty() WatchTransferSingle error=", err)
+//		//	client.Close()
+//		//	continue
+//		//}
+//		te := make(chan struct{})
+//		go func() {
+//			ticker := time.NewTicker(waitTime)
+//			for {
+//				select {
+//				case <-ticker.C:
+//					header, err := client.HeaderByNumber(context.Background(), nil)
+//					if err != nil {
+//						log.Println("EventRoyalty() get HeaderByNumber err=", err)
+//						fmt.Println("EventRoyalty() get HeaderByNumber err=", err)
+//						continue
+//					}
+//					block, err := client.BlockByNumber(context.Background(), header.Number)
+//					if err != nil {
+//						log.Println("EventRoyalty() get HeaderByNumber err=", err)
+//						fmt.Println("EventRoyalty() get HeaderByNumber err=", err)
+//						continue
+//					}
+//					fmt.Println("EventRoyalty() block.Number()=", block.Number())
+//				case <-te:
+//					te <- struct{}{}
+//					fmt.Println("EventRoyalty() ticker end.")
+//					return
+//				}
+//			}
+//		}()
+//		fmt.Println("EventRoyalty start!")
+//	loop:
+//		for {
+//			select {
+//			case look := <- RoyaltyCh:
+//				EventCh <- look
+//			case err := <-sub.Err():
+//				fmt.Println("EventRoyalty() sub.err()=", err)
+//				sub.Unsubscribe()
+//				te <- struct{}{}
+//				<- te
+//				client.Close()
+//				log.Println("EventRoyalty() restart.")
+//				break loop
+//			}
+//		}
+//	}
+//}
 
 //event SALE(address from, address to, address nftAddr, uint256 nftId, uint256 price, bytes sig);
-func EventSale(sqldsn string) {
-	var client *ethclient.Client
-	var err error
-	for {
-		for {
-			client, err = ethclient.Dial(contracts.EthWsNode)
-			if err != nil {
-				log.Println("EventSale() connect err=", err)
-				fmt.Println("EventSale() connect err=", err)
-				time.Sleep(ReDialDelyTime * time.Second)
-			} else {
-				log.Println("EventSale() connect OK!")
-				fmt.Println("EventSale() connect OK!")
-				break
-			}
-		}
+//func EventSale(sqldsn string) {
+//	var client *ethclient.Client
+//	var err error
+//	for {
+//		for {
+//			client, err = ethclient.Dial(contracts.EthWsNode)
+//			if err != nil {
+//				log.Println("EventSale() connect err=", err)
+//				fmt.Println("EventSale() connect err=", err)
+//				time.Sleep(ReDialDelyTime * time.Second)
+//			} else {
+//				log.Println("EventSale() connect OK!")
+//				fmt.Println("EventSale() connect OK!")
+//				break
+//			}
+//		}
+//
+//		ch := make(chan *trade.TradePRICING)
+//		address := common.HexToAddress(models.TradeAddr)
+//		instance, err := trade.NewTrade(address, client)
+//		if err != nil {
+//			log.Println("EventSale() NewTrade err=", err)
+//			fmt.Println("EventSale() NewTrade err=", err)
+//			client.Close()
+//			continue
+//		}
+//		sub, err := instance.WatchPRICING(&bind.WatchOpts{Start: nil, Context: context.Background()}, ch)
+//		if err != nil {
+//			log.Println("EventSale() WatchPRICING error", err)
+//			fmt.Println("EventSale() WatchPRICING error", err)
+//			client.Close()
+//			continue
+//		}
+//		te := make(chan struct{})
+//		go func() {
+//			ticker := time.NewTicker(waitTime)
+//			for {
+//				select {
+//				case <-ticker.C:
+//					header, err := client.HeaderByNumber(context.Background(), nil)
+//					if err != nil {
+//						log.Println("EventSale() get header err=", err)
+//						continue
+//					}
+//					block, err := client.BlockByNumber(context.Background(), header.Number)
+//					if err != nil {
+//						log.Println("EventSale() get BlockByNumber err=", err)
+//						continue
+//					}
+//					fmt.Println("EventSale() block.Number()=", block.Number())
+//				case <-te:
+//					te <- struct{}{}
+//					log.Println("EventSale() ticker end.")
+//					return
+//				}
+//			}
+//		}()
+//		fmt.Println("EventSale() start.")
+//	loop:
+//		for {
+//			select {
+//			case look := <-ch:
+//				EventCh <- look
+//			case err := <-sub.Err():
+//				fmt.Println("EventSale() sub.err()=", err)
+//				sub.Unsubscribe()
+//				te <- struct{}{}
+//				<-te
+//				fmt.Println("EventSale() restart.")
+//				client.Close()
+//				break loop
+//			}
+//		}
+//	}
+//}
 
-		ch := make(chan *trade.TradePRICING)
-		address := common.HexToAddress(models.TradeAddr)
-		instance, err := trade.NewTrade(address, client)
-		if err != nil {
-			log.Println("EventSale() NewTrade err=", err)
-			fmt.Println("EventSale() NewTrade err=", err)
-			client.Close()
-			continue
-		}
-		sub, err := instance.WatchPRICING(&bind.WatchOpts{Start: nil, Context: context.Background()}, ch)
-		if err != nil {
-			log.Println("EventSale() WatchPRICING error", err)
-			fmt.Println("EventSale() WatchPRICING error", err)
-			client.Close()
-			continue
-		}
-		te := make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(waitTime)
-			for {
-				select {
-				case <-ticker.C:
-					header, err := client.HeaderByNumber(context.Background(), nil)
-					if err != nil {
-						log.Println("EventSale() get header err=", err)
-						continue
-					}
-					block, err := client.BlockByNumber(context.Background(), header.Number)
-					if err != nil {
-						log.Println("EventSale() get BlockByNumber err=", err)
-						continue
-					}
-					fmt.Println("EventSale() block.Number()=", block.Number())
-				case <-te:
-					te <- struct{}{}
-					log.Println("EventSale() ticker end.")
-					return
-				}
-			}
-		}()
-		fmt.Println("EventSale() start.")
-	loop:
-		for {
-			select {
-			case look := <-ch:
-				EventCh <- look
-			case err := <-sub.Err():
-				fmt.Println("EventSale() sub.err()=", err)
-				sub.Unsubscribe()
-				te <- struct{}{}
-				<-te
-				fmt.Println("EventSale() restart.")
-				client.Close()
-				break loop
-			}
-		}
-	}
-}
-
-func EventAuction(sqldsn string) {
-	var client *ethclient.Client
-	var err error
-	for {
-		for  {
-			client, err = ethclient.Dial(contracts.EthWsNode)
-			if err != nil {
-				log.Println("EventAuction() connect err=", err)
-				fmt.Println("EventAuction() connect err=", err)
-				time.Sleep(ReDialDelyTime * time.Second)
-			} else {
-				log.Println("EventAuction() connect OK!")
-				fmt.Println("EventAuction() connect OK!")
-				break
-			}
-		}
-		ch := make(chan *trade.TradeBIDING)
-		address := common.HexToAddress(models.TradeAddr)
-		instance, err := trade.NewTrade(address, client)
-		if err != nil {
-			fmt.Println("EventAuction() NewTrade err=", err)
-			log.Println("EventAuction() NewTrade err=", err)
-			client.Close()
-			continue
-		}
-		sub, err := instance.WatchBIDING(&bind.WatchOpts{Start: nil, Context: context.Background()}, ch)
-		if err != nil {
-			log.Println("EventAuction() WatchBIDING err=", err)
-			fmt.Println("EventAuction() WatchBIDING err=", err)
-			client.Close()
-			continue
-		}
-		te := make(chan struct{})
-		go func() {
-			ticker := time.NewTicker(waitTime)
-			for {
-				select {
-				case <-ticker.C:
-					header, err := client.HeaderByNumber(context.Background(), nil)
-					if err != nil {
-						log.Println("EventAuction() get header err=", err)
-						fmt.Println("EventAuction() get header err=", err)
-						continue
-					}
-					block, err := client.BlockByNumber(context.Background(), header.Number)
-					if err != nil {
-						log.Println("EventAuction() get BlockByNumber err=", err)
-						fmt.Println("EventAuction() get BlockByNumber err=", err)
-						continue
-					}
-					fmt.Println("EventAuction() block.Number()=", block.Number())
-				case <-te:
-					te <- struct{}{}
-					log.Println("EventAuction() ticker end.")
-					return
-				}
-			}
-		}()
-		fmt.Println("EventAuction() start!")
-	loop:
-		for {
-			select {
-			case look := <-ch:
-				EventCh <- look
-			case err := <-sub.Err():
-				fmt.Println("EventAuction sub.err()=", err)
-				sub.Unsubscribe()
-				te <- struct{}{}
-				<- te
-				log.Println("EventAuction() restart.")
-				client.Close()
-				break loop
-			}
-		}
-	}
-}
+//func EventAuction(sqldsn string) {
+//	var client *ethclient.Client
+//	var err error
+//	for {
+//		for  {
+//			client, err = ethclient.Dial(contracts.EthWsNode)
+//			if err != nil {
+//				log.Println("EventAuction() connect err=", err)
+//				fmt.Println("EventAuction() connect err=", err)
+//				time.Sleep(ReDialDelyTime * time.Second)
+//			} else {
+//				log.Println("EventAuction() connect OK!")
+//				fmt.Println("EventAuction() connect OK!")
+//				break
+//			}
+//		}
+//		ch := make(chan *trade.TradeBIDING)
+//		address := common.HexToAddress(models.TradeAddr)
+//		instance, err := trade.NewTrade(address, client)
+//		if err != nil {
+//			fmt.Println("EventAuction() NewTrade err=", err)
+//			log.Println("EventAuction() NewTrade err=", err)
+//			client.Close()
+//			continue
+//		}
+//		sub, err := instance.WatchBIDING(&bind.WatchOpts{Start: nil, Context: context.Background()}, ch)
+//		if err != nil {
+//			log.Println("EventAuction() WatchBIDING err=", err)
+//			fmt.Println("EventAuction() WatchBIDING err=", err)
+//			client.Close()
+//			continue
+//		}
+//		te := make(chan struct{})
+//		go func() {
+//			ticker := time.NewTicker(waitTime)
+//			for {
+//				select {
+//				case <-ticker.C:
+//					header, err := client.HeaderByNumber(context.Background(), nil)
+//					if err != nil {
+//						log.Println("EventAuction() get header err=", err)
+//						fmt.Println("EventAuction() get header err=", err)
+//						continue
+//					}
+//					block, err := client.BlockByNumber(context.Background(), header.Number)
+//					if err != nil {
+//						log.Println("EventAuction() get BlockByNumber err=", err)
+//						fmt.Println("EventAuction() get BlockByNumber err=", err)
+//						continue
+//					}
+//					fmt.Println("EventAuction() block.Number()=", block.Number())
+//				case <-te:
+//					te <- struct{}{}
+//					log.Println("EventAuction() ticker end.")
+//					return
+//				}
+//			}
+//		}()
+//		fmt.Println("EventAuction() start!")
+//	loop:
+//		for {
+//			select {
+//			case look := <-ch:
+//				EventCh <- look
+//			case err := <-sub.Err():
+//				fmt.Println("EventAuction sub.err()=", err)
+//				sub.Unsubscribe()
+//				te <- struct{}{}
+//				<- te
+//				log.Println("EventAuction() restart.")
+//				client.Close()
+//				break loop
+//			}
+//		}
+//	}
+//}
 
 /*func EventQueue(sqldsn string) {
 	var syncCh chan uint64
@@ -385,7 +381,7 @@ func EventBlockTxs(sqldsn string) {
 	var client *ethclient.Client
 	var err error
 	for {
-		for  {
+		for {
 			client, err = ethclient.Dial(contracts.EthWsNode)
 			if err != nil {
 				log.Println("EventBlockTxs() connect err=", err)

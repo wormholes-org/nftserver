@@ -1348,125 +1348,121 @@ func (nft NftDb) SetPeriodToEth(useraddr, param string) error {
 		log.Println("SetPeriodToEth() not injection to eth")
 		return ErrDataInsuff
 	}
-	return nft.db.Transaction(func(tx *gorm.DB) error {
+	collect := []*SnftCollect{}
+	err := nft.db.Model(&SnftCollect{}).Find(&collect)
+	if err.Error != nil {
+		fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
+		return ErrDataBase
+	}
+	var total *int
+	num := 0
+	total = &num
+	if len(collect) != 16 {
+		fmt.Println("collect data less than 16")
+		return ErrDataInsuff
+	}
 
-		collect := []*SnftCollect{}
-		err := tx.Model(&SnftCollect{}).Find(&collect)
-		if err.Error != nil {
-			fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
-			return ErrDataBase
-		}
-		var total *int
-		num := 0
-		total = &num
-		if len(collect) != 16 {
-			fmt.Println("collect data less than 16")
-			return ErrDataInsuff
-		}
+	os.Mkdir("./snft", 0777)
+	stop := make(chan string)
+	collectch := make(chan SnftCollect, 16)
+	go savecollect(stop, collect, collectch)
 
-		os.Mkdir("./snft", 0777)
-		stop := make(chan string)
-		collectch := make(chan SnftCollect, 16)
-		go savecollect(stop, collect, collectch)
-
-	FOR:
-		for {
-			select {
-			case v, ok := <-collectch:
-				if ok {
-					snftlist := strings.Split(v.Snft, ",")
-					if len(snftlist) != 16 {
-						fmt.Println("colletion.snft data less than 16")
-						return ErrDataInsuff
-					}
-					snfts := []*Snfts{}
-					err = tx.Model(&Snfts{}).Where("id in ?", snftlist).Find(&snfts)
-					if err.Error != nil {
-						fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
-						return ErrDataBase
-					}
-					if len(snfts) != 16 {
-						fmt.Println("snft data less than 16")
-						return ErrDataInsuff
-					}
-					fmt.Println("savemeta")
-					for _, snft := range snfts {
-						wg.Add(1)
-						go nft.savemeta(snft, &v, *total)
-						num++
-					}
-				} else {
-					break FOR
+FOR:
+	for {
+		select {
+		case v, ok := <-collectch:
+			if ok {
+				snftlist := strings.Split(v.Snft, ",")
+				if len(snftlist) != 16 {
+					fmt.Println("colletion.snft data less than 16")
+					return ErrDataInsuff
 				}
-			case v, ok := <-stop:
-				if ok {
-					return errors.New(v)
-				}
-			}
-		}
-
-		wg.Wait()
-
-		meta, derr := SaveDirToIpfs("./snft")
-		if derr != nil {
-			fmt.Println("SetPeriodEth() save nftmeta info err=", derr)
-			return derr
-		}
-		dmeta := "/ipfs/" + meta
-		fmt.Println("meta=", dmeta)
-
-		if err.Error != nil {
-			fmt.Println("SetPeriodEth() update eth err=", err.Error)
-			return ErrDataBase
-		}
-		serr := contracts.SendSnftTrans(dmeta, ExchangerAuth)
-		if serr != nil {
-			fmt.Println("SetPeriodEth() SendSnftTrans() err=", serr)
-			return errors.New(ErrTransExist.Error() + serr.Error())
-		}
-		return nft.db.Transaction(func(tx *gorm.DB) error {
-			err := tx.Model(&Snfts{}).Unscoped().Where("1 = 1").Delete(&Snfts{})
-			if err.Error != nil {
-				fmt.Println(" SetPeriod  delete snft err= ", err.Error)
-				return ErrDataBase
-			}
-			err = tx.Model(&SnftCollect{}).Where("1 = 1").Delete(&SnftCollect{})
-			if err.Error != nil {
-				fmt.Println(" SetPeriod  delete snftcollect err= ", err.Error)
-				return ErrDataBase
-			}
-			delerr := DelSnftDirAllImage(ImageDir)
-			if delerr != nil {
-				log.Println("SetPeriod() DelSnftDirAllImage delete image err=", delerr)
-				return ErrDeleteImg
-			}
-			newperiod := SnftPhase{}
-			err = tx.Model(&SnftPhase{}).Last(&newperiod)
-			if err.Error != nil {
-				if err.Error == gorm.ErrRecordNotFound {
-					newperiod.Collect = ""
-					newperiod.Accedvote = ""
-					err = nft.db.Create(&newperiod)
-					if err.Error != nil {
-						log.Println("SetPeriod create period err =", err.Error)
-						return ErrDataBase
-					}
-				} else {
-					log.Println("SetPeriod database err=", err.Error)
+				snfts := []*Snfts{}
+				err = nft.db.Model(&Snfts{}).Where("id in ?", snftlist).Find(&snfts)
+				if err.Error != nil {
+					fmt.Println("SetPeriodEth() find SnftCollectPeriod err=", err.Error)
 					return ErrDataBase
 				}
+				if len(snfts) != 16 {
+					fmt.Println("snft data less than 16")
+					return ErrDataInsuff
+				}
+				fmt.Println("savemeta")
+				for _, snft := range snfts {
+					wg.Add(1)
+					nft.savemeta(snft, &v, *total)
+					num++
+				}
+			} else {
+				break FOR
 			}
-			newperiod.Collect = ""
-			newperiod.Accedvote = ""
-			err = tx.Where("id = ? ", newperiod.ID).Updates(&newperiod)
-			if err.Error != nil {
-				log.Println("SetPeriod update period err =", err.Error)
-				//stop <- ErrDataBase.Error()
+		case v, ok := <-stop:
+			if ok {
+				return errors.New(v)
+			}
+		}
+	}
+
+	wg.Wait()
+
+	meta, derr := SaveDirToIpfs("./snft")
+	if derr != nil {
+		fmt.Println("SetPeriodEth() save nftmeta info err=", derr)
+		return derr
+	}
+	dmeta := "/ipfs/" + meta
+	fmt.Println("meta=", dmeta)
+
+	if err.Error != nil {
+		fmt.Println("SetPeriodEth() update eth err=", err.Error)
+		return ErrDataBase
+	}
+	serr := contracts.SendSnftTrans(dmeta, ExchangerAuth)
+	if serr != nil {
+		fmt.Println("SetPeriodEth() SendSnftTrans() err=", serr)
+		return errors.New(ErrTransExist.Error() + serr.Error())
+	}
+	return nft.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&Snfts{}).Unscoped().Where("1 = 1").Delete(&Snfts{})
+		if err.Error != nil {
+			fmt.Println(" SetPeriod  delete snft err= ", err.Error)
+			return ErrDataBase
+		}
+		err = tx.Model(&SnftCollect{}).Where("1 = 1").Delete(&SnftCollect{})
+		if err.Error != nil {
+			fmt.Println(" SetPeriod  delete snftcollect err= ", err.Error)
+			return ErrDataBase
+		}
+		delerr := DelSnftDirAllImage(ImageDir)
+		if delerr != nil {
+			log.Println("SetPeriod() DelSnftDirAllImage delete image err=", delerr)
+			return ErrDeleteImg
+		}
+		newperiod := SnftPhase{}
+		err = tx.Model(&SnftPhase{}).Last(&newperiod)
+		if err.Error != nil {
+			if err.Error == gorm.ErrRecordNotFound {
+				newperiod.Collect = ""
+				newperiod.Accedvote = ""
+				err = nft.db.Create(&newperiod)
+				if err.Error != nil {
+					log.Println("SetPeriod create period err =", err.Error)
+					return ErrDataBase
+				}
+			} else {
+				log.Println("SetPeriod database err=", err.Error)
 				return ErrDataBase
 			}
-			return nil
-		})
-
+		}
+		newperiod.Collect = ""
+		newperiod.Accedvote = ""
+		err = tx.Where("id = ? ", newperiod.ID).Updates(&newperiod)
+		if err.Error != nil {
+			log.Println("SetPeriod update period err =", err.Error)
+			//stop <- ErrDataBase.Error()
+			return ErrDataBase
+		}
 		return nil
 	})
+
 }

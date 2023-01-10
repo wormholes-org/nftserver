@@ -58,7 +58,7 @@ func init() {
 	GetRedisCatch().SetDirtyFlag(AllDirty)
 	contracts.EthNode = "http://43.129.181.130:8561"
 	//contracts.EthNode = "http://192.168.4.240:8561"
-	EthersNode = contracts.EthNode
+	WormholesNode = contracts.EthNode
 }
 
 func TestCreateDb(t *testing.T) {
@@ -1210,11 +1210,7 @@ func TestUploadNftNew(t *testing.T) {
 	defer nd.Close()
 	RoyaltyLimit = 10000
 	for i := 0; i < 20; i++ {
-		if i%2 == 0 {
-			NFT1155Addr = "0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169"
-		} else {
-			NFT1155Addr = "0x101060AEFE0d70fB40eda7F4a605c1315Be4A72F"
-		}
+
 		err = nd.UploadNft(
 			"0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169",
 			"0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169",

@@ -73,21 +73,21 @@ const (
 )
 
 var (
-	TradeAddr               string
-	NFT1155Addr             string
-	Weth9Addr               string
-	AdminAddr               string
-	BrowseNode              string
-	EthersNode              string
-	NftIpfsServerIP         string
-	NftstIpfsServerPort     string
-	EthersWsNode            string
-	ImageDir                string
-	AdminListPrv            string
-	SuperAdminPrv           string
-	SuperAdminAddr          string
-	TradeAuthAddrPrv        string
-	AdminMintPrv            string
+	//TradeAddr               string
+	//NFT1155Addr             string
+	//Weth9Addr               string
+	//AdminAddr               string
+	BrowseNode          string
+	WormholesNode       string
+	NftIpfsServerIP     string
+	NftstIpfsServerPort string
+	EthersWsNode        string
+	ImageDir            string
+	//AdminListPrv            string
+	SuperAdminPrv  string
+	SuperAdminAddr string
+	//TradeAuthAddrPrv        string
+	//AdminMintPrv            string
 	Lowprice                uint64
 	RoyaltyLimit            int
 	NFTUploadAuditRequired  bool
@@ -137,8 +137,8 @@ type ExchangerAuthrize struct {
 }
 
 type SysParamsRec struct {
-	NFT1155addr    string `json:"nft1155addr" gorm:"type:char(42) ;comment:'nft1155 contract address'"`
-	Adminaddr      string `json:"adminaddr" gorm:"type:char(42) ;comment:'Administrator contract address'"`
+	//NFT1155addr    string `json:"nft1155addr" gorm:"type:char(42) ;comment:'nft1155 contract address'"`
+	//Adminaddr      string `json:"adminaddr" gorm:"type:char(42) ;comment:'Administrator contract address'"`
 	Lowprice       uint64 `json:"lowprice" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Reserve price'"`
 	Blocknumber    uint64 `json:"blocknumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'block height'"`
 	Scannumber     uint64 `json:"scannumber" gorm:"type:bigint unsigned DEFAULT NULL;comment:'Scanned block height'"`
@@ -306,8 +306,8 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 		if err.Error == gorm.ErrRecordNotFound {
 			//GetRedisCatch().SetDirtyFlag(AllDirty)
 			params = SysParams{}
-			params.NFT1155addr = strings.ToLower(NFT1155Addr)
-			params.Adminaddr = strings.ToLower(AdminAddr)
+			//params.NFT1155addr = strings.ToLower(NFT1155Addr)
+			//params.Adminaddr = strings.ToLower(AdminAddr)
 			params.Lowprice = initLowprice
 			params.Royaltylimit = initRoyaltylimit
 			//params.Categories = initCategories
@@ -388,8 +388,8 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	//	}
 	//}
 	//log.Println("params =", params)
-	paraminfo.NFT1155addr = params.NFT1155addr
-	paraminfo.Adminaddr = params.Adminaddr
+	//paraminfo.NFT1155addr = params.NFT1155addr
+	//paraminfo.Adminaddr = params.Adminaddr
 	paraminfo.Lowprice = strconv.FormatUint(params.Lowprice, 10)
 	paraminfo.Blocknumber = strconv.FormatUint(params.Blocknumber, 10)
 	paraminfo.Scannumber = strconv.FormatUint(params.Scannumber, 10)
@@ -440,8 +440,8 @@ func (nft NftDb) GetSysParam(parameter string) (string, error) {
 	if err.Error != nil {
 		if err.Error == gorm.ErrRecordNotFound {
 			params = SysParams{}
-			params.NFT1155addr = strings.ToLower(NFT1155Addr)
-			params.Adminaddr = strings.ToLower(AdminAddr)
+			//params.NFT1155addr = strings.ToLower(NFT1155Addr)
+			//params.Adminaddr = strings.ToLower(AdminAddr)
 			params.Lowprice = initLowprice
 			params.Royaltylimit = initRoyaltylimit
 			//params.Categories = initCategories
@@ -480,8 +480,8 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 	err := nft.db.Last(&paramRec)
 	if err.Error != nil {
 		if nft.db.Error == gorm.ErrRecordNotFound {
-			updateP.NFT1155addr = NFT1155Addr
-			updateP.Adminaddr = AdminAddr
+			//updateP.NFT1155addr = NFT1155Addr
+			//updateP.Adminaddr = AdminAddr
 			updateP.Lowprice = initLowprice
 			updateP.Royaltylimit = initRoyaltylimit
 			//updateP.Categories = initCategories
@@ -494,12 +494,12 @@ func (nft NftDb) SetSysParams(param SysParamsInfo) error {
 		}
 	} else {
 		updateP.SysParamsRec = paramRec.SysParamsRec
-		if param.NFT1155addr != "" {
-			updateP.NFT1155addr = param.NFT1155addr
-		}
-		if param.Adminaddr != "" {
-			updateP.Adminaddr = param.Adminaddr
-		}
+		//if param.NFT1155addr != "" {
+		//	updateP.NFT1155addr = param.NFT1155addr
+		//}
+		//if param.Adminaddr != "" {
+		//	updateP.Adminaddr = param.Adminaddr
+		//}
 		if IsUint64DataValid(param.Lowprice) {
 			low, _ := strconv.ParseUint(param.Lowprice, 10, 64)
 			updateP.Lowprice = low
@@ -1055,13 +1055,13 @@ func (nft NftDb) GetExchageSig() (bool, error) {
 }
 
 func InitSysParams(Sqldsndb string) error {
-	fmt.Println("InitSysParams() TradeAddr=", TradeAddr)
-	fmt.Println("InitSysParams() NFT1155Addr=", NFT1155Addr)
-	fmt.Println("InitSysParams() AdminAddr=", AdminAddr)
-	fmt.Println("InitSysParams() EthersNode=", EthersNode)
+	//fmt.Println("InitSysParams() TradeAddr=", TradeAddr)
+	//fmt.Println("InitSysParams() NFT1155Addr=", NFT1155Addr)
+	//fmt.Println("InitSysParams() AdminAddr=", AdminAddr)
+	fmt.Println("InitSysParams() EthersNode=", WormholesNode)
 	fmt.Println("InitSysParams() EthersWsNode=", EthersWsNode)
 	fmt.Println("InitSysParams() ImageDir=", ImageDir)
-	fmt.Println("InitSysParams() Weth9Addr=", Weth9Addr)
+	//fmt.Println("InitSysParams() Weth9Addr=", Weth9Addr)
 	//fmt.Println("InitSysParams() AdminListPrv=", AdminListPrv)
 	//fmt.Println("InitSysParams() TradeAuthAddrPrv=", TradeAuthAddrPrv)
 	//fmt.Println("InitSysParams() AdminMintPrv=", AdminMintPrv)
@@ -1100,8 +1100,10 @@ func InitSysParams(Sqldsndb string) error {
 	//hexExchangePrv := crypto.FromECDSA(ExchangerPrv)
 	//hexExchangePrvStr := hexutil.Encode(hexExchangePrv)[2:]
 	ExchangerAddr = SuperAdminAddr
-	contracts.SetSysParams(EthersNode, BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
-		NFT1155Addr, AdminAddr, AdminListPrv, TradeAuthAddrPrv, AdminMintPrv, SuperAdminPrv, ExchangeOwer)
+	//contracts.SetSysParams(WormholesNode, BrowseNode, EthersWsNode, Weth9Addr, TradeAddr,
+	//	NFT1155Addr, AdminAddr, AdminListPrv, TradeAuthAddrPrv, AdminMintPrv, SuperAdminPrv, ExchangeOwer)
+	contracts.SetSysParams(WormholesNode, BrowseNode, EthersWsNode, "", "", "", "", "", "", "",
+		SuperAdminPrv, ExchangeOwer)
 
 	err = NewQueryCatch(QueryRedisCatchSvr, QueryRedisSvrPasswd)
 	if err != nil {

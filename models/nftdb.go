@@ -1647,6 +1647,8 @@ func (nft NftDb) QueryNftbyUser(userAddr string) ([]Nfts, error) {
 func (nft NftDb) Like(userAddr, contractAddr, tokenId, sig string) error {
 	userAddr = strings.ToLower(userAddr)
 	contractAddr = strings.ToLower(contractAddr)
+	UserSync.Lock(userAddr)
+	defer UserSync.UnLock(userAddr)
 	var nftrecord Nfts
 	err := nft.db.Where("contract = ? AND tokenid =? ", contractAddr, tokenId).First(&nftrecord)
 	if err.Error != nil {

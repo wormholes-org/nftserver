@@ -89,7 +89,7 @@ func UpdateBlockNumber(sqldsn string) {
 func GetCurrentBlockNumber() (int64, error) {
 	var client *ethclient.Client
 	var err error
-	client, err = ethclient.Dial(EthersNode)
+	client, err = ethclient.Dial(WormholesNode)
 	if err != nil {
 		log.Println("GetCurrentBlockNumber() connect err=", err)
 		return 0, err
