@@ -67,7 +67,7 @@ func (nft *NftExchangeControllerV2) Sell() {
 					days, _ := strconv.Atoi(strings.TrimSpace(data["day"]))
 					err := nd.Sell(data["user_addr"], "", data["nft_contract_addr"],
 						data["nft_token_id"], data["selltype"], data["pay_channel"], days,
-						price1, price2, data["royalty"], data["currency"], data["hide"], data["sig"], data["vote_stage"], data["trade_sig"])
+						price1, price2, data["royalty"], data["currency"], data["hide"], data["sig"], data["vote_stage"], data["trade_sig"], "")
 					if err != nil {
 						httpResponseData.Code = "500"
 						httpResponseData.Msg = err.Error()
@@ -84,68 +84,6 @@ func (nft *NftExchangeControllerV2) Sell() {
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
 	fmt.Println("Sell()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
-
-}
-
-func (nft *NftExchangeControllerV2) GroupSell() {
-	fmt.Println("GroupSell()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
-	var httpResponseData controllers.HttpResponseData
-	nd, err := models.NewNftDb(models.Sqldsndb)
-	if err != nil {
-		fmt.Printf("Sell() connect database err = %s\n", err)
-		return
-	}
-	defer nd.Close()
-
-	var data map[string]string
-	defer nft.Ctx.Request.Body.Close()
-	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
-	//fmt.Printf("receive data = %s\n", string(bytes))
-	err = json.Unmarshal(bytes, &data)
-	if err != nil {
-		httpResponseData.Code = "500"
-		httpResponseData.Msg = ERRINPUT.Error()
-		httpResponseData.Data = []interface{}{}
-	} else {
-		token := nft.Ctx.Request.Header.Get("Token")
-		inputDataErr := nft.verifyInputData_Sell(data, token)
-		if inputDataErr != nil {
-			httpResponseData.Code = "500"
-			httpResponseData.Msg = inputDataErr.Error()
-			httpResponseData.Data = []interface{}{}
-		} else {
-
-			rawData := signature.RemoveSignData(string(bytes))
-			approveAddr, _ := approveAddrsMap.GetApproveAddr(data["user_addr"])
-			_, err := signature.IsValidAddr(rawData, data["sig"], approveAddr)
-			if err != nil {
-				httpResponseData.Code = "500"
-				httpResponseData.Msg = err.Error()
-				httpResponseData.Data = []interface{}{}
-			} else {
-				err = nd.InsertSigData(data["sig"], rawData)
-				if err != nil {
-					httpResponseData.Code = "500"
-					httpResponseData.Msg = err.Error()
-					httpResponseData.Data = []interface{}{}
-				} else {
-					err := nd.GroupSell(data["sell_param"])
-					if err != nil {
-						httpResponseData.Code = "500"
-						httpResponseData.Msg = err.Error()
-						httpResponseData.Data = []interface{}{}
-					} else {
-						httpResponseData.Code = "200"
-						httpResponseData.Data = []interface{}{}
-					}
-				}
-			}
-		}
-	}
-
-	responseData, _ := json.Marshal(httpResponseData)
-	nft.Ctx.ResponseWriter.Write(responseData)
-	fmt.Println("GroupSell()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 
 }
 
@@ -244,6 +182,174 @@ func (nft *NftExchangeControllerV2) verifyInputData_Sell(data map[string]string,
 	//if getToken != token {
 	//	return ERRTOKEN
 	//}
+
+	return nil
+}
+
+func (nft *NftExchangeControllerV2) GroupSell() {
+	fmt.Println("GroupSell()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+	var httpResponseData controllers.HttpResponseData
+	nd, err := models.NewNftDb(models.Sqldsndb)
+	if err != nil {
+		fmt.Printf("Sell() connect database err = %s\n", err)
+		return
+	}
+	defer nd.Close()
+
+	var data map[string]string
+	defer nft.Ctx.Request.Body.Close()
+	bytes, _ := ioutil.ReadAll(nft.Ctx.Request.Body)
+	//fmt.Printf("receive data = %s\n", string(bytes))
+	err = json.Unmarshal(bytes, &data)
+	if err != nil {
+		httpResponseData.Code = "500"
+		httpResponseData.Msg = ERRINPUT.Error()
+		httpResponseData.Data = []interface{}{}
+	} else {
+		token := nft.Ctx.Request.Header.Get("Token")
+		inputDataErr := nft.verifyInputData_GroupSell(data, token)
+		if inputDataErr != nil {
+			httpResponseData.Code = "500"
+			httpResponseData.Msg = inputDataErr.Error()
+			httpResponseData.Data = []interface{}{}
+		} else {
+
+			rawData := signature.RemoveSignData(string(bytes))
+			approveAddr, _ := approveAddrsMap.GetApproveAddr(data["user_addr"])
+			_, err := signature.IsValidAddr(rawData, data["sig"], approveAddr)
+			if err != nil {
+				httpResponseData.Code = "500"
+				httpResponseData.Msg = err.Error()
+				httpResponseData.Data = []interface{}{}
+			} else {
+				err = nd.InsertSigData(data["sig"], rawData)
+				if err != nil {
+					httpResponseData.Code = "500"
+					httpResponseData.Msg = err.Error()
+					httpResponseData.Data = []interface{}{}
+				} else {
+					err := nd.GroupSell(data["user_addr"], data["contract"], data["sell_param"], data["all_judge"], data["level"],
+						data["status"], data["authsig"])
+					if err != nil {
+						httpResponseData.Code = "500"
+						httpResponseData.Msg = err.Error()
+						httpResponseData.Data = []interface{}{}
+					} else {
+						httpResponseData.Code = "200"
+						httpResponseData.Data = []interface{}{}
+					}
+				}
+			}
+		}
+	}
+
+	responseData, _ := json.Marshal(httpResponseData)
+	nft.Ctx.ResponseWriter.Write(responseData)
+	fmt.Println("GroupSell()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+
+}
+
+func (nft *NftExchangeControllerV2) verifyInputData_GroupSell(data map[string]string, token string) error {
+	regString, _ := regexp.Compile(PattenString)
+	regNumber, _ := regexp.Compile(PattenNumber)
+
+	if data["user_addr"] != "" {
+		match := regString.MatchString(data["user_addr"])
+		if !match {
+			return ERRINPUTINVALID
+		}
+	}
+	if data["nft_contract_addr"] != "" {
+		match := regString.MatchString(data["nft_contract_addr"])
+		if !match {
+			return ERRINPUTINVALID
+		}
+	}
+	//if data["nft_token_id"] != "" {
+	//	match := regString.MatchString(data["nft_token_id"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["vote_stage"] != "" {
+	//	match := regString.MatchString(data["vote_stage"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["selltype"] == "" {
+	//	return ERRINPUTINVALID
+	//} else {
+	//	match := regString.MatchString(data["selltype"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["pay_channel"] != "" {
+	//	match := regString.MatchString(data["pay_channel"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["days"] != "" {
+	//	match := regNumber.MatchString(data["days"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["price1"] != "" {
+	//	match := regNumber.MatchString(data["price1"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["price2"] != "" {
+	//	match := regNumber.MatchString(data["price2"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["royalty"] != "" {
+	//	match := regNumber.MatchString(data["royalty"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["currency"] != "" {
+	//	match := regString.MatchString(data["currency"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["hide"] != "" {
+	//	match := regString.MatchString(data["hide"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	if data["level"] != "" {
+		match := regNumber.MatchString(data["level"])
+		if !match {
+			return ERRINPUTINVALID
+		}
+	}
+	if data["sig"] != "" {
+		match := regString.MatchString(data["sig"])
+		if !match {
+			return ERRINPUTINVALID
+		}
+	}
+	//if data["trade_sig"] != "" {
+	//	match := regString.MatchString(data["trade_sig"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//TODO token
+	getToken, _ := tokenMap.GetToken(data["user_addr"])
+	if getToken != token {
+		return ERRTOKEN
+	}
 
 	return nil
 }

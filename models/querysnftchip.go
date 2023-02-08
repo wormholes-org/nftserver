@@ -59,7 +59,7 @@ func (nft NftDb) QuerySnftChip(contract, tokenid, start_Index, count string) ([]
 		nftRec.Snft = nftRec.Snft[:len(nftRec.Snft)-1]
 	}
 	var recCount int64
-	err = nft.db.Model(Nfts{}).Where("snft = ?", nftRec.Snft).Count(&recCount)
+	err = nft.db.Model(Nfts{}).Where("snft = ? and exchange = ?", nftRec.Snft, 0).Count(&recCount)
 	if err.Error != nil {
 		log.Println("QuerySnftChip() Count(&recCount) err=", err.Error)
 		return nil, 0, ErrDataBase
@@ -67,7 +67,7 @@ func (nft NftDb) QuerySnftChip(contract, tokenid, start_Index, count string) ([]
 	startIndex, _ := strconv.Atoi(start_Index)
 	nftCount, _ := strconv.Atoi(count)
 	nftInfo := []SnftChipInfo{}
-	err = nft.db.Model(Nfts{}).Where("snft = ?", nftRec.Snft).Offset(startIndex).Limit(nftCount).Scan(&nftInfo)
+	err = nft.db.Model(Nfts{}).Where("snft = ? and exchange = ?", nftRec.Snft, 0).Offset(startIndex).Limit(nftCount).Scan(&nftInfo)
 	if err.Error != nil {
 		log.Println("QuerySnftChip() Find(&nftInfo) err=", err.Error)
 		return nil, 0, ErrDataBase

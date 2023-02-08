@@ -14,7 +14,7 @@ var sqldsndb string
 var Sqldsndb string
 var sqllocaldsndb string
 
-const version = "0.8.6"
+const version = "0.8.9"
 
 func DisplayVersion() {
 	v := flag.Bool("version", false, "display version")

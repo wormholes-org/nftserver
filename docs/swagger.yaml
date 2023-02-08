@@ -1,0 +1,178 @@
+basePath: /api/v2
+definitions:
+  models.RecommendBuyingSell:
+    properties:
+      buying:
+        items:
+          $ref: '#/definitions/models.RecommendResp'
+        type: array
+      sell:
+        items:
+          $ref: '#/definitions/models.RecommendResp'
+        type: array
+    type: object
+  models.RecommendResp:
+    properties:
+      desc:
+        type: string
+      name:
+        type: string
+      nft_address:
+        type: string
+      nft_contract_addr:
+        type: string
+      nft_token_id:
+        type: string
+      ownaddr:
+        type: string
+      snftnum:
+        type: integer
+      source_url:
+        type: string
+      trans_type:
+        type: string
+    type: object
+host: localhost:9051
+info:
+  contact: {}
+  description: This is a sample server celler server.
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Nftserver API
+  version: "2.0"
+paths:
+  /v2/batchBuyingNft:
+    post:
+      description: 'To buy nft works, the transaction is initiated by the exchange:
+        post'
+      parameters:
+      - description: token
+        in: header
+        name: Token
+        required: true
+        type: string
+      - description: user addr
+        in: body
+        name: user_addr
+        required: true
+        schema:
+          type: string
+      - description: data sig
+        in: body
+        name: sig
+        required: true
+        schema:
+          type: string
+      - description: OfferList
+        in: body
+        name: offer_list
+        required: true
+        schema:
+          type: string
+      - description: SellList
+        in: body
+        name: sell_list
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+  /v2/buy:
+    post:
+      description: 'Buy nft works: post'
+      parameters:
+      - description: token
+        in: header
+        name: Token
+        required: true
+        type: string
+      - description: user_addr
+        example: "1"
+        in: body
+        name: user_addr
+        required: true
+        schema:
+          type: string
+      - description: sig
+        in: body
+        name: sig
+        required: true
+        schema:
+          type: string
+      - description: dead_time
+        in: body
+        name: dead_time
+        required: true
+        schema:
+          type: string
+      - description: price
+        in: body
+        name: price
+        required: true
+        schema:
+          type: string
+      - description: nft_contract_addr
+        in: body
+        name: nft_contract_addr
+        required: true
+        schema:
+          type: string
+      - description: nft_token_id
+        in: body
+        name: nft_token_id
+        required: true
+        schema:
+          type: string
+      - description: pay_channel
+        in: body
+        name: pay_channel
+        required: true
+        schema:
+          type: string
+      - description: currency_type
+        in: body
+        name: currency_type
+        required: true
+        schema:
+          type: string
+      - description: trade_sig
+        in: body
+        name: trade_sig
+        required: true
+        schema:
+          type: string
+      - description: vote_stage
+        in: body
+        name: vote_stage
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+  /v2/queryRecommendSnfts:
+    post:
+      description: Query Homepage  recommend snft:post
+      parameters:
+      - description: user addr
+        example: ""
+        in: body
+        name: user_addr
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RecommendBuyingSell'
+        "500":
+          description: Internal Server Error
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"

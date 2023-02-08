@@ -202,10 +202,10 @@ func TestUnMarshalSeller(t *testing.T) {
 	fmt.Println("toaddr=", fromAddr.String())
 }
 
-func signHash(data []byte) []byte {
-	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
-	return crypto.Keccak256([]byte(msg))
-}
+//func signHash(data []byte) []byte {
+//	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
+//	return crypto.Keccak256([]byte(msg))
+//}
 
 func EthSign(msg string, prv *ecdsa.PrivateKey) ([]byte, error) {
 	sig, err := crypto.Sign(signHash([]byte(msg)), prv)

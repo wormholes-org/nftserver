@@ -8,28 +8,12 @@ import (
 	"github.com/nftexchange/nftserver/models"
 	"io/ioutil"
 	"regexp"
-	"strconv"
 	"time"
 )
 
-// @Title BuyNft
-// @Description Buy nft works: post
-// @Param Token header string true "token"
-// @Param user_addr body string true "user_addr" example(1)
-// @Param sig body string true "sig"
-// @Param dead_time body string true "dead_time"
-// @Param price body string true "price"
-// @Param nft_contract_addr body string true "nft_contract_addr"
-// @Param nft_token_id body string true "nft_token_id"
-// @Param pay_channel body string true "pay_channel"
-// @Param currency_type body string true "currency_type"
-// @Param trade_sig body string true "trade_sig"
-// @Param vote_stage body string true "vote_stage"
-// @Success 200
-// @Failure 500
-// @router /v2/buy [post]
-func (nft *NftExchangeControllerV2) BuyNft() {
-	fmt.Println("BuyNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
+//Buy nft works: post
+func (nft *NftExchangeControllerV2) BatchBuyNft() {
+	fmt.Println("BatchBuyNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
 	nd, err := models.NewNftDb(models.Sqldsndb)
 	if err != nil {
@@ -44,7 +28,7 @@ func (nft *NftExchangeControllerV2) BuyNft() {
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
 		token := nft.Ctx.Request.Header.Get("Token")
-		inputDataErr := nft.verifyInputData_BuyNft(data, token)
+		inputDataErr := nft.verifyInputData_BatchBuyNft(data, token)
 		if inputDataErr != nil {
 			httpResponseData.Code = "500"
 			httpResponseData.Msg = inputDataErr.Error()
@@ -64,12 +48,7 @@ func (nft *NftExchangeControllerV2) BuyNft() {
 					httpResponseData.Msg = inputDatarr.Error()
 					httpResponseData.Data = []interface{}{}
 				} else {
-					//err = nd.BuyNft(data["user_addr"],data["trade_sig"], data["sig"],
-					//	data["nft_contract_addr"],data["nft_token_id"])
-					price, _ := strconv.ParseUint(data["price"], 10, 64)
-					deadTime, _ := strconv.ParseInt(data["dead_time"], 10, 64)
-					inputDatarr = nd.MakeOffer(data["user_addr"], data["nft_contract_addr"], data["nft_token_id"],
-						data["pay_channel"], data["currency_type"], price, data["trade_sig"], deadTime, data["vote_stage"], data["sig"], "")
+					inputDatarr = nd.BatchMakeOffer(data["user_addr"], data["offer_list"])
 					if inputDatarr == nil {
 						httpResponseData.Code = "200"
 						httpResponseData.Data = []interface{}{}
@@ -91,72 +70,72 @@ func (nft *NftExchangeControllerV2) BuyNft() {
 	nft.Ctx.ResponseWriter.Write(responseData)
 	//nft.Data["json"] = responseData
 	//nft.ServeJSON()
-	fmt.Println("BuyNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
+	fmt.Println("BatchBuyNft()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 }
 
-func (nft *NftExchangeControllerV2) verifyInputData_BuyNft(data map[string]string, token string) error {
+func (nft *NftExchangeControllerV2) verifyInputData_BatchBuyNft(data map[string]string, token string) error {
 	regString, _ := regexp.Compile(PattenString)
-	regNumber, _ := regexp.Compile(PattenNumber)
+	//regNumber, _ := regexp.Compile(PattenNumber)
 	if data["user_addr"] != "" {
 		match := regString.MatchString(data["user_addr"])
 		if !match {
 			return ERRINPUTINVALID
 		}
 	}
-	if data["nft_token_id"] != "" {
-		match := regString.MatchString(data["nft_token_id"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
-	if data["vote_stage"] != "" {
-		match := regString.MatchString(data["vote_stage"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
-	if data["pay_channel"] != "" {
-		match := regString.MatchString(data["pay_channel"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
-	if data["currency_type"] != "" {
-		match := regString.MatchString(data["currency_type"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
-	if data["price"] != "" {
-		match := regNumber.MatchString(data["price"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
+	//if data["nft_token_id"] != "" {
+	//	match := regString.MatchString(data["nft_token_id"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["vote_stage"] != "" {
+	//	match := regString.MatchString(data["vote_stage"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["pay_channel"] != "" {
+	//	match := regString.MatchString(data["pay_channel"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["currency_type"] != "" {
+	//	match := regString.MatchString(data["currency_type"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
+	//if data["price"] != "" {
+	//	match := regNumber.MatchString(data["price"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
 	//if data["trade_sig"] != "" {
 	//	match := regString.MatchString(data["trade_sig"])
 	//	if !match {
 	//		return ERRINPUTINVALID
 	//	}
 	//}
-	if data["dead_time"] != "" {
-		match := regNumber.MatchString(data["dead_time"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
+	//if data["dead_time"] != "" {
+	//	match := regNumber.MatchString(data["dead_time"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
 	if data["sig"] != "" {
 		match := regString.MatchString(data["sig"])
 		if !match {
 			return ERRINPUTINVALID
 		}
 	}
-	if data["nft_contract_addr"] != "" {
-		match := regString.MatchString(data["nft_contract_addr"])
-		if !match {
-			return ERRINPUTINVALID
-		}
-	}
+	//if data["nft_contract_addr"] != "" {
+	//	match := regString.MatchString(data["nft_contract_addr"])
+	//	if !match {
+	//		return ERRINPUTINVALID
+	//	}
+	//}
 	getToken, _ := tokenMap.GetToken(data["user_addr"])
 	if getToken != token {
 		return ERRTOKEN

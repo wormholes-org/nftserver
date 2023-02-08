@@ -70,7 +70,7 @@ var (
 	ErrNotFound             = errors.New("554,not found.")
 	ErrDataBase             = errors.New("555,Server is busys.")
 	ErrPermission           = errors.New("556,Insufficient permission.")
-	ErrWaitingClose         = errors.New("557,Waiting for the deal to close.")
+	ErrWaitingClose         = errors.New("557,wait for the transaction to complete.")
 	ErrDeleteCollection     = errors.New("558,Collections not  delete.")
 	ErrLoginFailed          = errors.New("559,Login failed.")
 	ErrData                 = errors.New("560,Request data error.")
@@ -305,7 +305,9 @@ type NftRecord struct {
 	Pledgestate    string `json:"pledgestate" gorm:"type:char(20) DEFAULT NULL;COMMENT:'Pledgestate status'"`
 	Mergetype      uint8  `json:"mergetype" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'merge type 0,1'"`
 	Mergelevel     uint8  `json:"mergelevel" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'merge level 0,1,2,3'"`
+	Mergenumber    uint32 `json:"mergenumber" gorm:"type:int unsigned DEFAULT 0;COMMENT:'merge snft slice count.'"`
 	Exchange       uint8  `json:"exchange" gorm:"type:tinyint unsigned DEFAULT 0;COMMENT:'exchange flag'"`
+	Exchangecnt    int    `json:"exchangecnt" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'exchange count.'"`
 	Chipcount      int    `json:"chipcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'snft slice count.'"`
 	Extend         string `json:"extend" gorm:"type:longtext ;comment:'expand field'"`
 }
@@ -467,6 +469,7 @@ type AuctionRecord struct {
 	Startdate   int64  `json:"startdate" gorm:"type:bigint DEFAULT NULL;comment:'Auction start time'"`
 	Enddate     int64  `json:"enddate" gorm:"type:bigint DEFAULT NULL;comment:'Auction end time'"`
 	Tradesig    string `json:"tradesig" gorm:"type:longtext NOT NULL;comment:'transaction sign'"`
+	Sellauthsig string `json:"sellauthsig" gorm:"type:longtext NOT NULL;comment:'sell auth sign'"`
 	Signdata    string `json:"sig" gorm:"type:longtext NOT NULL;comment:'sign data'"`
 	Toaddr      string `json:"toaddr" gorm:"type:char(42) NOT NULL;comment:'nft owner address'"`
 	Price       uint64 `json:"price" gorm:"bigint unsigned DEFAULT NULL;comment:'the deal price'"`
@@ -485,30 +488,31 @@ func (v Auction) TableName() string {
 	return "auctions"
 }
 
-type AuctionHistory struct {
-	gorm.Model
-	AuctionRecord
-}
-
-func (v AuctionHistory) TableName() string {
-	return "auctionhistorys"
-}
+//type AuctionHistory struct {
+//	gorm.Model
+//	AuctionRecord
+//}
+//
+//func (v AuctionHistory) TableName() string {
+//	return "auctionhistorys"
+//}
 
 type BidRecord struct {
-	Bidaddr   string `json:"bidaddr" gorm:"varchar(42) DEFAULT NULL;COMMENT:'Bidding customer address'"`
-	Auctionid uint   `json:"auctionid" gorm:"type:int DEFAULT NULL;COMMENT:'Auction Index'"`
-	Tokenid   string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'Uniquely identifies the nft flag'"`
-	VoteStage string `json:"vote_stage" gorm:"type:char(42) NOT NULL;comment:'vote period'"`
-	Count     int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft sellable quantity'"`
-	Contract  string `json:"nft_contract_addr" gorm:"type:char(42) NOT NULL;comment:'contract address'"`
-	Paychan   string `json:"paychan" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'trading channel'"`
-	Currency  string `json:"currency" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'transaction currency'"`
-	Price     uint64 `json:"price" gorm:"bigint unsigned DEFAULT NULL;COMMENT:'bid'"`
-	Nftid     uint   `json:"nftid" gorm:"type:int DEFAULT NULL;COMMENT:'nft index'"`
-	Bidtime   int64  `json:"bidtime" gorm:"bigint DEFAULT NULL;COMMENT:'Bid time'"`
-	Deadtime  int64  `json:"dead_time" gorm:"bigint DEFAULT NULL;COMMENT:'Bid expiration time'"`
-	Tradesig  string `json:"tradesig" gorm:"type:longtext NOT NULL;comment:'transaction sign'"`
-	Signdata  string `json:"sig" gorm:"type:longtext NOT NULL;comment:'sign data, generated when created'"`
+	Bidaddr    string `json:"bidaddr" gorm:"type:char(42) DEFAULT NULL;COMMENT:'Bidding customer address'"`
+	Auctionid  uint   `json:"auctionid" gorm:"type:int DEFAULT NULL;COMMENT:'Auction Index'"`
+	Tokenid    string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'Uniquely identifies the nft flag'"`
+	VoteStage  string `json:"vote_stage" gorm:"type:char(42) NOT NULL;comment:'vote period'"`
+	Count      int    `json:"count" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'nft sellable quantity'"`
+	Contract   string `json:"nft_contract_addr" gorm:"type:char(42) NOT NULL;comment:'contract address'"`
+	Paychan    string `json:"paychan" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'trading channel'"`
+	Currency   string `json:"currency" gorm:"type:char(20) CHARACTER SET utf8mb4 DEFAULT NULL;COMMENT:'transaction currency'"`
+	Price      uint64 `json:"price" gorm:"bigint unsigned DEFAULT NULL;COMMENT:'bid'"`
+	Nftid      uint   `json:"nftid" gorm:"type:int DEFAULT NULL;COMMENT:'nft index'"`
+	Bidtime    int64  `json:"bidtime" gorm:"bigint DEFAULT NULL;COMMENT:'Bid time'"`
+	Deadtime   int64  `json:"dead_time" gorm:"bigint DEFAULT NULL;COMMENT:'Bid expiration time'"`
+	Tradesig   string `json:"tradesig" gorm:"type:longtext NOT NULL;comment:'transaction sign'"`
+	Buyauthsig string `json:"buyauthsig" gorm:"type:longtext NOT NULL;comment:'auth sign'"`
+	Signdata   string `json:"sig" gorm:"type:longtext NOT NULL;comment:'sign data, generated when created'"`
 }
 
 type Bidding struct {
@@ -520,14 +524,14 @@ func (v Bidding) TableName() string {
 	return "biddings"
 }
 
-type BiddingHistory struct {
-	gorm.Model
-	BidRecord
-}
-
-func (v BiddingHistory) TableName() string {
-	return "biddinghistorys"
-}
+//type BiddingHistory struct {
+//	gorm.Model
+//	BidRecord
+//}
+//
+//func (v BiddingHistory) TableName() string {
+//	return "biddinghistorys"
+//}
 
 type Collected struct {
 	gorm.Model
@@ -710,8 +714,25 @@ func (nft NftDb) CreateIndexs() error {
 			}
 		}
 	}*/
+
 	strOrder := "CREATE INDEX indexNftsCreateaddrTokenid ON nfts ( createaddr, tokenid );"
 	db := nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsCreateaddrTokenid  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexBiddingsBidaddrDeletedat ON biddings (bidaddr, deleted_at);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexBiddingsBidaddrDeletedat  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "set global innodb_flush_log_at_trx_commit = 0;"
+	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
 			fmt.Printf("CreateIndexs() indexNftsCreateaddrTokenid  err=%s\n", db.Error)
@@ -755,6 +776,46 @@ func (nft NftDb) CreateIndexs() error {
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
 			fmt.Printf("CreateIndexs() indexNftsIdDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsSnftFilterProcNormal ON nfts ( selltype, sellprice, createdate, offernum, collectcreator, collections, categories, Exchange, Pledgestate, snft, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftFilterProcNormal  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsSnftFilterProcPrice ON nfts ( sellprice, Exchange, Pledgestate, snft, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftFilterProcPrice  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsSnftFilterProcOffer ON nfts ( offernum, Exchange, Pledgestate, snft, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsSnftFilterProcOffer  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsownaddrMergetypeOffernumPledgestateExchangeMergelevel ON nfts ( ownaddr, mergetype, offernum, Pledgestate, exchange, mergelevel );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsownaddrMergetypeOffernumPledgestateExchangeMergelevel  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsOwnaddrMergetypeSelltypePledgestateExchangeMergelevel ON nfts ( ownaddr, mergetype, selltype, Pledgestate, exchange, mergelevel );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsOwnaddrMergetypeSelltypePledgestateExchangeMergelevel  err=%s\n", db.Error)
 			return db.Error
 		}
 	}
@@ -902,6 +963,14 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexBiddingsAuctionid ON biddings (auctionid);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexBiddingsAuctionid  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	strOrder = "CREATE INDEX indexNftsSnftstageOwnaddrDeleted ON nfts ( snftstage, ownaddr, deleted_at );"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -934,6 +1003,22 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexBiddingsContractTokenidBidaddr ON biddings (contract, tokenid, bidaddr);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexBiddingsContractTokenidBidaddr  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexAuctionsContractTokenidOwner ON auctions (contract, tokenid, ownaddr);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexAuctionsContractTokenidOwner  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	strOrder = "CREATE INDEX indexSysnftsSnft ON sysnfts (snft);"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -949,12 +1034,12 @@ func getCreateTableObject() []interface{} {
 	return []interface{}{
 		Users{},
 		Nfts{},
-		Sysnfts{},
+		//Sysnfts{},
 		Trans{},
 		Auction{},
-		AuctionHistory{},
+		//AuctionHistory{},
 		Bidding{},
-		BiddingHistory{},
+		//BiddingHistory{},
 		NftFavorited{},
 		UserFavorited{},
 		Sigmsgs{},
@@ -1007,11 +1092,11 @@ func (nft NftDb) InitDb(sqlsvr string, dbName string) error {
 		fmt.Println("create table Nfts{} err=", err)
 		return err
 	}
-	err = nft.db.AutoMigrate(&Sysnfts{})
-	if err != nil {
-		fmt.Println("create table Wnfts{} err=", err)
-		return err
-	}
+	//err = nft.db.AutoMigrate(&Sysnfts{})
+	//if err != nil {
+	//	fmt.Println("create table Wnfts{} err=", err)
+	//	return err
+	//}
 	err = nft.db.AutoMigrate(&Trans{})
 	if err != nil {
 		fmt.Println("create table Trans{} err=", err)
@@ -1021,21 +1106,21 @@ func (nft NftDb) InitDb(sqlsvr string, dbName string) error {
 	if err != nil {
 		fmt.Println("create table Auction{} err=", err)
 	}
-	err = nft.db.AutoMigrate(&AuctionHistory{})
-	if err != nil {
-		fmt.Println("create table AuctionHistory{} err=", err)
-		return err
-	}
+	//err = nft.db.AutoMigrate(&AuctionHistory{})
+	//if err != nil {
+	//	fmt.Println("create table AuctionHistory{} err=", err)
+	//	return err
+	//}
 	err = nft.db.AutoMigrate(&Bidding{})
 	if err != nil {
 		fmt.Println("create table Bidding{} err=", err)
 		return err
 	}
-	err = nft.db.AutoMigrate(&BiddingHistory{})
-	if err != nil {
-		fmt.Println("create table BiddingHistory{} err=", err)
-		return err
-	}
+	//err = nft.db.AutoMigrate(&BiddingHistory{})
+	//if err != nil {
+	//	fmt.Println("create table BiddingHistory{} err=", err)
+	//	return err
+	//}
 	err = nft.db.AutoMigrate(&NftFavorited{})
 	if err != nil {
 		fmt.Println("create table NftFavorited{} err=", err)
@@ -1899,19 +1984,37 @@ func (nft NftDb) CancelBuy(UserAddr, NftContractAddr, NftTokenId, TradeSig, Sig 
 			"Offernum":    0,
 			"Maxbidprice": 0,
 		}
+		var bidRecs []Bidding
+		err = nft.GetDB().Order("price desc").Where("Contract = ? AND Tokenid =?",
+			NftContractAddr, NftTokenId).Find(&bidRecs)
+		if err.Error != nil || err.RowsAffected == 0 {
+			log.Println("cancelBuy() update record err=", err.Error)
+			return ErrDataBase
+		}
 		if nftrecord.Offernum-1 >= 1 {
 			nfttab["Offernum"] = nftrecord.Offernum - 1
-			var bidRecs []Bidding
-			err := nft.GetDB().Order("price desc").Where("Contract = ? AND Tokenid =?",
-				NftContractAddr, NftTokenId).Find(&bidRecs)
-			if err.Error != nil || err.RowsAffected == 0 {
-				log.Println("cancelBuy() update record err=", err.Error)
-				return ErrDataBase
-			}
 			for _, rec := range bidRecs {
 				if rec.Bidaddr != UserAddr {
 					nfttab["Maxbidprice"] = rec.Price
 					break
+				}
+			}
+		} else {
+			err = tx.Model(&Auction{}).Where("id = ?", bidRecs[0].Auctionid).Delete(&Auction{})
+			if err.Error != nil {
+				fmt.Println("cancelBuy() delete auction record err=", err.Error)
+				return ErrDataBase
+			}
+			if nftrecord.Selltype == SellTypeBidPrice.String() {
+				nfttab = map[string]interface{}{
+					"Offernum":    0,
+					"Maxbidprice": 0,
+					"Selltype":    SellTypeNotSale.String(),
+				}
+			} else {
+				nfttab = map[string]interface{}{
+					"Offernum":    0,
+					"Maxbidprice": 0,
 				}
 			}
 		}
@@ -1970,25 +2073,76 @@ func (nft NftDb) CancellSell(ownAddr, contractAddr, tokenId, sigData string) err
 	})
 }
 
-func (nft NftDb) GroupCancelSell(params string) error {
-	if params == "" {
+func (nft NftDb) GroupCancelSell(useraddr, contract, params, alljudge, level string) error {
+	if useraddr == "" || contract == "" {
 		fmt.Println("input param nil")
 		return errors.New("input param nil")
 	}
-	var CancelSell []CancelSellParams
-	err := json.Unmarshal([]byte(params), &CancelSell)
-	if err != nil {
-		fmt.Println("Unmarshal input err=", err)
-		return err
-	}
-	fmt.Println("CancelSell:   ", CancelSell)
-	for _, j := range CancelSell {
-		err = nft.CancellSell(j.UserAddr, j.ContractAddr, j.TokenId, j.Sig)
+	if alljudge == "true" {
+		//var allauction []Auction
+		//sql := `select * from auctions where  tokenid in (select tokenid from nfts where exchange =0 and
+		//mergetype = mergelevel and mergelevel = ? and deleted_at is null and ownaddr = ?) and deleted_at is null`
+		//db := nft.db.Raw(sql, level, useraddr).Find(&allauction)
+		//if db.Error != nil {
+		//	log.Println("GroupCancelSell get all auction err=", db.Error)
+		//	return ErrDataFormat
+		//}
+		//for _, j := range allauction {
+		//	err := nft.CancellSell(useraddr, contract, j.Tokenid, "")
+		//	if err != nil {
+		//		log.Println("GroupCancelSell CancellSell err=", err)
+		//		return ErrDataBase
+		//	}
+		//}
+		useraddr = strings.ToLower(useraddr)
+		contract = strings.ToLower(contract)
+		if !nft.UserKYCAduit(useraddr) {
+			return ErrUserNotVerify
+		}
+		GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+		return nft.db.Transaction(func(tx *gorm.DB) error {
+			var auctionRec Auction
+			err := tx.Where("ownaddr = ? and selltype =?", useraddr, SellTypeFixPrice.String()).Delete(&auctionRec)
+			if err.Error != nil {
+				return err.Error
+			}
+			err = tx.Model(&Bidding{}).Where("auctionid in (select id from auctions where ownaddr = ? and selltype =?)",
+				useraddr, SellTypeFixPrice.String()).Delete(&Bidding{})
+			if err.Error != nil {
+				fmt.Println("CancellSell() delete bid record err=", err.Error)
+				return ErrDataBase
+			}
+			nfttab := map[string]interface{}{
+				"Selltype":    SellTypeNotSale.String(),
+				"Sellprice":   0,
+				"Offernum":    0,
+				"Maxbidprice": 0,
+			}
+			err = tx.Model(&Nfts{}).Where("ownaddr = ? and selltype =?",
+				useraddr, SellTypeFixPrice.String()).Updates(&nfttab)
+			if err.Error != nil {
+				fmt.Println("CancellSell() update record err=", err.Error)
+				return ErrDataBase
+			}
+			return nil
+		})
+
+	} else {
+		var CancelSell []CancelSellParams
+		err := json.Unmarshal([]byte(params), &CancelSell)
 		if err != nil {
-			fmt.Println("BuyingNft err=", err)
+			fmt.Println("Unmarshal input err=", err)
 			return err
 		}
+		for _, j := range CancelSell {
+			err = nft.CancellSell(useraddr, contract, j.TokenId, "")
+			if err != nil {
+				log.Println("GroupCancelSell CancellSell err=", err)
+				return ErrDataBase
+			}
+		}
 	}
+
 	return nil
 }
 
@@ -3061,7 +3215,7 @@ func (nft NftDb) QueryUserBidList(user_addr, start_index, count string) ([]UserB
 			return nil, 0, ErrNftNotExist
 		}
 		userBids := make([]UserBid, 0, 20)
-		for i := startIndex; i < len(offerRecs); i++ {
+		for i := 0; i < len(offerRecs); i++ {
 			var userBid UserBid
 			userBid.NftContractAddr = offerRecs[i].Contract
 			userBid.NftTokenId = offerRecs[i].Tokenid

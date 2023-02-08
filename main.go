@@ -11,6 +11,15 @@ import (
 	_ "net/http/pprof"
 )
 
+// @title           Swagger Nftserver API
+// @version         2.0
+// @description     This is a sample server celler server.
+// @termsOfService  http://swagger.io/terms/
+
+// @host      localhost:9051
+// @BasePath  /api/v2
+
+// @securityDefinitions.basic  BasicAuth
 func main() {
 	//8c995fd78bddf528bd548cce025f62d4c3c0658362dbfd31b23414cf7ce2e8ed
 	//verify := signature.VerifyAppconf("./conf/app.conf", "0x2b0aD05ADDa21BA4E5b94C4f9aE3BCeA15A380c5")

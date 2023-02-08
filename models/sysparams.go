@@ -256,6 +256,11 @@ type ExchangeinfoRec struct {
 	Totalsize      uint64 `json:"totalsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft total size'"`
 	Limitsize      uint64 `json:"limitsize" gorm:"type:bigint unsigned  DEFAULT 0;COMMENT:'upload nft limit amount size'"`
 	Royalty        int    `json:"royalty" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'royalty'"`
+	Averagel0      uint64 `json:"averagel0" gorm:"bigint unsigned DEFAULT NULL;comment:'Averagel0'"`
+	Averagel1      uint64 `json:"averagel1" gorm:"bigint unsigned DEFAULT NULL;comment:'Averagel1'"`
+	Averagel2      uint64 `json:"averagel2" gorm:"bigint unsigned DEFAULT NULL;comment:'Averagel2'"`
+	Averagel3      uint64 `json:"averagel3" gorm:"bigint unsigned DEFAULT NULL;comment:'Averagel3'"`
+
 	//Bannerauto     string `json:"bannerauto" gorm:"type:varchar(10) ;comment:'Banner auto-update'"`
 	//Collectauto    string `json:"collectauto" gorm:"type:varchar(10) ;comment:'Popular collections  auto-update'"`
 	//Nftsauto       string `json:"nftsauto" gorm:"type:varchar(10) ;comment:'Popular Nfts auto-update'"`
@@ -295,6 +300,10 @@ type ExchangeInfo struct {
 	Desc           string   `json:"desc"`
 	AutoFlag       string   `json:"autoflag"`
 	Royalty        string   `json:"royalty"`
+	L0AveragePrice string   `json:"l0averageprice"`
+	L1AveragePrice string   `json:"l1averageprice"`
+	L2AveragePrice string   `json:"l2averageprice"`
+	L3AveragePrice string   `json:"l3averageprice"`
 }
 
 func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
@@ -359,6 +368,10 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 			exchange.Exchangerinfo = ExchangeName
 			exchange.Transfersnft = DefAutoSnft
 			exchange.Autocommitsnft = DefAutoSnft
+			exchange.Averagel0 = L0AveragePrice
+			exchange.Averagel1 = L1AveragePrice
+			exchange.Averagel2 = L2AveragePrice
+			exchange.Averagel3 = L3AveragePrice
 			if DebugAllowNft == "true" {
 				exchange.Allownft = DefAutoSnft
 			} else {
@@ -429,6 +442,10 @@ func (nft NftDb) QuerySysParams() (*SysParamsInfo, error) {
 	beego.BConfig.MaxUploadSize = int64(exchangeinfo.Uploadsize)
 	paraminfo.Uploadsize = strconv.FormatUint(exchangeinfo.Uploadsize, 10)
 	paraminfo.Royalty = strconv.Itoa(exchangeinfo.Royalty)
+	L0AveragePrice = exchangeinfo.Averagel0
+	L1AveragePrice = exchangeinfo.Averagel1
+	L2AveragePrice = exchangeinfo.Averagel2
+	L3AveragePrice = exchangeinfo.Averagel3
 	return &paraminfo, nil
 }
 
@@ -750,7 +767,14 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	paraminfo.Link = params.Link
 	paraminfo.Deflanguage = params.Deflanguage
 	paraminfo.Desc = params.Desc
-
+	L0AveragePrice = params.Averagel0
+	L1AveragePrice = params.Averagel1
+	L2AveragePrice = params.Averagel2
+	L3AveragePrice = params.Averagel3
+	paraminfo.L0AveragePrice = strconv.FormatUint(params.Averagel0, 10)
+	paraminfo.L1AveragePrice = strconv.FormatUint(params.Averagel1, 10)
+	paraminfo.L2AveragePrice = strconv.FormatUint(params.Averagel2, 10)
+	paraminfo.L3AveragePrice = strconv.FormatUint(params.Averagel3, 10)
 	//paraminfo.Nftlush 		= strconv.Itoa(params.Nftlush)
 	return &paraminfo, nil
 }
@@ -1174,6 +1198,10 @@ func InitSysParams(Sqldsndb string) error {
 			fmt.Printf("InitSysParams() QuerySysParams() err = %s\n", err)
 			return err
 		}
+	}
+	if params.TransferNFT == "true" {
+		go RecommendTimeProc(Sqldsndb)
+		go nd.ComputerAverageSnft()
 	}
 	//go AutoPeriodEth(Sqldsndb)
 	//go CaptchaDefault()
@@ -1925,6 +1953,61 @@ func (nft NftDb) SetFeeRate() error {
 	db := nft.db.Last(&Exchangeinfos{}).Update("royalty", exchange.FeeRate)
 	if db.Error != nil {
 		log.Println("SetFeeRate update toyalty err=", db.Error)
+		return db.Error
+	}
+	return nil
+}
+
+func (nft NftDb) ComputerAverageSnft() error {
+	var exchange Exchangeinfos
+	db := nft.db.Last(&Exchangeinfos{}).First(&exchange)
+	if db.Error != nil {
+		log.Println("ComputerAverageSnft first exchange err=", db.Error)
+		return db.Error
+	}
+	var trans []Trans
+	db = nft.db.Model(&Trans{}).Where("1=1").Find(&trans)
+	if db.Error != nil {
+		log.Println("ComputerAverageSnft find Trans err=", db.Error)
+		return db.Error
+	}
+	var l0num, l1num, l2num, l3num int
+	var l0sum, l1sum, l2sum, l3sum uint64
+	for _, value := range trans {
+		switch strings.Index(value.Nftaddr, "m") {
+		case 40:
+			l3sum += value.Price
+			l3num++
+		case 41:
+			l2sum += value.Price
+			l2num++
+		case 42:
+			l1sum += value.Price
+			l1num++
+		default:
+			l0sum += value.Price
+			l0num++
+		}
+	}
+	if l3num != 0 {
+		L3AveragePrice = l3sum / (uint64(l3num) * 16 * 16 * 16)
+		exchange.Averagel3 = L3AveragePrice
+	}
+	if l2num != 0 {
+		L2AveragePrice = l2sum / (uint64(l2num) * 16 * 16)
+		exchange.Averagel2 = L2AveragePrice
+	}
+	if l1num != 0 {
+		L1AveragePrice = l1sum / (uint64(l1num) * 16)
+		exchange.Averagel1 = L1AveragePrice
+	}
+	if l0num != 0 {
+		L0AveragePrice = l0sum / uint64(l0num)
+		exchange.Averagel0 = l0sum / uint64(l0num)
+	}
+	db = nft.db.Last(&Exchangeinfos{}).Updates(&exchange)
+	if db.Error != nil {
+		log.Println("ComputerAverageSnft update exchange err=", db.Error)
 		return db.Error
 	}
 	return nil

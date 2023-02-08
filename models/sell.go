@@ -21,7 +21,8 @@ func (nft NftDb) MakeOffer(userAddr,
 	TradeSig string,
 	dead_time int64,
 	voteStage string,
-	sigdata string) error {
+	sigdata string,
+	buyauthsig string) error {
 	userAddr = strings.ToLower(userAddr)
 	contractAddr = strings.ToLower(contractAddr)
 
@@ -60,11 +61,14 @@ func (nft NftDb) MakeOffer(userAddr,
 	if !valid {
 		return errors.New(ErrBlockchain.Error() + errmsg)
 	}
-	rerr := MakeofferSigVerify(TradeSig, userAddr)
-	if rerr != nil {
-		log.Println("MakeOffer() SigVerify buyerSig err=", rerr)
-		return rerr
+	if buyauthsig == "" {
+		rerr := MakeofferSigVerify(TradeSig, userAddr)
+		if rerr != nil {
+			log.Println("MakeOffer() SigVerify buyerSig err=", rerr)
+			return rerr
+		}
 	}
+
 	var auctionRec Auction
 	err = nft.db.Where("contract = ? AND tokenid = ?", contractAddr, tokenId).First(&auctionRec)
 	if err.Error != nil {
@@ -74,6 +78,7 @@ func (nft NftDb) MakeOffer(userAddr,
 			auctionRec.Selltype = SellTypeBidPrice.String()
 			auctionRec.Paychan = PayChannel
 			auctionRec.Ownaddr = nftrecord.Ownaddr
+			auctionRec.Nftaddr = nftrecord.Nftaddr
 			auctionRec.Nftid = nftrecord.ID
 			auctionRec.Contract = contractAddr
 			auctionRec.Tokenid = tokenId
@@ -85,19 +90,20 @@ func (nft NftDb) MakeOffer(userAddr,
 			auctionRec.Enddate = dead_time
 			auctionRec.Signdata = sigdata
 			auctionRec.Tradesig = TradeSig
-			auctionHistory := AuctionHistory{}
-			auctionHistory.AuctionRecord = auctionRec.AuctionRecord
+			//auctionRec.Authsig = authsig
+			//auctionHistory := AuctionHistory{}
+			//auctionHistory.AuctionRecord = auctionRec.AuctionRecord
 			return nft.db.Transaction(func(tx *gorm.DB) error {
 				err = tx.Model(&auctionRec).Create(&auctionRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create auctionRec record err=", err.Error)
 					return ErrDataBase
 				}
-				err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() create auctionHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() create auctionHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftrecord = Nfts{}
 				nftrecord.Selltype = auctionRec.Selltype
 				nftrecord.Sellprice = auctionRec.Startprice
@@ -119,23 +125,24 @@ func (nft NftDb) MakeOffer(userAddr,
 				bidRec.Currency = CurrencyType
 				bidRec.Paychan = PayChannel
 				bidRec.Tradesig = TradeSig
+				bidRec.Buyauthsig = buyauthsig
 				bidRec.Bidtime = time.Now().Unix()
 				bidRec.Signdata = sigdata
 				bidRec.Deadtime = dead_time
 				bidRec.Nftid = auctionRec.Nftid
 				bidRec.VoteStage = voteStage
-				bidRecHistory := BiddingHistory{}
-				bidRecHistory.BidRecord = bidRec.BidRecord
+				//bidRecHistory := BiddingHistory{}
+				//bidRecHistory.BidRecord = bidRec.BidRecord
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRec record err=", err.Error)
 					return ErrDataBase
 				}
-				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				//NftCatch.SetFlushFlag()
 				GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 				fmt.Println("MakeOffer() RecordNotFound OK")
@@ -169,6 +176,7 @@ func (nft NftDb) MakeOffer(userAddr,
 			bidRec.Currency = CurrencyType
 			bidRec.Paychan = PayChannel
 			bidRec.Tradesig = TradeSig
+			bidRec.Buyauthsig = buyauthsig
 			bidRec.Bidtime = time.Now().Unix()
 			bidRec.VoteStage = voteStage
 			bidRec.Deadtime = dead_time
@@ -179,12 +187,12 @@ func (nft NftDb) MakeOffer(userAddr,
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
 					return ErrDataBase
 				}
-				bidRecHistory := BiddingHistory(bidRec)
-				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
-				if err.Error != nil {
-					log.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//bidRecHistory := BiddingHistory(bidRec)
+				//err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
+				//if err.Error != nil {
+				//	log.Println("MakeOffer() update bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -211,6 +219,7 @@ func (nft NftDb) MakeOffer(userAddr,
 			bidRec.Paychan = PayChannel
 			bidRec.Deadtime = dead_time
 			bidRec.Tradesig = TradeSig
+			bidRec.Buyauthsig = buyauthsig
 			bidRec.Bidtime = time.Now().Unix()
 			bidRec.VoteStage = voteStage
 			bidRec.Signdata = sigdata
@@ -220,13 +229,13 @@ func (nft NftDb) MakeOffer(userAddr,
 					fmt.Println("MakeOffer() create record err=", err.Error)
 					return ErrDataBase
 				}
-				bidRecHistory := BiddingHistory{}
-				bidRecHistory.BidRecord = bidRec.BidRecord
-				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//bidRecHistory := BiddingHistory{}
+				//bidRecHistory.BidRecord = bidRec.BidRecord
+				//err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -253,6 +262,7 @@ func (nft NftDb) MakeOffer(userAddr,
 			bidRec.Currency = CurrencyType
 			bidRec.Paychan = PayChannel
 			bidRec.Tradesig = TradeSig
+			bidRec.Buyauthsig = buyauthsig
 			bidRec.VoteStage = voteStage
 			bidRec.Bidtime = time.Now().Unix()
 			bidRec.Deadtime = dead_time
@@ -263,12 +273,12 @@ func (nft NftDb) MakeOffer(userAddr,
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
 					return ErrDataBase
 				}
-				bidRecHistory := BiddingHistory(bidRec)
-				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//bidRecHistory := BiddingHistory(bidRec)
+				//err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -295,22 +305,23 @@ func (nft NftDb) MakeOffer(userAddr,
 				bidRec.Currency = CurrencyType
 				bidRec.Paychan = PayChannel
 				bidRec.Tradesig = TradeSig
+				bidRec.Buyauthsig = buyauthsig
 				bidRec.Bidtime = time.Now().Unix()
 				bidRec.Deadtime = dead_time
 				bidRec.Signdata = sigdata
 				bidRec.VoteStage = voteStage
-				bidRecHistory := BiddingHistory{}
-				bidRecHistory.BidRecord = bidRec.BidRecord
+				//bidRecHistory := BiddingHistory{}
+				//bidRecHistory.BidRecord = bidRec.BidRecord
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					fmt.Println("MakeOffer() create bidRec record err=", err.Error)
 					return ErrDataBase
 				}
-				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() create bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -337,6 +348,7 @@ func (nft NftDb) MakeOffer(userAddr,
 			bidRec.Currency = CurrencyType
 			bidRec.Paychan = PayChannel
 			bidRec.Tradesig = TradeSig
+			bidRec.Buyauthsig = buyauthsig
 			bidRec.Bidtime = time.Now().Unix()
 			bidRec.Deadtime = dead_time
 			bidRec.VoteStage = voteStage
@@ -347,12 +359,12 @@ func (nft NftDb) MakeOffer(userAddr,
 					fmt.Println("MakeOffer() update Bidding record err=", err.Error)
 					return ErrDataBase
 				}
-				bidRecHistory := BiddingHistory(bidRec)
-				err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
-				if err.Error != nil {
-					fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//bidRecHistory := BiddingHistory(bidRec)
+				//err = tx.Model(&BiddingHistory{}).Where("contract = ? AND tokenid = ? AND bidAddr = ?", contractAddr, tokenId, userAddr).Updates(&bidRecHistory)
+				//if err.Error != nil {
+				//	fmt.Println("MakeOffer() update bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -379,22 +391,23 @@ func (nft NftDb) MakeOffer(userAddr,
 				bidRec.Currency = CurrencyType
 				bidRec.Paychan = PayChannel
 				bidRec.Tradesig = TradeSig
+				bidRec.Buyauthsig = buyauthsig
 				bidRec.Bidtime = time.Now().Unix()
 				bidRec.VoteStage = voteStage
 				bidRec.Deadtime = dead_time
 				bidRec.Signdata = sigdata
-				bidRecHistory := BiddingHistory{}
-				bidRecHistory.BidRecord = bidRec.BidRecord
+				//bidRecHistory := BiddingHistory{}
+				//bidRecHistory.BidRecord = bidRec.BidRecord
 				err := tx.Model(&bidRec).Create(&bidRec)
 				if err.Error != nil {
 					log.Println("MakeOffer() create bidRec record err=", err.Error)
 					return ErrDataBase
 				}
-				err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
-				if err.Error != nil {
-					log.Println("MakeOffer() create bidRecHistory record err=", err.Error)
-					return ErrDataBase
-				}
+				//err = tx.Model(&BiddingHistory{}).Create(&bidRecHistory)
+				//if err.Error != nil {
+				//	log.Println("MakeOffer() create bidRecHistory record err=", err.Error)
+				//	return ErrDataBase
+				//}
 				nftTemp := Nfts{}
 				if nftrecord.Maxbidprice < price {
 					nftTemp.Maxbidprice = price
@@ -438,7 +451,7 @@ func (nft NftDb) Sell(ownAddr,
 	hide string,
 	sigData string,
 	voteStage string,
-	tradeSig string) error {
+	tradeSig, sellauthsig string) error {
 
 	ownAddr = strings.ToLower(ownAddr)
 	PrivAddr = strings.ToLower(PrivAddr)
@@ -463,10 +476,12 @@ func (nft NftDb) Sell(ownAddr,
 	if !nft.UserKYCAduit(ownAddr) {
 		return ErrUserNotVerify
 	}
-	rerr := SellSigVerify(tradeSig, ownAddr)
-	if rerr != nil {
-		log.Println("Sell() SigVerify sigData err=", rerr)
-		return rerr
+	if sellauthsig == "" {
+		rerr := SellSigVerify(tradeSig, ownAddr)
+		if rerr != nil {
+			log.Println("Sell() SigVerify sigData err=", rerr)
+			return rerr
+		}
 	}
 	fmt.Println(time.Now().String()[:22], "Sell() Start.",
 		"tokenId=", tokenId,
@@ -531,6 +546,18 @@ func (nft NftDb) Sell(ownAddr,
 					log.Println("Sell() delete bidprice auction record err=", err.Error)
 					return ErrDataBase
 				}
+				nfttab := map[string]interface{}{
+					"Selltype":    SellTypeNotSale.String(),
+					"Sellprice":   0,
+					"Offernum":    0,
+					"Maxbidprice": 0,
+				}
+				err = tx.Model(&Nfts{}).Where("contract = ? AND tokenid =?",
+					auctionRec.Contract, auctionRec.Tokenid).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("Sell() update record err=", err.Error)
+					return ErrDataBase
+				}
 				return nil
 			})
 			if err != nil {
@@ -552,6 +579,7 @@ func (nft NftDb) Sell(ownAddr,
 	auctionRec.Startprice = startPrice
 	auctionRec.Endprice = endPrice
 	auctionRec.Privaddr = PrivAddr
+	auctionRec.Sellauthsig = sellauthsig
 	auctionRec.Startdate = time.Now().Unix()
 	auctionRec.Enddate = time.Now().AddDate(0, 0, days).Unix()
 	//auctionRec.Enddate = time.Now().Add(3 * time.Minute).Unix()
@@ -564,19 +592,19 @@ func (nft NftDb) Sell(ownAddr,
 		auctionRec.Startprice = startPrice
 		auctionRec.Endprice = startPrice
 	}
-	auctionHistory := AuctionHistory{}
-	auctionHistory.AuctionRecord = auctionRec.AuctionRecord
+	//auctionHistory := AuctionHistory{}
+	//auctionHistory.AuctionRecord = auctionRec.AuctionRecord
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(&auctionRec).Create(&auctionRec)
 		if err.Error != nil {
 			log.Println("Sell() create auctionRec record err=", err.Error)
 			return ErrDataBase
 		}
-		err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
-		if err.Error != nil {
-			log.Println("Sell() create auctionHistory record err=", err.Error)
-			return ErrDataBase
-		}
+		//err = tx.Model(&AuctionHistory{}).Create(&auctionHistory)
+		//if err.Error != nil {
+		//	log.Println("Sell() create auctionHistory record err=", err.Error)
+		//	return ErrDataBase
+		//}
 		nftrecord = Nfts{}
 		nftrecord.Hide = hide
 		nftrecord.Selltype = sellType
@@ -603,29 +631,75 @@ func (nft NftDb) Sell(ownAddr,
 	})
 }
 
-func (nft NftDb) GroupSell(params string) error {
-	if params == "" {
-		fmt.Println("input param nil")
-		return errors.New("input param nil")
-	}
-	var Sell []SellParams
-	err := json.Unmarshal([]byte(params), &Sell)
-	if err != nil {
-		fmt.Println("Unmarshal input err=", err)
-		return err
-	}
-	fmt.Println("GroupSell:   ", Sell)
-	for _, j := range Sell {
-		price1, _ := strconv.ParseUint(j.Price1, 10, 64)
-		price2, _ := strconv.ParseUint(j.Price2, 10, 64)
-		days, _ := strconv.Atoi(strings.TrimSpace(j.Day))
-		err = nft.Sell(j.UserAddr, "", j.ContractAddr, j.TokenId, j.SellType, j.PayChannel, days, price1, price2,
-			"", j.Currency, j.Hide, j.Sig, j.VoteStage, j.TradeSig)
+func (nft NftDb) GroupSell(useraddr, contract, params, alljudge, level, status, authsig string) error {
+	if alljudge == "true" {
+		var allauction []string
+		switch status {
+		case SellTypeBidPrice.String():
+			sql := `SELECT bd.tokenid FROM biddings  bd  join nfts nf on nf.tokenid =bd.tokenid where nf.ownaddr = ? 
+		and bd.deleted_at is null and nf.deleted_at is null and nf.mergelevel = ? limit ?`
+			db := nft.db.Raw(sql, useraddr, level, 500).Find(&allauction)
+			if db.Error != nil {
+				log.Println("GroupSell get all auction err=", db.Error)
+				return ErrDataFormat
+			}
+		case SellTypeNotSale.String():
+			sql := `select tokenid from nfts where tokenid  not in  (select tokenid from biddings where deleted_at is null ) 
+		and ownaddr =? and  tokenid  not in (select tokenid from auctions where deleted_at is null ) and 
+		mergetype = mergelevel and exchange =0 and mergelevel = ? and deleted_at is null limit ?`
+			db := nft.db.Raw(sql, useraddr, level, 500).Find(&allauction)
+			if db.Error != nil {
+				log.Println("GroupSell get all auction err=", db.Error)
+				return ErrDataFormat
+			}
+		}
+		tokenidmap := map[string]string{}
+		for _, value := range allauction {
+			tokenidmap[value] = value
+		}
+		var allSell []SellParams
+		var Sell SellParams
+		err := json.Unmarshal([]byte(params), &allSell)
 		if err != nil {
-			fmt.Println("BuyingNft err=", err)
-			return err
+			fmt.Println("Unmarshal input err=", err)
+			return ErrDataFormat
+		}
+		if len(allSell) < 1 {
+			log.Println("GroupSell input params data unmarshal is empty data")
+			return ErrDataFormat
+		}
+		Sell = allSell[0]
+		for _, j := range tokenidmap {
+			price1, _ := strconv.ParseUint(Sell.Price1, 10, 64)
+			price2, _ := strconv.ParseUint(Sell.Price2, 10, 64)
+			days, _ := strconv.Atoi(strings.TrimSpace(Sell.Day))
+			err = nft.Sell(useraddr, "", contract, j, Sell.SellType, Sell.PayChannel, days, price1, price2,
+				"", Sell.Currency, Sell.Hide, Sell.Sig, Sell.VoteStage, Sell.TradeSig, authsig)
+			if err != nil {
+				log.Println("GroupSell err=", err)
+				return ErrDataBase
+			}
+		}
+	} else {
+		var Sell []SellParams
+		err := json.Unmarshal([]byte(params), &Sell)
+		if err != nil {
+			fmt.Println("Unmarshal input err=", err)
+			return ErrDataFormat
+		}
+		for _, j := range Sell {
+			price1, _ := strconv.ParseUint(j.Price1, 10, 64)
+			price2, _ := strconv.ParseUint(j.Price2, 10, 64)
+			days, _ := strconv.Atoi(strings.TrimSpace(j.Day))
+			err = nft.Sell(j.UserAddr, "", j.ContractAddr, j.TokenId, j.SellType, j.PayChannel, days, price1, price2,
+				"", j.Currency, j.Hide, j.Sig, j.VoteStage, j.TradeSig, authsig)
+			if err != nil {
+				fmt.Println("GroupCancelSell  GroupSell err=", err)
+				return ErrDataBase
+			}
 		}
 	}
+
 	return nil
 }
 

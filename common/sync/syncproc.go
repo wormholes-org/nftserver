@@ -341,55 +341,23 @@ func InitSyncBlockTs(sqldsn string) error {
 			}
 			go models.SyncChain(sqldsn)
 		} else {
-			/*if models.TransferSNFT {
-				snftBlockS, err := models.GetDbSnftBlockNumber(sqldsn)
-				if err != nil {
-					fmt.Println("InitSyncBlockTs() get snft scan block num err=", err)
-					return err
-				}
-				for snftBlockS < contracts.GetCurrentBlockNumber() {
-					fmt.Println("InitSyncBlockTs() call ScanWorkerNft() blockNum=", snftBlockS)
-					err := ScanWorkerNft(sqldsn, snftBlockS)
-					if err != nil {
-						log.Println("InitSyncBlockTs() call SyncWorkerNft() err=", err)
-						continue
-						//return err
+			return errors.New("nftscan server is not set.")
+			/*	for {
+					err := SelfSync(sqldsn)
+					if err == nil {
+						break
 					}
-					snftBlockS = snftBlockS + 1
+					time.Sleep(time.Second)
 				}
-				fmt.Println("InitSyncBlockTs() sync ScanWorkerNft ok.  blockNum=", snftBlockS)
-				go SyncWorkerNft(sqldsn)
-			}
-			err := SyncBlockNew(sqldsn)
-			if err != nil {
-				fmt.Println("InitSyncBlockTs() SyncBlockNew err=", err)
-				return err
-			}
-			go func() {
-				ticker := time.NewTicker(ScanBlockTime)
-				for {
-					select {
-					case <-ticker.C:
-						SyncBlockNew(models.Sqldsndb)
+				go func() {
+					ticker := time.NewTicker(ScanBlockTime)
+					for {
+						select {
+						case <-ticker.C:
+							SelfSync(sqldsn)
+						}
 					}
-				}
-			}()*/
-			for {
-				err := SelfSync(sqldsn)
-				if err == nil {
-					break
-				}
-				time.Sleep(time.Second)
-			}
-			go func() {
-				ticker := time.NewTicker(ScanBlockTime)
-				for {
-					select {
-					case <-ticker.C:
-						SelfSync(sqldsn)
-					}
-				}
-			}()
+				}()*/
 		}
 	}
 

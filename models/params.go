@@ -18,17 +18,19 @@ const (
 )
 
 var (
-	NftCacheDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
+	NftCacheDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch", "QueryOwnerLevelSnfts", "GetNftMarketInfo"}
 	UploadNftDirtyName = []string{"QueryNftByFilterNftSnft", "QueryNFTCollectionList", "QueryOwnerSnftChip",
-		"querySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection", "queryStageList",
-		"queryStageCollection", "queryNFTList"}
+		"QuerySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection", "queryStageList",
+		"queryStageCollection", "queryNFTList", "QueryOwnerLevelSnfts", "QueryRecommendSnfts"}
 	SetNftDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch"}
 	TradingDirtyName = []string{"QueryMarketTradingHistory", "QueryNFTCollectionList"}
 	AnnouncementName = []string{"Announcement"}
 	CollectionList   = []string{"QueryNFTCollectionList"}
 	MarketNftInfo    = []string{"GetNftMarketInfo"}
-	SnftExchange     = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection", "QueryOwnerSnftCollection", "QueryOwnerSnftChip"}
-	AllDirty         = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection",
+	SnftExchange     = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList",
+		"QuerySnftByCollection", "QueryOwnerSnftCollection", "QueryOwnerSnftChip", "QueryRecommendSnfts"}
+	AllDirty = []string{"QuerySnftChip", "QueryStageCollection", "QueryStageSnft", "QueryStageList", "QuerySnftByCollection",
 		"QueryOwnerSnftCollection", "QueryOwnerSnftChip", "QueryNftByFilterNftSnft", "SnftSearch", "QueryNFTCollectionList",
-		"QueryOwnerSnftChip", "QueryMarketTradingHistory", "QueryNFTCollectionList", "Announcement", "QueryHomePage", "Search", "GetNftMarketInfo"}
+		"QueryOwnerSnftChip", "QueryMarketTradingHistory", "QueryNFTCollectionList", "Announcement", "QueryHomePage", "Search", "GetNftMarketInfo", "QueryRecommendSnfts"}
+	RecommendSnft = []string{"QueryRecommendSnfts"}
 )

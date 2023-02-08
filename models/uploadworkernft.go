@@ -10,50 +10,50 @@ import (
 	"time"
 )
 
-func copySnftToSysnft(snft *Nfts) Sysnfts {
-	sysNft := Sysnfts{}
-	sysNft.Ownaddr = snft.Ownaddr
-	sysNft.Md5 = snft.Md5
-	sysNft.Name = snft.Name
-	sysNft.Desc = snft.Desc
-	sysNft.Meta = snft.Meta
-	sysNft.Nftmeta = snft.Nftmeta
-	sysNft.Url = snft.Url
-	sysNft.Contract = snft.Contract
-	sysNft.Tokenid = snft.Tokenid
-	sysNft.Nftaddr = snft.Nftaddr
-	sysNft.Snftstage = snft.Snftstage
-	sysNft.Snftcollection = snft.Snftcollection
-	sysNft.Snft = snft.Snft
-	sysNft.Count = snft.Count
-	sysNft.Approve = snft.Approve
-	sysNft.Categories = snft.Categories
-	sysNft.Collectcreator = snft.Collectcreator
-	sysNft.Collections = snft.Collections
-	sysNft.Image = snft.Image
-	sysNft.Hide = snft.Hide
-	sysNft.Signdata = snft.Signdata
-	sysNft.Createaddr = snft.Createaddr
-	sysNft.Verifyaddr = snft.Verifyaddr
-	sysNft.Currency = snft.Currency
-	sysNft.Price = snft.Price
-	sysNft.Royalty = snft.Royalty
-	sysNft.Paychan = snft.Paychan
-	sysNft.TransCur = snft.TransCur
-	sysNft.Transprice = snft.Transprice
-	sysNft.Transtime = snft.Transtime
-	sysNft.Createdate = snft.Createdate
-	sysNft.Favorited = snft.Favorited
-	sysNft.Transcnt = snft.Transcnt
-	sysNft.Transamt = snft.Transamt
-	sysNft.Verified = snft.Verified
-	sysNft.Verifieddesc = snft.Verifieddesc
-	sysNft.Verifiedtime = snft.Verifiedtime
-	sysNft.Selltype = snft.Selltype
-	sysNft.Mintstate = snft.Mintstate
-	sysNft.Pledgestate = snft.Pledgestate
-	return sysNft
-}
+//func copySnftToSysnft(snft *Nfts) Sysnfts {
+//	sysNft := Sysnfts{}
+//	sysNft.Ownaddr = snft.Ownaddr
+//	sysNft.Md5 = snft.Md5
+//	sysNft.Name = snft.Name
+//	sysNft.Desc = snft.Desc
+//	sysNft.Meta = snft.Meta
+//	sysNft.Nftmeta = snft.Nftmeta
+//	sysNft.Url = snft.Url
+//	sysNft.Contract = snft.Contract
+//	sysNft.Tokenid = snft.Tokenid
+//	sysNft.Nftaddr = snft.Nftaddr
+//	sysNft.Snftstage = snft.Snftstage
+//	sysNft.Snftcollection = snft.Snftcollection
+//	sysNft.Snft = snft.Snft
+//	sysNft.Count = snft.Count
+//	sysNft.Approve = snft.Approve
+//	sysNft.Categories = snft.Categories
+//	sysNft.Collectcreator = snft.Collectcreator
+//	sysNft.Collections = snft.Collections
+//	sysNft.Image = snft.Image
+//	sysNft.Hide = snft.Hide
+//	sysNft.Signdata = snft.Signdata
+//	sysNft.Createaddr = snft.Createaddr
+//	sysNft.Verifyaddr = snft.Verifyaddr
+//	sysNft.Currency = snft.Currency
+//	sysNft.Price = snft.Price
+//	sysNft.Royalty = snft.Royalty
+//	sysNft.Paychan = snft.Paychan
+//	sysNft.TransCur = snft.TransCur
+//	sysNft.Transprice = snft.Transprice
+//	sysNft.Transtime = snft.Transtime
+//	sysNft.Createdate = snft.Createdate
+//	sysNft.Favorited = snft.Favorited
+//	sysNft.Transcnt = snft.Transcnt
+//	sysNft.Transamt = snft.Transamt
+//	sysNft.Verified = snft.Verified
+//	sysNft.Verifieddesc = snft.Verifieddesc
+//	sysNft.Verifiedtime = snft.Verifiedtime
+//	sysNft.Selltype = snft.Selltype
+//	sysNft.Mintstate = snft.Mintstate
+//	sysNft.Pledgestate = snft.Pledgestate
+//	return sysNft
+//}
 
 func (nft NftDb) NewTokenId() (string, error) {
 	rand.Seed(time.Now().UnixNano())
@@ -298,20 +298,20 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 			}
 		}
 		log.Println("UploadWNft() SysInfos snfttotal count=", sysInfo.Snfttotal)
-		sysNft := Sysnfts{}
-		err = nft.db.Where("snft = ?", nfttab.Snft).First(&sysNft)
-		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
-			log.Println("UploadWNft() database err=", err.Error)
-			return ErrCollectionNotExist
-		}
-		if err.Error == gorm.ErrRecordNotFound {
-			sysNft = copySnftToSysnft(&nfttab)
-			err := nft.db.Model(&Sysnfts{}).Create(&sysNft)
-			if err.Error != nil {
-				log.Println("UploadWNft() err=", err.Error)
-				return err.Error
-			}
-		}
+		//sysNft := Sysnfts{}
+		//err = nft.db.Where("snft = ?", nfttab.Snft).First(&sysNft)
+		//if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+		//	log.Println("UploadWNft() database err=", err.Error)
+		//	return ErrCollectionNotExist
+		//}
+		//if err.Error == gorm.ErrRecordNotFound {
+		//	sysNft = copySnftToSysnft(&nfttab)
+		//	err := nft.db.Model(&Sysnfts{}).Create(&sysNft)
+		//	if err.Error != nil {
+		//		log.Println("UploadWNft() err=", err.Error)
+		//		return err.Error
+		//	}
+		//}
 		return nft.db.Transaction(func(tx *gorm.DB) error {
 			err := tx.Model(&Nfts{}).Create(&nfttab)
 			if err.Error != nil {
@@ -394,18 +394,23 @@ func (nft NftDb) UploadWNft(nftInfo *SnftInfo) error {
 				log.Println("UploadWNft() add collectins totalcount err= ", err.Error)
 				return err.Error
 			}
-			err = tx.Model(&Sysnfts{}).Where("id = ?", sysNft.ID).Update("Chipcount", sysNft.Chipcount+1)
-			if err.Error != nil {
-				log.Println("UploadWNft() add Sysnfts chip count err= ", err.Error)
-				return err.Error
+			if collectRec.Totalcount+1 >= 256 {
+				fmt.Println("UploadWNft() update catch. time=", time.Now().String()[:25])
+				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 			}
-			if (sysNft.Chipcount + 1) == 16 {
+			//nftaddress[len(nftaddress)-1:] == "0"
+			//err = tx.Model(&Sysnfts{}).Where("id = ?", sysNft.ID).Update("Chipcount", sysNft.Chipcount+1)
+			//if err.Error != nil {
+			//	log.Println("UploadWNft() add Sysnfts chip count err= ", err.Error)
+			//	return err.Error
+			//}
+			if nftaddress[len(nftaddress)-1:] == "f" {
 				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfo.ID).Update("Snfttotal", sysInfo.Snfttotal+1)
 				if err.Error != nil {
 					fmt.Println("UploadWNft() add  SysInfos snfttotal err=", err.Error)
 					return err.Error
 				}
-				GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
+				//GetRedisCatch().SetDirtyFlag(UploadNftDirtyName)
 			}
 			return nil
 		})

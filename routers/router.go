@@ -2,6 +2,7 @@ package routers
 
 import (
 	beego "github.com/beego/beego/v2/server/web"
+	//_ "github.com/dbohachev/beego-swagger"
 	"github.com/nftexchange/nftserver/controllers/nftexchangev1"
 	"github.com/nftexchange/nftserver/controllers/nftexchangev2"
 	"github.com/nftexchange/nftserver/models"
@@ -31,6 +32,10 @@ func registRouterV1() {
 	beego.Router("/v1/ipfsaddtest", &nftexchangev1.NftExchangeControllerV1{}, "get:IpfsTest")
 }
 
+// Package routers @APIVersion 1.0.0
+// @Title plant_store
+// @Description plant_store APIs
+// @Contact 604862834@qq.com
 func registRouterV2() {
 	if !models.LimitWritesDatabase {
 		//Upload nft
@@ -39,10 +44,16 @@ func registRouterV2() {
 		beego.Router("/v2/uploadNftImage", &nftexchangev2.NftExchangeControllerV2{}, "post:UploadNftImage")
 		//buy nft
 		beego.Router("/v2/buy", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyNft")
+		//batch buy nft
+		beego.Router("/v2/batchBuyNft", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchBuyNft")
 		//To buy nft , the exchange initiates the transaction
 		beego.Router("/v2/buying", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyingNft")
+		//To batch buy nft , the exchange initiates the transaction
+		beego.Router("/v2/batchBuyingNft", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchBuyingNft")
 		//cancel purchase of nft works
 		beego.Router("/v2/cancelBuy", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelBuyNft")
+		//BatchCancel purchase of nft works
+		beego.Router("/v2/batchCancelBuyNft", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchCancelBuyNft")
 		//Modify user information
 		beego.Router("/v2/modifyUserInfo", &nftexchangev2.NftExchangeControllerV2{}, "post:ModifyUserInfo")
 		//For sale (on the shelf)
@@ -161,6 +172,8 @@ func registRouterV2() {
 	beego.Router("/v2/queryStageSnft", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryStageSnft")
 	//Query the owner's collection list
 	beego.Router("/v2/queryOwnerSnftCollections", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerSnftCollections")
+	//Query the owner's snft at different merge levels
+	beego.Router("/v2/queryOwnerLevelSnfts", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerLevelSnfts")
 	//Query the total number of fragments owned by an account
 	beego.Router("/v2/queryOwnerSnftChipAmount", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryOwnerSnftChipAmount")
 	//Query snft in the collection according to the creator, collection name
@@ -207,6 +220,10 @@ func registRouterV2() {
 	beego.Router("/v2/askForApprove", &nftexchangev2.NftExchangeControllerV2{}, "post:AskForApprove")
 	//Get home page information
 	beego.Router("/v2/queryHomePage", &nftexchangev2.NftExchangeControllerV2{}, "get:QueryHomePage")
+	//Get Recommend Snfts by user
+	beego.Router("/v2/queryRecommendSnfts", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryRecommendSnfts")
+	//Get recommend snft chips QueryRecommendSnftChip
+	beego.Router("/v2/queryRecommendSnftChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryRecommendSnftChip")
 	//get sysparams data
 	beego.Router("/v2/querySysParams", &nftexchangev2.NftExchangeControllerV2{}, "get:GetSysParams")
 	beego.Router("/v2/testRecover", &nftexchangev2.NftExchangeControllerV2{}, "post:Recover")

@@ -49,6 +49,7 @@ const (
 	WormHolesExAuthToExBuyTransfer     = 18
 	WormHolesExAuthToExMintBuyTransfer = 19
 	WormHolesExSellNoAuthTransfer      = 20
+	WormHolesExSellBatchAuthTransfer   = 27
 
 	WormHolesContract   = "0xffffffffffffffffffffffffffffffffffffffff"
 	WormHolesNftCount   = "1"
@@ -186,6 +187,32 @@ type WormholesAuthFixTrans struct {
 
 type ExchangerAuthTrans struct {
 	Worm WormholesAuthFixTrans `json:"wormholes"`
+}
+
+type Buyauth struct {
+	Exchanger   string `json:"exchanger"`
+	Blocknumber string `json:"block_number"`
+	Sig         string `json:"sig"`
+}
+
+type Sellerauth struct {
+	Exchanger   string `json:"exchanger"`
+	Blocknumber string `json:"block_number"`
+	Sig         string `json:"sig"`
+}
+
+type WormholesBatchAuthFixTrans struct {
+	Version       string `json:"version"`
+	Type          uint8  `json:"type"`
+	Buyauth       `json:"buyer_auth"`
+	Buyer         `json:"buyer"`
+	Sellerauth    `json:"seller_auth"`
+	Seller1       `json:"seller1"`
+	Exchangerauth ExchangerAuth `json:"exchanger_auth"`
+}
+
+type ExchangerBatchAuthTrans struct {
+	Worm WormholesBatchAuthFixTrans `json:"wormholes"`
 }
 
 type Seller1 struct {
@@ -647,31 +674,54 @@ func SetApprove(contract string, prv *ecdsa.PrivateKey) (*types.Transaction, err
 	return t, nil
 }
 
+//func GetCurrentBlockNumber() uint64 {
+//	var client *ethclient.Client
+//	var err error
+//	for {
+//		for {
+//			fmt.Println("GetCurrentBlockNumber() dial ", "EthNode=", EthNode)
+//			client, err = ethclient.Dial(EthNode)
+//			if err != nil {
+//				log.Println("GetCurrentBlockNumber()", "EthNode=", EthNode, " connect err=", err)
+//				time.Sleep(ReDialDelyTime * time.Second)
+//			} else {
+//				//log.Println("GetCurrentBlockNumber() connect OK!")
+//				break
+//			}
+//		}
+//		fmt.Println("GetCurrentBlockNumber() get HeaderByNumber")
+//		header, err := client.HeaderByNumber(context.Background(), nil)
+//		if err != nil {
+//			log.Println("GetCurrentBlockNumber() get HeaderByNumber err=", err)
+//			client.Close()
+//			time.Sleep(ReDialDelyTime * time.Second)
+//		} else {
+//			log.Println("GetCurrentBlockNumber() header.Number=", header.Number.String())
+//			client.Close()
+//			return header.Number.Uint64()
+//		}
+//	}
+//}
+
 func GetCurrentBlockNumber() uint64 {
 	var client *ethclient.Client
 	var err error
 	for {
-		for {
-			fmt.Println("GetCurrentBlockNumber() dial ", "EthNode=", EthNode)
-			client, err = ethclient.Dial(EthNode)
-			if err != nil {
-				log.Println("GetCurrentBlockNumber()", "EthNode=", EthNode, " connect err=", err)
-				time.Sleep(ReDialDelyTime * time.Second)
-			} else {
-				//log.Println("GetCurrentBlockNumber() connect OK!")
-				break
-			}
-		}
-		fmt.Println("GetCurrentBlockNumber() get HeaderByNumber")
-		header, err := client.HeaderByNumber(context.Background(), nil)
+		fmt.Println("GetCurrentBlockNumber() dial ", "EthNode=", EthNode)
+		client, err = ethclient.Dial(EthNode)
 		if err != nil {
-			log.Println("GetCurrentBlockNumber() get HeaderByNumber err=", err)
-			client.Close()
 			time.Sleep(ReDialDelyTime * time.Second)
+			continue
+		}
+		blocknum, err := client.BlockNumber(context.Background())
+		client.Close()
+		if err != nil {
+			log.Println("GetCurrentBlockNumber() err=", err)
+			time.Sleep(ReDialDelyTime * time.Second)
+			continue
 		} else {
-			log.Println("GetCurrentBlockNumber() header.Number=", header.Number.String())
-			client.Close()
-			return header.Number.Uint64()
+			fmt.Println("GetCurrentBlockNumber() blocknumber=", blocknum)
+			return blocknum
 		}
 	}
 }
@@ -1465,6 +1515,21 @@ func RecoverAddress(msg string, sigStr string) (*common.Address, error) {
 	}
 	addr := crypto.PubkeyToAddress(*rpk)
 	return &addr, nil
+}
+
+func signHash(data []byte) []byte {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
+	return crypto.Keccak256([]byte(msg))
+}
+
+func WormholesSign(msg string, prv *ecdsa.PrivateKey) (string, error) {
+	sig, err := crypto.Sign(signHash([]byte(msg)), prv)
+	if err != nil {
+		fmt.Println("EthSign() err=", err)
+		return "", err
+	}
+	sig[64] += 27
+	return hexutil.Encode(sig), nil
 }
 
 func GenNftAddr(UserMintDeep *big.Int) error {
@@ -3442,6 +3507,27 @@ func ExchangeTrans(buyer Buyer, fromprv string) error {
 	return nil
 }
 
+func GetTransStatus(txHash string) (bool, error) {
+	client, err := ethclient.Dial(EthNode)
+	if err != nil {
+		log.Println("GetTransStatus() err=", err)
+		return false, err
+	}
+	defer client.Close()
+	hash := common.HexToHash(txHash)
+	log.Println("hash = ", hash, ",  txHash = ", txHash)
+	receipt, err := client.TransactionReceipt(context.Background(), hash)
+	if err != nil {
+		log.Println("GetTransStatus() err=", err)
+		return false, err
+	}
+	if receipt.Status == 1 {
+		return true, nil
+	} else {
+		return false, err
+	}
+}
+
 func AuthExchangeTrans(sell Seller1, buyer Buyer, authSign, fromprv string) (string, error) {
 	client, err := ethclient.Dial(EthNode)
 	if err != nil {
@@ -3549,6 +3635,152 @@ func AuthExchangeTrans(sell Seller1, buyer Buyer, authSign, fromprv string) (str
 	}
 	log.Println("AuthExchangeTrans() OK")
 	log.Println("AuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
+	return strings.ToLower(signedTx.Hash().String()), nil
+}
+
+func BatchAuthExchangeTrans(sell Seller1, buyer Buyer, sellauthsign, buyauthsign, authSign, fromprv string) (string, error) {
+	client, err := ethclient.Dial(EthNode)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	defer client.Close()
+	privateKey, err := crypto.HexToECDSA(fromprv)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", nil
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	gasLimit := uint64(GasLimitTx1819)
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	//p, _ := strconv.ParseUint(buyer.Price, 10, 64)
+	log.Println("buyer price = ", buyer.Price)
+	value, err := hexutil.DecodeBig(buyer.Price)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() DecodeBig err=", err)
+		return "", err
+	}
+	var trans ExchangerBatchAuthTrans
+	trans.Worm.Version = WormHolesVerseion
+	trans.Worm.Type = WormHolesExSellBatchAuthTransfer
+	err = json.Unmarshal([]byte(authSign), &trans.Worm.Exchangerauth)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
+		return "", err
+	}
+	if sellauthsign != "" {
+		err = json.Unmarshal([]byte(sellauthsign), &trans.Worm.Sellerauth)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
+			return "", err
+		}
+	}
+	if buyauthsign != "" {
+		err = json.Unmarshal([]byte(buyauthsign), &trans.Worm.Buyauth)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
+			return "", err
+		}
+	}
+	blocknum, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	trans.Worm.Seller1 = sell
+	if sellauthsign != "" {
+		trans.Worm.Seller1.Blocknumber = hexutil.EncodeUint64(blocknum + 1000)
+		msg := trans.Worm.Seller1.Price + trans.Worm.Seller1.Nftaddress + trans.Worm.Seller1.Exchanger +
+			trans.Worm.Seller1.Blocknumber
+		sig, err := WormholesSign(msg, privateKey)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() WormholesSign() err=", err)
+			return "", err
+		}
+		trans.Worm.Seller1.Sig = sig
+	}
+	var toAddress *common.Address
+	if buyauthsign == "" {
+		trans.Worm.Buyer.Price = buyer.Price
+		trans.Worm.Buyer.Exchanger = buyer.Exchanger
+		trans.Worm.Buyer.Nftaddress = buyer.Nftaddress
+		trans.Worm.Buyer.Blocknumber = buyer.Blocknumber
+		trans.Worm.Buyer.Seller = buyer.Seller
+		trans.Worm.Buyer.Sig = buyer.Sig
+		msg := trans.Worm.Buyer.Price + trans.Worm.Buyer.Nftaddress + trans.Worm.Buyer.Exchanger +
+			trans.Worm.Buyer.Blocknumber + trans.Worm.Buyer.Seller
+		/*msg := trans.Worm.Buyer.Price + trans.Worm.Buyer.Nftaddress + trans.Worm.Buyer.Exchanger +
+		trans.Worm.Buyer.Blocknumber*/
+		toAddress, err = recoverAddress(msg, trans.Worm.Buyer.Sig)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() recoverAddress() err=", err)
+			return "", err
+		}
+	} else {
+		msg := trans.Worm.Buyauth.Exchanger + trans.Worm.Buyauth.Blocknumber
+		toAddress, err = recoverAddress(msg, trans.Worm.Buyauth.Sig)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() recoverAddress() err=", err)
+			return "", err
+		}
+		trans.Worm.Buyer = buyer
+		trans.Worm.Buyer.Blocknumber = hexutil.EncodeUint64(blocknum + 1000)
+		msg = trans.Worm.Buyer.Price + trans.Worm.Buyer.Nftaddress + trans.Worm.Buyer.Exchanger +
+			trans.Worm.Buyer.Blocknumber + trans.Worm.Buyer.Seller
+		sig, err := WormholesSign(msg, privateKey)
+		if err != nil {
+			log.Println("BatchAuthExchangeTrans() WormholesSign() err=", err)
+			return "", err
+		}
+		trans.Worm.Buyer.Sig = sig
+	}
+
+	str, err := json.Marshal(trans)
+	sstr := strings.Replace(string(str), "\"wormholes\"", "wormholes", -1)
+	sstr = sstr[1 : len(sstr)-1]
+	data := []byte(sstr)
+	log.Println("BatchAuthExchangeTrans() data=", sstr)
+	log.Println("BatchAuthExchangeTrans() price=", value.String())
+	//blocknum, err := client.BlockNumber(context.Background())
+	//if err != nil {
+	//	log.Println("BatchAuthExchangeTrans() err=", err)
+	//	return "", err
+	//}
+	nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	if err != nil {
+		log.Println("AuthExchangeTrans() GetNonce err=", err)
+		return "", err
+	}
+	tx := types.NewTransaction(nonce, *toAddress, value, gasLimit, gasPrice, data)
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	fmt.Println("BatchAuthExchangeTrans() chainID=", chainID)
+	fmt.Println("BatchAuthExchangeTrans() nonce=", nonce)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Println("BatchAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	log.Println("BatchAuthExchangeTrans() OK")
+	log.Println("BatchAuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
 	return strings.ToLower(signedTx.Hash().String()), nil
 }
 

@@ -1196,13 +1196,357 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 	return nftInfo, uint64(totalCount) + uint64(snftTotalCount), nil
 }
 
+func QuerySnftWhereSplit(query string) map[string]string {
+	spitStr := make(map[string]string)
+	for {
+		s := strings.Index(query, "(")
+		if s == -1 {
+			break
+		}
+		e := strings.Index(query, ")")
+		if s == -1 {
+			break
+		}
+		str := query[s : e+1]
+		query = query[e+1:]
+		if strings.Contains(str, "selltype") {
+			spitStr["selltype"] = str
+		}
+		if strings.Contains(str, "offernum") {
+			spitStr["offernum"] = str
+		}
+		if strings.Contains(str, "sellprice") {
+			//str = strings.Replace(str, "sellprice", "startprice", -1)
+			spitStr["sellprice"] = str
+		}
+		if strings.Contains(str, "createdate") {
+			spitStr["createdate"] = str
+			i1 := strings.Index(str, "=")
+			i2 := strings.Index(str, ")")
+			date := str[i1+1 : i2]
+			d, _ := strconv.ParseInt(date, 10, 64)
+			ct := time.Unix(d, 0)
+			ct = ct.AddDate(0, 0, 4)
+			sct := ct.Format("2006-01-02")
+			ct, _ = time.Parse("2006-01-02", sct)
+			date = strconv.FormatInt(ct.Unix(), 10)
+			spitStr["createdate"] = "(createdate>=" + date + ")"
+		}
+		if strings.Contains(str, "collectcreator") {
+			spitStr["collectcreator"] = str
+			str = strings.Replace(str, "collectcreator", "createaddr", -1)
+			spitStr["createaddr"] = str
+
+		}
+		if strings.Contains(str, "collections") {
+			spitStr["collections"] = str
+			str = strings.Replace(str, "collections", "name", -1)
+			spitStr["name"] = str
+		}
+		if strings.Contains(str, "categories") {
+			spitStr["categories"] = str
+		}
+	}
+	return spitStr
+}
+
+func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, startIndex string, count string) ([]NftInfo, uint64, error) {
+	var queryWhere string
+	var orderBy string
+	var totalCount int64
+	nftInfo := []NftInfo{}
+	spendT := time.Now()
+	snftTotalCount := 0
+
+	if len(filter) > 0 {
+		queryWhere = nft.joinFilters(filter)
+		/*nftCatchHash := NftCatch.NftCatchHash(queryWhere + orderBy + startIndex + count)
+		nftCatch := NftCatch.GetByHash(nftCatchHash, NftFlushTypeAuction)
+		if nftCatch != nil {
+			fmt.Printf("QueryNftByFilter() filter spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			return nftCatch.NftInfos, nftCatch.Total, nil
+		}*/
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				orderBy += v.By + " " + v.Order
+			}
+		}
+		if len(orderBy) > 0 {
+			//orderBy = orderBy + ", id desc"
+			orderBy = orderBy
+		} else {
+			//orderBy = "createdate desc, id desc"
+			orderBy = "createdate desc"
+		}
+		queryCatchSql := queryWhere + orderBy + startIndex + count + "snft"
+		nftCatch := NftFilter{}
+		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		if cerr == nil {
+			log.Printf("QueryNftByFilter() snft filter spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			return nftCatch.NftInfos, nftCatch.Total, nil
+		}
+		querySplit := QuerySnftWhereSplit(queryWhere)
+		if querySplit["selltype"] == "" && querySplit["offernum"] == "" && querySplit["sellprice"] == "" {
+			spendStart := time.Now()
+			whereFlag := false
+			//snftSql := `select min(nftaddr) as minnftaddr, sum(transamt) as transamt, sum(transprice) as sellprice,min(transtime) as transtime, min(verifiedtime) as verifiedtime, min(createdate) as createdate from nfts  `
+			//snftCountSql := `select count(minnftaddr) from ( select min(nftaddr) as minnftaddr from nfts `
+			snftSql := `select * from nfts  `
+			snftCountSql := `select count(id) from nfts `
+			if querySplit["createdate"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
+				}
+			}
+			if querySplit["categories"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["categories"]
+					snftCountSql = snftCountSql + " where " + querySplit["categories"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["categories"]
+					snftCountSql = snftCountSql + " and " + querySplit["categories"]
+				}
+			}
+			if querySplit["collectcreator"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
+				}
+			}
+			if querySplit["collections"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["collections"]
+					snftCountSql = snftCountSql + " where " + querySplit["collections"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["collections"]
+					snftCountSql = snftCountSql + " and " + querySplit["collections"]
+				}
+			}
+			if whereFlag == false {
+				whereFlag = true
+				snftSql = snftSql + " where " + " Exchange = 0 and" + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + "" + " deleted_at is null "
+				snftCountSql = snftCountSql + " where " + " Exchange = 0 and" + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+			} else {
+				snftSql = snftSql + " and Exchange = 0 " + " and " + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+				snftCountSql = snftCountSql + " and  Exchange = 0 " + " and " + " Mergetype = 1 and" + " Pledgestate != " + ` "Pledge" ` + " and " + " deleted_at is null "
+			}
+			snftSql = snftSql + " order by " + orderBy
+			if len(startIndex) > 0 && len(count) > 0 {
+				snftSql = snftSql + " limit " + startIndex + ", " + count
+			} else {
+				snftSql = snftSql + " limit " + "0" + ", " + "1"
+			}
+			fmt.Printf("QueryNftByFilter() snftSql=%s \n", snftSql)
+			snftInfo := []NftInfo{}
+			err := nft.db.Raw(snftSql).Scan(&snftInfo)
+			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&snftinfo) err=", err)
+				return nil, uint64(0), ErrDataBase
+			}
+			nftInfo = append(nftInfo, snftInfo...)
+			fmt.Printf("QueryNftByFilter() snftAddrs spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			spendStart = time.Now()
+			fmt.Println("QueryNftByFilter() snftTotalCount=", snftTotalCount)
+			spendT = time.Now()
+			var snftCount int64
+			err = nft.db.Raw(snftCountSql).Scan(&snftCount)
+			if err.Error != nil {
+				log.Println("QueryNftByFilter() Raw(countSql).Scan(&snftCount) err=", err.Error)
+				return nil, uint64(0), ErrDataBase
+			}
+			totalCount = snftCount
+			fmt.Printf("QueryNftByFilter() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+			//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
+			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
+			return nftInfo, uint64(totalCount), nil
+		} else {
+			snftSql := `select * from nfts `
+			snftCountSql := `select count(*) from nfts `
+			whereFlag := false
+			if querySplit["selltype"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["selltype"]
+					snftCountSql = snftCountSql + " where " + querySplit["selltype"]
+				}
+			}
+			if querySplit["sellprice"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["sellprice"]
+					snftCountSql = snftCountSql + " where " + querySplit["sellprice"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["sellprice"]
+					snftCountSql = snftCountSql + " and " + querySplit["sellprice"]
+				}
+			}
+			if querySplit["createdate"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " where " + querySplit["createdate"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["createdate"]
+					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
+				}
+			}
+			if querySplit["offernum"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["offernum"]
+					snftCountSql = snftCountSql + " where " + querySplit["offernum"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["offernum"]
+					snftCountSql = snftCountSql + " and " + querySplit["offernum"]
+				}
+			}
+			if querySplit["collectcreator"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " where " + querySplit["collectcreator"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["collectcreator"]
+					snftCountSql = snftCountSql + " and " + querySplit["collectcreator"]
+				}
+			}
+			if querySplit["collections"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["collections"]
+					snftCountSql = snftCountSql + " where " + querySplit["collections"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["collections"]
+					snftCountSql = snftCountSql + " and " + querySplit["collections"]
+				}
+			}
+			if querySplit["categories"] != "" {
+				if whereFlag == false {
+					whereFlag = true
+					snftSql = snftSql + " where " + querySplit["categories"]
+					snftCountSql = snftCountSql + " where " + querySplit["categories"]
+				} else {
+					snftSql = snftSql + " and " + querySplit["categories"]
+					snftCountSql = snftCountSql + " and " + querySplit["categories"]
+				}
+			}
+			if whereFlag == false {
+				whereFlag = true
+				snftSql = snftSql + " where Exchange = 0 and" + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" and deleted_at is null`
+				snftCountSql = snftCountSql + " where Exchange = 0 and" + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" and deleted_at is null `
+			} else {
+				snftSql = snftSql + " and " + " Exchange = 0 " + " and " + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" and deleted_at is null `
+				snftCountSql = snftCountSql + " and " + " Exchange = 0 " + " and " + " Pledgestate != " + ` "Pledge" ` + ` and snft != "" and deleted_at is null `
+			}
+			snftSql = snftSql + " order by " + orderBy
+			if len(startIndex) > 0 && len(count) > 0 {
+				snftSql = snftSql + " limit " + startIndex + ", " + count
+			} else {
+				snftSql = snftSql + " limit " + "0" + ", " + "1"
+			}
+			fmt.Println("QueryNftByFilter() snftSql=", snftSql)
+			err := nft.db.Raw(snftSql).Scan(&nftInfo)
+			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&nftInfo) err=", err.Error)
+				return nil, uint64(0), ErrDataBase
+			}
+			err = nft.db.Raw(snftCountSql).Scan(&totalCount)
+			if err.Error != nil {
+				log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+				return nil, uint64(0), ErrDataBase
+			}
+			fmt.Printf("QueryNftByFilter() normal spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
+			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
+			return nftInfo, uint64(totalCount), nil
+		}
+	} else {
+		spendStart := time.Now()
+		/*nftCatchHash := NftCatch.NftCatchHash(countSql + startIndex + count)
+		nftCatch := NftCatch.GetByHash(nftCatchHash, NftFlushTypeNewNft)
+		if nftCatch != nil {
+			fmt.Printf("QueryNftByFilter() default spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			return nftCatch.NftInfos, nftCatch.Total, nil
+		}*/
+		if len(sort) > 0 {
+			for k, v := range sort {
+				if k > 0 {
+					orderBy = orderBy + ", "
+				}
+				if v.By == "sellprice" {
+					orderBy += "Transprice" + " " + v.Order
+				} else {
+					orderBy += v.By + " " + v.Order
+				}
+			}
+		}
+		if len(orderBy) > 0 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = "createdate desc, id desc"
+		}
+		queryCatchSql := orderBy + startIndex + count + "snft"
+		nftCatch := NftFilter{}
+		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		if cerr == nil {
+			log.Printf("QueryNftByFilter() nftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			return nftCatch.NftInfos, nftCatch.Total, nil
+		}
+		var snftCount int64
+		err := nft.db.Model(&SysInfos{}).Select("snfttotal").Last(&snftCount)
+		if err.Error != nil {
+			if err.Error == gorm.ErrRecordNotFound {
+				log.Println("SnftFilterProc() select nfttotal err=", err)
+				return nil, uint64(0), ErrNotFound
+			}
+			fmt.Println("SnftFilterProc() select nfttotal err=", err.Error)
+			return nil, uint64(0), ErrDataBase
+		}
+		fmt.Printf("SnftFilterProc() snftCount spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+		totalCount = snftCount
+		spendStart = time.Now()
+		//snftSql := `select ` + "*" + ` from sysnfts where deleted_at is null `
+		snftSql := `select ` + "*" + ` from nfts where Mergetype = 1 and exchange =0 and snft != "" and deleted_at is null `
+		snftSql = snftSql + " order by " + orderBy
+		if len(startIndex) > 0 && len(count) > 0 {
+			snftSql = snftSql + " limit " + startIndex + ", " + count
+		} else {
+			snftSql = snftSql + " limit " + "0" + ", " + "1"
+		}
+		fmt.Printf("SnftFilterProc() nftInfo snftSql = %s\n", snftSql)
+		err = nft.db.Raw(snftSql).Scan(&nftInfo)
+		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+			log.Println("SnftFilterProc() Scan(&nftInfo) err=", err)
+			return nil, uint64(0), ErrDataBase
+		}
+		fmt.Printf("SnftFilterProc() snftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendStart), time.Now())
+		GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
+		return nftInfo, uint64(totalCount), nil
+	}
+	return nftInfo, uint64(totalCount) + uint64(snftTotalCount), nil
+}
+
 func (nft NftDb) QueryNftByFilterNftSnft(filter []StQueryField, sort []StSortField, nftType,
 	startIndex string, count string) ([]NftInfo, uint64, error) {
 	switch nftType {
 	case "nft":
 		return nft.NftFilterProc(filter, sort, startIndex, count)
 	case "snft":
-		return nft.SnftFilterProc(filter, sort, startIndex, count)
+		return nft.SnftFilterProcNew(filter, sort, startIndex, count)
 	default:
 		return nil, 0, nil
 	}

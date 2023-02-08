@@ -1,0 +1,269 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample server celler server.",
+        "title": "Swagger Nftserver API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {},
+        "version": "2.0"
+    },
+    "host": "localhost:9051",
+    "basePath": "/api/v2",
+    "paths": {
+        "/v2/batchBuyingNft": {
+            "post": {
+                "description": "To buy nft works, the transaction is initiated by the exchange: post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "user addr",
+                        "name": "user_addr",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "data sig",
+                        "name": "sig",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "OfferList",
+                        "name": "offer_list",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "SellList",
+                        "name": "sell_list",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/v2/buy": {
+            "post": {
+                "description": "Buy nft works: post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "token",
+                        "name": "Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "example": "1",
+                        "description": "user_addr",
+                        "name": "user_addr",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "sig",
+                        "name": "sig",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "dead_time",
+                        "name": "dead_time",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "price",
+                        "name": "price",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "nft_contract_addr",
+                        "name": "nft_contract_addr",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "nft_token_id",
+                        "name": "nft_token_id",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "pay_channel",
+                        "name": "pay_channel",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "currency_type",
+                        "name": "currency_type",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "trade_sig",
+                        "name": "trade_sig",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "vote_stage",
+                        "name": "vote_stage",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/v2/queryRecommendSnfts": {
+            "post": {
+                "description": "Query Homepage  recommend snft:post",
+                "parameters": [
+                    {
+                        "example": "",
+                        "description": "user addr",
+                        "name": "user_addr",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RecommendBuyingSell"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.RecommendBuyingSell": {
+            "type": "object",
+            "properties": {
+                "buying": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RecommendResp"
+                    }
+                },
+                "sell": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RecommendResp"
+                    }
+                }
+            }
+        },
+        "models.RecommendResp": {
+            "type": "object",
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nft_address": {
+                    "type": "string"
+                },
+                "nft_contract_addr": {
+                    "type": "string"
+                },
+                "nft_token_id": {
+                    "type": "string"
+                },
+                "ownaddr": {
+                    "type": "string"
+                },
+                "snftnum": {
+                    "type": "integer"
+                },
+                "source_url": {
+                    "type": "string"
+                },
+                "trans_type": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BasicAuth": {
+            "type": "basic"
+        }
+    }
+}

@@ -210,6 +210,7 @@ func (approveAddrsMap *ApproveAddrsMap) AddApproveAddr(userAddr string, approveA
 func (approveAddrsMap *ApproveAddrsMap) GetApproveAddr(userAddr string) (string, error) {
 	approveAddrInfo, ok := approveAddrsMap.ApproveAddrs[userAddr]
 	if ok {
+		fmt.Println("GetApproveAddr() userAddr=", userAddr, "approveAddrInfo.Addr=", approveAddrInfo.Addr)
 		return approveAddrInfo.Addr, nil
 	}
 	return "", errors.New("Not Exist!")

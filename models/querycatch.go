@@ -193,6 +193,7 @@ func (c *queryRedisCatch) GetCatchData(queryname, querysql string, queryData int
 	fmt.Println("GetCatchData() key = ", ExchangeOwer+"."+queryname+"."+querysql)
 	hkey := c.QueryHash(ExchangeOwer + queryname)
 	skey := c.QueryHash(querysql)
+	skey = querysql
 	datas, err := c.HgetRedisData(hkey, skey)
 	if err != nil {
 		log.Println("GetCatchData() get cathed data err=", err, " exchanger + queryname + queryhash = ", querysql+queryname+querysql)

@@ -7,15 +7,17 @@ import (
 	"testing"
 )
 
-//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
-const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+const dbNameT = "snftdb8012"
+
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 
 //const sqlsvrLcT = "demo:123456@tcp(192.168.56.128:3306)/"
 //const vpnsvr = "demo:123456@tcp(192.168.1.238:3306)/"
 //var SqlSvrT = "admin:user123456@tcp(192.168.1.238:3306)/"
 //const dbNameT = "nftdbdemo"
 //const dbNameT = "nftdb"
-const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
+//const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 const localtimeT = "?parseTime=true&loc=Local"
 
 //const localtimeT = "?charset=utf8mb4&parseTime=True&loc=Local"
@@ -27,7 +29,7 @@ func TestCallContracts(t *testing.T) {
 	if err != nil {
 		fmt.Printf("connect database err = %s\n", err)
 	}
-	CallContracts(nd)
+	CallContractsNew(nd)
 	nd.Close()
 }
 

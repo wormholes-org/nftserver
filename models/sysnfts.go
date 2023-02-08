@@ -1,10 +1,5 @@
 package models
 
-import (
-	//"github.com/nftexchange/nftserver/ethhelper"
-	"gorm.io/gorm"
-)
-
 type SysnftRecord struct {
 	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) ;comment:'nft owner address'"`
 	Md5            string `json:"md5" gorm:"type:longtext ;comment:'Picture md5 value'"`
@@ -49,11 +44,11 @@ type SysnftRecord struct {
 	Chipcount      int    `json:"chipcount" gorm:"type:int unsigned zerofill DEFAULT 0;COMMENT:'snft slice count.'"`
 }
 
-type Sysnfts struct {
-	gorm.Model
-	SysnftRecord
-}
-
-func (v Sysnfts) TableName() string {
-	return "sysnfts"
-}
+//type Sysnfts struct {
+//	gorm.Model
+//	SysnftRecord
+//}
+//
+//func (v Sysnfts) TableName() string {
+//	return "sysnfts"
+//}
