@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -12,9 +13,11 @@ import (
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/nftexchange/nftserver/common/contracts"
 	"golang.org/x/crypto/sha3"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"sort"
@@ -27,6 +30,9 @@ import (
 
 const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
 const dbNameT = "snftdb8012"
+
+//const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
+//const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
 
 //
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
@@ -359,11 +365,30 @@ func TestSell(t *testing.T) {
 	if err != nil {
 		fmt.Printf("connect database err = %s\n", err)
 	}
-	err = nd.Sell("0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169",
+	ExchangerAuth = "0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f"
+
+	tradesig := `{"price":"0x98a7d9b8314c0000","nft_address":"0x80000000000000000000000000000000000000b0","exchanger":"0x0109cc44df1c9ae44bac132ed96f146da9a26b88","block_number":"0x6298fd","sig":"0xc71b4fba9f1176eabc6e0680829d602a94fc94381e99caf5c3f65d75afb0e448166cc432fc7398daf7359f1ab2d1d0eefc6b3a5a4278c8f48048e0e88fb3b50c1c"}`
+	err = nd.Sell("0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f",
 		"",
-		"0x101060AEFE0d70fB40eda7F4a605c1315Be4A72F",
-		"0569376186306", "HighestBid", "paychan",
-		1, 1001, 2000, "royalty", "美元", "false", "sigdate", "0569376186306", "tradedate", "")
+		"0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7445557778087", "HighestBid", "paychan",
+		1, 1001, 2000, "royalty", "美元", "false", "sigdate", "0569376186306", tradesig, "")
+	if err != nil {
+		fmt.Printf("Sell() err = %s\n", err)
+	}
+	err = nd.CancellSell("0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "7445557778087", "")
+	if err != nil {
+		fmt.Printf("Sell() err = %s\n", err)
+	}
+	err = nd.Sell("0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f",
+		"",
+		"0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7445557778087", "FixPrice", "paychan",
+		1, 1001, 2000, "royalty", "美元", "false", "sigdate", "0569376186306", tradesig, "")
+	if err != nil {
+		fmt.Printf("Sell() err = %s\n", err)
+	}
+	err = nd.CancellSell("0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "7445557778087", "")
 	if err != nil {
 		fmt.Printf("Sell() err = %s\n", err)
 	}
@@ -454,23 +479,27 @@ func signHash(data []byte) []byte {
 }
 
 func TestGetSign(t *testing.T) {
-	var message []byte = []byte("Hello World!")
-	key, err := crypto.GenerateKey()
-	if err != nil {
-		t.Fatalf("failed GenerateKey with %s.", err)
-	}
-	//带有0x的私钥
-	fmt.Println("private key have 0x   \n", hexutil.Encode(crypto.FromECDSA(key)))
-	fmt.Println("public key have 0x   \n", hexutil.Encode(crypto.FromECDSAPub(&key.PublicKey)))
-	fmt.Println("addr   \n", crypto.PubkeyToAddress(key.PublicKey).String())
-	//不含0x的私钥
-	fmt.Println("private key no 0x \n", hex.EncodeToString(crypto.FromECDSA(key)))
+	var message []byte = []byte(`{"approve_addr": "0x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517","result": "6854","time_stamp": "1677046303","user_addr": "0x986e25636132377b28c9e102B232590E798d1a9C"}`)
+	//key, err := crypto.GenerateKey()
+	//if err != nil {
+	//	t.Fatalf("failed GenerateKey with %s.", err)
+	//}
+	////带有0x的私钥
+	//fmt.Println("private key have 0x   \n", hexutil.Encode(crypto.FromECDSA(key)))
+	//fmt.Println("public key have 0x   \n", hexutil.Encode(crypto.FromECDSAPub(&key.PublicKey)))
+	//fmt.Println("addr   \n", crypto.PubkeyToAddress(key.PublicKey).String())
+	////不含0x的私钥
+	//fmt.Println("private key no 0x \n", hex.EncodeToString(crypto.FromECDSA(key)))
+	key, err := crypto.HexToECDSA("0x3e5d183531ee873bd5380f26b51e7fd347676f43d00fe4bca20d0092d39a54ec")
 	sig, err := crypto.Sign(signHash(message), key)
 	if err != nil {
 		t.Errorf("signature error: %s", err)
 	}
+	fmt.Println(sig)
 	sig[64] += 27
 	sigstr := hexutil.Encode(sig)
+	fmt.Println(sigstr)
+
 	addr, err := NftDb{}.GetEthAddr("Hello World!", sigstr)
 	if err != nil {
 		fmt.Println(err)
@@ -2186,7 +2215,7 @@ func TestGetIsVliaddr(t *testing.T) {
 	fmt.Println(strings.ToLower("0x571CbB911fE99118B230585BA0cC7c5054324F85"))
 	//tm := time.Unix(1661146660, 0)
 	//tm := time.Unix(1663825060, 0).AddDate(0, 1, 0)
-	tm := time.Unix(1662103355, 0)
+	tm := time.Unix(1675761793, 0)
 	fmt.Println(tm)
 	tm = time.Unix(1662016955, 0)
 	fmt.Println(tm)
@@ -2381,12 +2410,11 @@ func TestSaveDirtoipfs(t *testing.T) {
 
 	spendT := time.Now()
 	s := shell.NewShell(url)
-	s.SetTimeout(5 * time.Second)
-	mhash, err := s.AddDir("D:\\workdir\\go\\code\\captcha\\captcha\\bg\\worm")
+	s.SetTimeout(50 * time.Minute)
+	mhash, err := s.AddDir("D:\\workdir\\nftpicture\\1")
 	//mhash, err := s.AddDir("D:\\picture\\2022_6_3")
 	if err != nil {
 		fmt.Println("SaveToIpfs() err=", err)
-
 	}
 	fmt.Printf("SaveToIpfs  Spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	fmt.Println(mhash)
@@ -2854,8 +2882,8 @@ func TestNftDb_QuerySnftByCollection(t *testing.T) {
 	}
 	defer nd.Close()
 
-	data, err := nd.QuerySnftByCollection("0x362f5838fa6530ed721d63a8be266d72fc63e5ca",
-		"0xc5871d1ee9ffb443cc05897df6f624d0c77fa5d6", "0-collection1",
+	data, err := nd.QuerySnftByCollection("0x7046f8f88f90bebb9fe03444af0d81e3fa1f311f",
+		"0xaf459b02ada089963a22ffff9fef69dd55c2ef60", "0-collection2",
 		"0", "16")
 	if err != nil {
 		fmt.Println("DelCollection() delete collection under nfts err= ", err)
@@ -2963,8 +2991,8 @@ func TestNftDb_QueryOwnerSnftCollection(t *testing.T) {
 	defer nd.Close()
 
 	//data, recount, err := nd.QueryOwnerSnftCollection("0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
-	data, recount, err := nd.QueryOwnerSnftCollection("0x362f5838fa6530ed721d63a8be266d72fc63e5ca",
-		"*", "0", "20", "NoPledge")
+	data, recount, err := nd.QueryOwnerSnftCollection("0x7e1b568ad455653eff2df68bc1e8ea45738ae517",
+		"*", "0", "20", "")
 	if err != nil {
 		fmt.Println("DelCollection() delete collection under nfts err= ", err)
 	}
@@ -3112,4 +3140,190 @@ func TestCleanAuction(t *testing.T) {
 	}()
 	GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 	fmt.Println(nftdb)
+}
+
+func TestUploadNft(t *testing.T) {
+	url := "http://192.168.1.235:9006/c0xc561080a65223f20ceeac4ba763ad9d300323eec/v2/upload"
+	method := "POST"
+	payload := strings.NewReader(``)
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	req.Header.Add("Token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVc2VyQWRkciI6IjB4QzU2MTA4MEE2NTIyM0YyMGNFZUFDNEJBNzYzQUQ5ZDMwMDMyM0VFQyIsImV4cCI6MTY3NzI1Mzk2MywiaWF0IjoxNjc3MjE3OTYzLCJpc3MiOiJXb3JtaG9sZXMgRXhjaGFuZ2VyIn0.UU43Q6PoNLJak6N5VckNPNNSRr93okoKHNkWbH5pqSA")
+	req.Header.Add("User-Agent", "apifox/1.0.0 (https://www.apifox.cn)")
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//for i := 0; i < 250; i++ {
+	//	res, err = client.Do(req)
+	//	if err != nil {
+	//		fmt.Println(err)
+	//		return
+	//	}
+	//}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
+	for i := 0; i < 254; i++ {
+		res, err = client.Do(req)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		body, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+	defer res.Body.Close()
+
+}
+
+func TestCanselSell(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	//var auc []Auction
+	//db := nd.db.Model(&Trans{}).Where(" GROUP BY fromaddr").Find(&auc)
+	//if db.Error != nil {
+	//	fmt.Printf("Sell() err = %s\n", err)
+	//}
+	auc := []string{"0x765c83dba2712582c5461b2145f054d4f85a3080",
+		"0x6bb0599bc9c5406d405a8a797f8849db463462d0",
+		"0x86ffd3e5a6d310fcb4668582ea6d0cfc1c35da49",
+		"0xb17fae1710f80eb9a39732862b0058077f338b21",
+		"0xfa623bcc71be5c3abacfe875e64ef97f91b7b110",
+		"0xdc807d83d864490c6eedac9c9c071e9aaed8e7d7",
+		"0x85d3fda364564c365870233e5ad6b611f2227846",
+		"0x43ee5cb067f29b920cc44d5d5367bceb162b4d9e",
+		"0x257f3c6749a0690d39c6fbcd2dceb3fb464f0f94",
+		"0xb000811aff6e891f8c0f1aa07f43c1976d4c3076",
+		"0xf50f73b83721c108e8868c5a2706c5b194a0fdb1",
+		"0x63d913dfdb75c7b09a1465fe77b8ec167793096b",
+		"0xa5999cc1dec36a632df735064dc75ef6af0e7389",
+		"0xeef79493f62da884389312d16669455a7e0045c1",
+		"0x68b14e0f18c3ee322d3e613ff63b87e56d86df60"}
+	for _, singe := range auc {
+		err = nd.GroupCancelSell(singe, "0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "", "true", "")
+		//err = nd.CancellSell(singe.Ownaddr,
+		//	singe.Contract, singe.Tokenid, "")
+		if err != nil {
+			fmt.Printf("Sell() err = %s\n", err)
+		}
+	}
+	fmt.Println("ok")
+	nd.Close()
+}
+
+func TestQueryOwnerPhaseChip(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	defer nd.Close()
+
+	data, num, err := nd.QueryOwnerPhaseChip("0x7fbc8ad616177c6519228fca4a7d9ec7d1804900", "0")
+	if err != nil {
+		fmt.Println("QueryOwnerPhaseChip err=", err)
+	}
+	fmt.Println(num, ",", data)
+	fmt.Println("ok")
+}
+
+func TestBuyingRecommend(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	defer nd.Close()
+	auctRec := Auction{}
+	offsetnum := 0
+	for {
+		auctRec = Auction{}
+		dberr := nd.db.Model(&Auction{}).Where("1=1").Offset(offsetnum).First(&auctRec)
+		if dberr.Error != nil {
+			log.Println("BuyRand() Auction First err=", dberr.Error)
+			break
+		}
+		offsetnum++
+		fmt.Println(auctRec)
+	}
+	data, err := nd.BuyingRecommend("0xc561080a65223f20ceeac4ba763ad9d300323eec")
+	if err != nil {
+		fmt.Println("QueryOwnerPhaseChip err=", err)
+	}
+	fmt.Println(data)
+	fmt.Println("ok")
+}
+
+func TestMD5Hahs(t *testing.T) {
+	if "2023-03-03" > "2023-03-02" {
+		fmt.Println("ok")
+	}
+	var hashString string
+	rawData := "6hir" + "1"
+	sum := md5.Sum([]byte(rawData))
+	hashString = hex.EncodeToString(sum[:])
+	fmt.Println(hashString)
+}
+
+func TestSignLogin(t *testing.T) {
+
+	//str := "{\\x22approve_addr\\x22:\\x220x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517\\x22,\\x22result\\x22:\\x222323\\x22,\\x22time_stamp\\x22:\\x221677057351\\x22,\\x22user_addr\\x22:\\x220x986e25636132377b28c9e102B232590E798d1a9C\\x22,\\x22sig\\x22:\\x220x71813d2c14b3902775d53b2d5cb2e08e99b1549b926ef88980ffb75f9b8ef19b6e666cdedb7c80c8696d18dca3702c9842bac80a0619dc514c4f6afe83e0ab721b\\x22}"
+	str := "{\x22approve_addr\x22:\x220x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517\x22,\x22result\x22:\x222323\x22,\x22time_stamp\x22:\x221677057351\x22,\x22user_addr\x22:\x220x986e25636132377b28c9e102B232590E798d1a9C\x22,\x22sig\x22:\x220x71813d2c14b3902775d53b2d5cb2e08e99b1549b926ef88980ffb75f9b8ef19b6e666cdedb7c80c8696d18dca3702c9842bac80a0619dc514c4f6afe83e0ab721b\x22}"
+	fmt.Println(str)
+	ss := fmt.Sprint(str)
+	fmt.Println(ss)
+	var message []byte = []byte(`{"approve_addr": "0x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517","result": "6854","time_stamp": "1677046303","user_addr": "0x986e25636132377b28c9e102B232590E798d1a9C"}`)
+	//message = []byte("{\"approve_addr\":\"0x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517\",\"result\":\"9941\",\"time_stamp\":\"1677056991\",\"user_addr\":\"0x986e25636132377b28c9e102B232590E798d1a9C\"}")
+	message = []byte("0x0109CC44df1C9ae44Bac132eD96f146Da9A26B880x7fbc8ad616177c6519228fca4a7d9ec7d18049000x2540be400")
+	key, err := crypto.HexToECDSA("310279a2223e15274d4c85fc45a8d7661cac5a2bb970bcf7a23b55f5329ed9d6")
+	if err != nil {
+		fmt.Println(err)
+	}
+	//fmt.Println("private key have 0x   \n", hexutil.Encode(crypto.FromECDSA(key)))
+	//fmt.Println("public key have 0x   \n", hexutil.Encode(crypto.FromECDSAPub(&key.PublicKey)))
+	//fmt.Println("addr   \n", crypto.PubkeyToAddress(key.PublicKey).String())
+	////不含0x的私钥
+	//fmt.Println("private key no 0x \n", hex.EncodeToString(crypto.FromECDSA(key)))
+	fmt.Println(crypto.PubkeyToAddress(key.PublicKey).String())
+	sig, err := crypto.Sign(signHash(message), key)
+	if err != nil {
+		t.Errorf("signature error: %s", err)
+	}
+	fmt.Println(sig)
+	sig[64] += 27
+	fmt.Println(sig)
+	sigstr := hexutil.Encode(sig)
+	fmt.Println(sigstr)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	sigstr = "0xe8a56c38d93cb5b03c17d29a592e88719d4f322a6e34231c3896674fb2754a717c641298d4996bc0af37e947cc07d4ee7e89cb70fcdcb87d5b35f268a139732f1c"
+
+	message = []byte("0x2386f26fc100000x80000000000000000000000000000000000000130x0109cc44df1c9ae44bac132ed96f146da9a26b880x2000000")
+	toaddr, err := recoverAddress(string(message), sigstr)
+	if err != nil {
+		log.Println("GetBlockTxs() recoverAddress() err=", err)
+	}
+	fmt.Println(toaddr)
+
 }

@@ -18,7 +18,8 @@ const (
 )
 
 var (
-	NftCacheDirtyName  = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch", "QueryOwnerLevelSnfts", "GetNftMarketInfo"}
+	NftCacheDirtyName = []string{"QueryNftByFilterNftSnft", "QueryHomePage", "SnftSearch", "QueryOwnerLevelSnfts", "GetNftMarketInfo",
+		"QueryRecommendSnfts"}
 	UploadNftDirtyName = []string{"QueryNftByFilterNftSnft", "QueryNFTCollectionList", "QueryOwnerSnftChip",
 		"QuerySnftChip", "queryStageSnft", "queryOwnerSnftCollections", "querySnftByCollection", "queryStageList",
 		"queryStageCollection", "queryNFTList", "QueryOwnerLevelSnfts", "QueryRecommendSnfts"}

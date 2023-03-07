@@ -50,6 +50,7 @@ const (
 	WormHolesExAuthToExMintBuyTransfer = 19
 	WormHolesExSellNoAuthTransfer      = 20
 	WormHolesExSellBatchAuthTransfer   = 27
+	WormHolesExForceBuyingAuthTransfer = 28
 
 	WormHolesContract   = "0xffffffffffffffffffffffffffffffffffffffff"
 	WormHolesNftCount   = "1"
@@ -156,6 +157,13 @@ type Buyer1 struct {
 	Sig         string `json:"sig"`
 }
 
+//type Buyer2 struct {
+//	Nftaddress  string `json:"nft_address"`
+//	Exchanger   string `json:"exchanger"`
+//	Blocknumber string `json:"block_number"`
+//	Sig         string `json:"sig"`
+//}
+
 type WormholesFixTrans struct {
 	Version string `json:"version"`
 	Type    uint8  `json:"type"` //14
@@ -213,6 +221,18 @@ type WormholesBatchAuthFixTrans struct {
 
 type ExchangerBatchAuthTrans struct {
 	Worm WormholesBatchAuthFixTrans `json:"wormholes"`
+}
+
+type WormholesForceBuyingTrans struct {
+	Version       string `json:"version"`
+	Type          uint8  `json:"type"`
+	Buyauth       `json:"buyer_auth"`
+	Buyer         Buyer         `json:"buyer"`
+	Exchangerauth ExchangerAuth `json:"exchanger_auth"`
+}
+
+type ExchangerForceBuyingAuthTrans struct {
+	Worm WormholesForceBuyingTrans `json:"wormholes"`
 }
 
 type Seller1 struct {
@@ -455,6 +475,21 @@ func GetAccountInfo(nftaddr common.Address, blockNumber *big.Int) (*Account, err
 		return nil, err
 	}
 	return &result, err
+}
+
+func GetForcedSaleAmount(nftaddr common.Address) (string, error) {
+	client, err := rpc.Dial(EthNode)
+	if err != nil {
+		log.Println("GetForcedSaleAmount() err=", err)
+		return "", err
+	}
+	var result hexutil.Big
+	err = client.CallContext(context.Background(), &result, "eth_getForcedSaleAmount", nftaddr)
+	if err != nil {
+		log.Println("GetForcedSaleAmount() err=", err)
+		return "", err
+	}
+	return result.String(), err
 }
 
 func GetLatestAccountInfo(nftaddr common.Address) (*Account, error) {
@@ -3781,6 +3816,103 @@ func BatchAuthExchangeTrans(sell Seller1, buyer Buyer, sellauthsign, buyauthsign
 	}
 	log.Println("BatchAuthExchangeTrans() OK")
 	log.Println("BatchAuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
+	return strings.ToLower(signedTx.Hash().String()), nil
+}
+
+func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv string) (string, error) {
+	client, err := ethclient.Dial(EthNode)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	defer client.Close()
+	privateKey, err := crypto.HexToECDSA(fromprv)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", nil
+	}
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	gasLimit := uint64(GasLimitTx1819)
+	gasPrice, err := client.SuggestGasPrice(context.Background())
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	var trans ExchangerForceBuyingAuthTrans
+	trans.Worm.Version = WormHolesVerseion
+	trans.Worm.Type = WormHolesExForceBuyingAuthTransfer
+	err = json.Unmarshal([]byte(authSign), &trans.Worm.Exchangerauth)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
+		return "", err
+	}
+	if buyauthsign == "" {
+		log.Println("ForceBuyingAuthExchangeTrans() buyauthsign err=", "buyauthsign is null")
+		return "", errors.New("buyauthsign is null")
+	}
+	err = json.Unmarshal([]byte(buyauthsign), &trans.Worm.Buyauth)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
+		return "", err
+	}
+	blocknum, err := client.BlockNumber(context.Background())
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	var toAddress *common.Address
+	msg := trans.Worm.Buyauth.Exchanger + trans.Worm.Buyauth.Blocknumber
+	toAddress, err = recoverAddress(msg, trans.Worm.Buyauth.Sig)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() recoverAddress() err=", err)
+		return "", err
+	}
+	trans.Worm.Buyer = buyer
+	trans.Worm.Buyer.Blocknumber = hexutil.EncodeUint64(blocknum + 100000)
+	msg = trans.Worm.Buyer.Nftaddress + trans.Worm.Buyer.Exchanger + trans.Worm.Buyer.Blocknumber + trans.Worm.Buyer.Seller
+	sig, err := WormholesSign(msg, privateKey)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() WormholesSign() err=", err)
+		return "", err
+	}
+	trans.Worm.Buyer.Sig = sig
+
+	str, err := json.Marshal(trans)
+	sstr := strings.Replace(string(str), "\"wormholes\"", "wormholes", -1)
+	sstr = sstr[1 : len(sstr)-1]
+	data := []byte(sstr)
+	log.Println("ForceBuyingAuthExchangeTrans() data=", sstr)
+	nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() GetNonce err=", err)
+		return "", err
+	}
+	tx := types.NewTransaction(nonce, *toAddress, nil, gasLimit, gasPrice, data)
+	chainID, err := client.NetworkID(context.Background())
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	fmt.Println("ForceBuyingAuthExchangeTrans() chainID=", chainID)
+	fmt.Println("ForceBuyingAuthExchangeTrans() nonce=", nonce)
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	err = client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
+		return "", err
+	}
+	log.Println("ForceBuyingAuthExchangeTrans() OK")
+	log.Println("ForceBuyingAuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
 	return strings.ToLower(signedTx.Hash().String()), nil
 }
 

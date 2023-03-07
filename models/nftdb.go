@@ -213,6 +213,7 @@ type Userrec struct {
 	Certifyimg   string `json:"certifyimg" gorm:"type:longtext NOT NULL;comment:'User certificate image'"`
 	Certifyimgs  string `json:"certifyimgs" gorm:"type:longtext NOT NULL;comment:'User certificate image'"`
 	Certifycheck string `json:"certifycheck" gorm:"type:char(10) NOT NULL;comment:'User kyc audit check'"`
+	Rewards      uint64 `json:"rewards" gorm:"type:bigint DEFAULT 0;comment:'reward amount'"`
 }
 
 type Users struct {
@@ -387,7 +388,7 @@ type TranRecord struct {
 	Toaddr     string `json:"toaddr" gorm:"type:char(42) NOT NULL;comment:'Buyer's address'"`
 	Tradesig   string `json:"tradesig" gorm:"type:longtext NOT NULL;comment:'transaction sign'"`
 	Signdata   string `json:"signdata" gorm:"type:longtext NOT NULL;comment:'sign data, generated when created'"`
-	Txhash     string `json:"txhash" gorm:"type:longtext NOT NULL;comment:'transaction hash'"`
+	Txhash     string `json:"txhash" gorm:"type:char(66) NOT NULL;comment:'transaction hash'"`
 	Tokenid    string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'Uniquely identifies the nft flag'"`
 	Nftaddr    string `json:"nft_address" gorm:"type:char(42) NOT NULL;comment:'Chain of wormholes uniquely identifies the nft flag'"`
 	Url        string `json:"source_url" gorm:"type:varchar(200) DEFAULT NULL;comment:'nfc raw data hold address'"`
@@ -819,14 +820,14 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
-	/*strOrder = "CREATE INDEX indexNftsDeleted ON nfts (deleted_at);"
+	strOrder = "CREATE INDEX indexNftsSelltypOffernumeVerifiedtimeId ON nfts (selltype, offernum, verifiedtime, id, deleted_at );"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
-			fmt.Printf("CreateIndexs() indexNftsDeleted  err=%s\n", db.Error)
+			fmt.Printf("CreateIndexs() indexNftsSelltypOffernumeVerifiedtimeId  err=%s\n", db.Error)
 			return db.Error
 		}
-	}*/
+	}
 	strOrder = "CREATE INDEX indexNftsName ON nfts ( name );"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -883,6 +884,38 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexNftsTranspriceId ON nfts (Transprice, id, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsTranspriceId  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsTransamtId ON nfts (transamt, id, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsTransamtId  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsTranstimeId ON nfts (transtime, id, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsTranstimeId  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexNftsVerifiedtimeid ON nfts (verifiedtime, id, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsVerifiedtimeid  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	strOrder = "CREATE INDEX indexNftsSnftOwnaddrDeleted ON nfts ( snft, ownaddr, deleted_at );"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -915,6 +948,14 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexNftsOwnaddrSelltypeMergetypeMergelevelDeleted ON nfts ( ownaddr, Selltype, Mergetype, Mergelevel, deleted_at );"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexNftsOwnaddrSelltypeMergetypeMergelevelDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	strOrder = "CREATE INDEX indexTransId ON trans (id);"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -931,6 +972,14 @@ func (nft NftDb) CreateIndexs() error {
 			return db.Error
 		}
 	}
+	strOrder = "CREATE INDEX indexTransTxhashDeleted ON trans (txhash, deleted_at);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexTransTxhashDeleted  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
 	/*strOrder = "CREATE INDEX indexAuctionsDeletedat ON auctions (deleted_at);"
 	db = nft.db.Exec(strOrder)
 	if db.Error != nil {
@@ -944,6 +993,22 @@ func (nft NftDb) CreateIndexs() error {
 	if db.Error != nil {
 		if !strings.Contains(db.Error.Error(), "1061") {
 			fmt.Printf("CreateIndexs() indexAuctionsContractTokenid  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexAuctionsEnddateSelltypeSellStateDeleted_at ON auctions (Enddate, Selltype, Sell_state);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexAuctionsEnddateSelltypeSellStateDeleted_at  err=%s\n", db.Error)
+			return db.Error
+		}
+	}
+	strOrder = "CREATE INDEX indexAuctionsContractNftidOwner ON auctions (contract, nftid, ownaddr);"
+	db = nft.db.Exec(strOrder)
+	if db.Error != nil {
+		if !strings.Contains(db.Error.Error(), "1061") {
+			fmt.Printf("CreateIndexs() indexAuctionsContractNftidOwner  err=%s\n", db.Error)
 			return db.Error
 		}
 	}
@@ -2000,12 +2065,12 @@ func (nft NftDb) CancelBuy(UserAddr, NftContractAddr, NftTokenId, TradeSig, Sig 
 				}
 			}
 		} else {
-			err = tx.Model(&Auction{}).Where("id = ?", bidRecs[0].Auctionid).Delete(&Auction{})
-			if err.Error != nil {
-				fmt.Println("cancelBuy() delete auction record err=", err.Error)
-				return ErrDataBase
-			}
 			if nftrecord.Selltype == SellTypeBidPrice.String() {
+				err = tx.Model(&Auction{}).Where("id = ?", bidRecs[0].Auctionid).Delete(&Auction{})
+				if err.Error != nil {
+					fmt.Println("cancelBuy() delete auction record err=", err.Error)
+					return ErrDataBase
+				}
 				nfttab = map[string]interface{}{
 					"Offernum":    0,
 					"Maxbidprice": 0,
@@ -2046,6 +2111,12 @@ func (nft NftDb) CancellSell(ownAddr, contractAddr, tokenId, sigData string) err
 	if err.Error != nil {
 		return ErrNftNotSell
 	}
+	sysInfoRec := SysInfos{}
+	err = nft.db.Last(&sysInfoRec)
+	if err.Error != nil {
+		log.Println("CancellSell() Last(&sysInfoRec) err=", err.Error)
+		return ErrDataBase
+	}
 	GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Where("nftid = ? AND ownaddr = ?", nftrecord.ID, ownAddr).Delete(&auctionRec)
@@ -2068,6 +2139,24 @@ func (nft NftDb) CancellSell(ownAddr, contractAddr, tokenId, sigData string) err
 		if err.Error != nil {
 			fmt.Println("CancellSell() update record err=", err.Error)
 			return ErrDataBase
+		}
+		switch auctionRec.Selltype {
+		case SellTypeFixPrice.String():
+			if sysInfoRec.Fixpricecnt >= 1 {
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfoRec.ID).Update("Fixpricecnt", gorm.Expr("Fixpricecnt - ?", 1))
+				if err.Error != nil {
+					log.Println("Sell() Fixpricecnt  err= ", err.Error)
+					return ErrDataBase
+				}
+			}
+		case SellTypeHighestBid.String():
+			if sysInfoRec.Highestbidcnt >= 1 {
+				err = tx.Model(&SysInfos{}).Where("id = ?", sysInfoRec.ID).Update("Highestbidcnt", gorm.Expr("Highestbidcnt - ?", 1))
+				if err.Error != nil {
+					log.Println("Sell() Highestbidcnt  err= ", err.Error)
+					return ErrDataBase
+				}
+			}
 		}
 		return nil
 	})

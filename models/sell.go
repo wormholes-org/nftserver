@@ -594,6 +594,12 @@ func (nft NftDb) Sell(ownAddr,
 	}
 	//auctionHistory := AuctionHistory{}
 	//auctionHistory.AuctionRecord = auctionRec.AuctionRecord
+	sysInfoRec := SysInfos{}
+	err = nft.db.Last(&sysInfoRec)
+	if err.Error != nil {
+		log.Println("BuyResultWithWAmount() Last(&sysInfoRec) err=", err.Error)
+		return ErrDataBase
+	}
 	return nft.db.Transaction(func(tx *gorm.DB) error {
 		err = tx.Model(&auctionRec).Create(&auctionRec)
 		if err.Error != nil {
@@ -615,6 +621,20 @@ func (nft NftDb) Sell(ownAddr,
 		if err.Error != nil {
 			log.Println("Sell() update record err=", err.Error)
 			return ErrDataBase
+		}
+		switch sellType {
+		case SellTypeFixPrice.String():
+			err = tx.Model(&SysInfos{}).Where("id = ?", sysInfoRec.ID).Update("Fixpricecnt", gorm.Expr("Fixpricecnt + ?", 1))
+			if err.Error != nil {
+				log.Println("Sell() Fixpricecnt  err= ", err.Error)
+				return ErrDataBase
+			}
+		case SellTypeHighestBid.String():
+			err = tx.Model(&SysInfos{}).Where("id = ?", sysInfoRec.ID).Update("Highestbidcnt", gorm.Expr("Highestbidcnt + ?", 1))
+			if err.Error != nil {
+				log.Println("Sell() Highestbidcnt  err= ", err.Error)
+				return ErrDataBase
+			}
 		}
 		/*nftrecord = Nfts{}
 		nftrecord.Royalty, _ = strconv.Atoi(royalty)

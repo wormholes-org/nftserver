@@ -2,10 +2,9 @@ package models
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/nftexchange/nftserver/common/contracts"
 	"gorm.io/gorm"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -58,29 +57,26 @@ func (nft NftDb) QueryOwnerSnftCollection(owner, Categories, startIndex, count, 
 	var sql, sqlcount string
 	var recount int64
 	if status == "" {
-		sql = `SELECT a.createaddr, a.snftcollection as snft, a.name, a.img, a.desc, b.chipcount, a.totalcount FROM collects as a  ` +
-			`JOIN (SELECT collectcreator, collections, count(*) as chipcount FROM nfts whereownaddr and pledgestate= "NoPledge" and exchange = 0 and mergetype = 0 and deleted_at is null group by collectcreator, collections) as b ` +
-			`ON a.Createaddr = b.collectcreator AND a.name = b.collections `
-		sqlcount = `SELECT a.createaddr, a.name FROM collects as a  ` +
-			`JOIN (SELECT collectcreator, collections FROM nfts whereownaddr and pledgestate= "NoPledge" and exchange = 0 and mergetype = 0 and deleted_at is null group by collectcreator, collections  ) as b ` +
-			`ON a.Createaddr = b.collectcreator AND a.name = b.collections `
-		if Categories != "*" {
-			sql = sql + " where categories = " + "\"" + Categories + "\""
-			sqlcount = sqlcount + " where categories = " + "\"" + Categories + "\""
-		}
-		sql = strings.Replace(sql, "whereownaddr", "where ownaddr =  "+"\""+owner+"\"  ", -1)
-		sqlcount = strings.Replace(sqlcount, "whereownaddr", "where ownaddr =  "+"\""+owner+"\"  ", -1)
-		//sql = sql + " GROUP BY a.createaddr, a.name, a.img, a.desc "
-		sqlcout := "select count(c.Createaddr) from " + "( " + sqlcount + " ) as c "
-		err := nft.db.Raw(sqlcout).Scan(&recount)
+		sql = `SELECT a.createaddr, a.snftcollection as snft, a.name, a.img, a.desc, b.chipcount, a.totalcount FROM collects as a  
+			JOIN (select collections,collectcreator,count(*) as chipcount from nfts where collections in 
+			(select collections from nfts where exchange = 0 and ownaddr =?  and mergetype = mergelevel group by collections) 
+			and ownaddr = ? and  mergetype =0 and exchange = 0 group  by collections,collectcreator) as b 
+			ON a.Createaddr = b.collectcreator AND a.name = b.collections `
+		sqlcount = `select collections as chipcount from nfts where collections in 
+		(select collections from nfts where exchange = 0 and ownaddr =? and mergetype = mergelevel group by collections) and 
+		ownaddr = ? and  mergetype =0 and exchange = 0 group  by collections,collectcreator`
+
+		var recountAddr []string
+		err := nft.db.Raw(sqlcount, owner, owner).Scan(&recountAddr)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			log.Println("QueryOwnerSnftCollection() Scan(&recount) err=", err)
 			return nil, 0, ErrDataBase
 		}
+		recount = int64(len(recountAddr))
 		fmt.Printf("QueryOwnerSnftCollection() Scan(&recount)  spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 		spendT = time.Now()
 		sql = sql + " limit " + startIndex + ", " + count
-		err = nft.db.Raw(sql).Scan(&snftInf)
+		err = nft.db.Raw(sql, owner, owner).Scan(&snftInf)
 		if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
 			log.Println("QueryOwnerSnftCollection() Scan(&stageCollection) err=", err)
 			return nil, 0, ErrDataBase
@@ -134,27 +130,177 @@ func (nft NftDb) QueryOwnerSnftCollection(owner, Categories, startIndex, count, 
 			tmp.Totalcount = info.Totalcount
 			tmp.Name = info.Name
 
-			addr := common.HexToAddress(info.Snft + "00")
-			accountInfo, err := contracts.GetAccountInfo(addr, nil)
-			if err != nil {
-				log.Println("QueryOwnerSnftCollection() GetAccountInfo err =", err, "NftAddress= ", addr)
-				return nil, 0, ErrBlockchain
+			//addr := common.HexToAddress(info.Snft + "00")
+			//accountInfo, err := contracts.GetAccountInfo(addr, nil)
+			//if err != nil {
+			//	log.Println("QueryOwnerSnftCollection() GetAccountInfo err =", err, "NftAddress= ", addr)
+			//	return nil, 0, ErrBlockchain
+			//}
+			//if accountInfo.Owner.String() == ZeroAddr {
+			//	addr = common.HexToAddress(info.Snft[:len(info.Snft)-1] + "000")
+			//	accountInfo, err = contracts.GetAccountInfo(addr, nil)
+			//	if err != nil {
+			//		log.Println("QueryOwnerSnftCollection() GetAccountInfo err =", err, "NftAddress= ", addr)
+			//		return nil, 0, ErrBlockchain
+			//	}
+			//}
+			addr := info.Snft + "mm"
+			var accountInfo Nfts
+			err := nft.db.Model(&Nfts{}).Where("nftaddr = ?", addr).First(&accountInfo)
+			if err.Error != nil && err.Error != gorm.ErrRecordNotFound {
+				log.Println("QueryOwnerSnftCollection() First nfts err=", err)
+				return nil, 0, ErrDataBase
 			}
-			if accountInfo.Owner.String() == ZeroAddr {
-				addr = common.HexToAddress(info.Snft[:len(info.Snft)-1] + "000")
-				accountInfo, err = contracts.GetAccountInfo(addr, nil)
-				if err != nil {
-					log.Println("QueryOwnerSnftCollection() GetAccountInfo err =", err, "NftAddress= ", addr)
-					return nil, 0, ErrBlockchain
-				}
-			}
-			tmp.MergeLevel = accountInfo.MergeLevel
-			tmp.MergeNumber = accountInfo.MergeNumber
-			tmp.BlockNumber = accountInfo.NFTPledgedBlockNumber
+			tmp.MergeLevel = accountInfo.Mergelevel
+			tmp.MergeNumber = accountInfo.Mergenumber
+			//tmp.BlockNumber = accountInfo.NFTPledgedBlockNumber
 			stageCollection = append(stageCollection, tmp)
+			//if strings.ToLower(accountInfo.Ownaddr) == strings.ToLower(owner) || strings.ToLower(accountInfo.Ownaddr) == strings.ToLower(ZeroAddr) {
+			//	if accountInfo.Exchange != 0 {
+			//		continue
+			//	}
+			//	tmp.MergeLevel = accountInfo.Mergelevel
+			//	tmp.MergeNumber = accountInfo.Mergenumber
+			//	//tmp.BlockNumber = accountInfo.NFTPledgedBlockNumber
+			//	stageCollection = append(stageCollection, tmp)
+			//}
+
 		}
 	}
 	GetRedisCatch().CatchQueryData("QueryOwnerSnftCollection", queryCatchSql, &OwnerSnftCollectionCatch{stageCollection, uint64(recount)})
 	fmt.Printf("QueryOwnerSnftCollection() Scan(&stageCollection) spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 	return stageCollection, recount, nil
+}
+
+type OwnerPahseChip struct {
+	OwnerCollections []OwnerCollections
+}
+
+type OwnerCollections struct {
+	Collect   Nfts
+	OwnerSnft []OwnerSnft
+	status    int
+}
+type OwnerSnft struct {
+	Snft      Nfts
+	OwnerChip []OwnerChip
+	status    int
+}
+type OwnerChip struct {
+	Chip   Nfts
+	status int
+}
+
+type OwnerSnftChipData struct {
+	Createaddr     string `json:"collection_creator_addr" gorm:"type:char(42) NOT NULL;comment:'creator's address'"`
+	Name           string `json:"name" gorm:"type:varchar(200) CHARACTER SET utf8mb4 DEFAULT NULL;comment:'collection name'"`
+	Ownaddr        string `json:"ownaddr" gorm:"type:char(42) NOT NULL;comment:'nft owner address'"`
+	Contract       string `json:"nft_contract_addr" gorm:"type:char(42) NOT NULL;comment:'contract address'"`
+	Tokenid        string `json:"nft_token_id" gorm:"type:char(42) NOT NULL;comment:'Uniquely identifies the nft flag'"`
+	Nftaddr        string `json:"nft_address" gorm:"type:char(42) ;comment:'Chain of wormholes uniquely identifies the nft flag'"`
+	Collectcreator string `json:"collection_creator_addr" gorm:"type:char(42) NOT NULL;comment:'Collection creator address'"`
+	Collections    string `json:"collections" gorm:"type:varchar(200) CHARACTER SET utf8mb4 NOT NULL;comment:'NFT collection name'"`
+	Chipcount      int64  `json:"chipcount" gorm:"type:bigint ;comment:'Number of slices'"`
+	Totalcount     int64  `json:"totalcount" gorm:"type:bigint ;comment:'Number of slices'"`
+}
+
+func (nft NftDb) QueryOwnerPhaseChip(owner, start_index string) ([]OwnerCollections, int64, error) {
+	var ownerdata OwnerPahseChip
+	sql := `select left(nftaddr,39) from nfts where ownaddr = ? and mergetype=mergelevel  group by left(nftaddr,39)`
+	var phase []string
+	db := nft.db.Raw(sql, owner).Scan(&phase)
+	if db.Error != nil {
+		log.Println("QueryOwnerPhaseChip find phase err=", db.Error)
+		return nil, 0, db.Error
+	}
+	recCount := int64(len(phase))
+	startIndex, _ := strconv.Atoi(start_index)
+	if int64(startIndex) >= recCount || recCount == 0 {
+		return nil, 0, ErrNotMore
+	} else {
+		ownerphase := phase[startIndex]
+		sql = `select left(nftaddr,40) from nfts where ownaddr = ? and nftaddr like ? and mergetype=mergelevel group by left(nftaddr,40)`
+		var collect []string
+		db = nft.db.Raw(sql, owner, ownerphase+"%").Scan(&collect)
+		if db.Error != nil {
+			log.Println("QueryOwnerPhaseChip find collect err=", db.Error)
+			return nil, 0, db.Error
+		}
+		var collectnft Nfts
+		var ownercollectdata OwnerCollections
+		var nfts []Nfts
+		for _, singe := range collect {
+			collectnft = Nfts{}
+			nfts = []Nfts{}
+			ownercollectdata = OwnerCollections{}
+			if strings.Index(singe, "m") >= 0 {
+				continue
+			}
+			db = nft.db.Model(&Nfts{}).Where("nftaddr = ?", singe+"mm").First(&collectnft)
+			if db.Error != nil {
+				log.Println("QueryOwnerPhaseChip first singe collect err=", db.Error)
+				return nil, 0, db.Error
+			}
+			ownercollectdata.Collect = collectnft
+			if collectnft.Exchange == 0 {
+				if collectnft.Mergelevel != 0 {
+					ownercollectdata.status = 2
+				} else {
+					ownercollectdata.status = 0
+				}
+			} else {
+				ownercollectdata.status = 1
+			}
+			db = nft.db.Model(&Nfts{}).Where("nftaddr like ?", singe+"%").Find(&nfts)
+			if db.Error != nil {
+				log.Println("QueryOwnerPhaseChip find singe nfts err=", db.Error)
+				return nil, 0, db.Error
+			}
+			snftmap := make(map[string][]Nfts)
+			var ownersnftdata OwnerSnft
+			for _, singenft := range nfts {
+				switch strings.Index(singenft.Nftaddr, "m") {
+				case 41:
+					ownersnftdata.Snft = singenft
+					if singenft.Exchange == 0 {
+						if singenft.Mergelevel != 0 {
+							ownersnftdata.status = 2
+						} else {
+							ownersnftdata.status = 0
+						}
+					} else {
+						ownersnftdata.status = 1
+					}
+					ownercollectdata.OwnerSnft = append(ownercollectdata.OwnerSnft, ownersnftdata)
+				default:
+					snftmap[singenft.Nftaddr[:41]] = append(snftmap[singenft.Nftaddr[:41]], singenft)
+				}
+
+			}
+			var ownerchipdata []OwnerChip
+			var singeownerchipdata OwnerChip
+			for i, singesnft := range ownercollectdata.OwnerSnft {
+				ownerchipdata = []OwnerChip{}
+				singeownerchipdata = OwnerChip{}
+				for _, singeownersnft := range snftmap[singesnft.Snft.Nftaddr[:41]] {
+					singeownerchipdata.Chip = singeownersnft
+					if singeownersnft.Exchange == 0 {
+						if singeownersnft.Mergelevel != 0 {
+							singeownerchipdata.status = 2
+						} else {
+							singeownerchipdata.status = 0
+						}
+					} else {
+						singeownerchipdata.status = 1
+					}
+					ownerchipdata = append(ownerchipdata, singeownerchipdata)
+				}
+				ownercollectdata.OwnerSnft[i].OwnerChip = ownerchipdata
+			}
+			ownerdata.OwnerCollections = append(ownerdata.OwnerCollections, ownercollectdata)
+
+		}
+
+	}
+	return ownerdata.OwnerCollections, recCount, nil
 }

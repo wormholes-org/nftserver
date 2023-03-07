@@ -28,6 +28,7 @@ type UserInfo struct {
 	Certifyimg      string `json:"certifyimg"`
 	Certifyimgs     string `json:"certifyimgs"`
 	Certifycheck    string `json:"certifycheck"`
+	Rewards         uint64 `json:"rewards"`
 }
 
 func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
@@ -58,6 +59,7 @@ func (nft NftDb) QueryUserInfo(userAddr string) (UserInfo, error) {
 	uinfo.Certifyimg = user.Certifyimg
 	uinfo.Certifyimgs = user.Certifyimgs
 	uinfo.Certifycheck = user.Certifycheck
+	uinfo.Rewards = user.Rewards
 	var recCount int64
 	nftCountSql := `ownaddr = ? and exchange = 0 and ( mergetype = mergelevel) and deleted_at is null`
 	err = nft.db.Model(Nfts{}).Where(nftCountSql, userAddr).Count(&recCount)

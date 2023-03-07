@@ -50,6 +50,8 @@ func registRouterV2() {
 		beego.Router("/v2/buying", &nftexchangev2.NftExchangeControllerV2{}, "post:BuyingNft")
 		//To batch buy nft , the exchange initiates the transaction
 		beego.Router("/v2/batchBuyingNft", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchBuyingNft")
+		//To batch force buy snft chip , the exchange initiates the transaction
+		beego.Router("/v2/batchForceBuyingNft", &nftexchangev2.NftExchangeControllerV2{}, "post:BatchForceBuyingNft")
 		//cancel purchase of nft works
 		beego.Router("/v2/cancelBuy", &nftexchangev2.NftExchangeControllerV2{}, "post:CancelBuyNft")
 		//BatchCancel purchase of nft works

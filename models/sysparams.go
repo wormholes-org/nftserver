@@ -746,6 +746,7 @@ func (nft NftDb) QueryExchangeInfo() (*ExchangeInfo, error) {
 	paraminfo.Nftaudit = params.Nftaudit
 	paraminfo.Restrictcode = params.Restrictcode
 	paraminfo.Userkyc = params.Userkyc
+	paraminfo.Royalty = strconv.Itoa(params.Royalty)
 	paraminfo.Announcement = strconv.FormatBool(AnnouncementRequired)
 	paraminfo.ExchangerAddr = ExchangerAddr
 	paraminfo.AutocommitSnft = params.Autocommitsnft
@@ -1448,7 +1449,7 @@ func ScanLoop(sqldsn string, interval int, stop chan struct{}, stoped chan struc
 			}
 
 			collects := make([]Collects, 0, 20)
-			limit, _ := strconv.Atoi(params.Nftcount)
+			limit, _ := strconv.Atoi(params.Collectcount)
 			dberr = nd.db.Where("name <> ?", DefaultCollection).Order("transcnt desc").Limit(limit).Find(&collects)
 			if dberr.Error != nil {
 				if dberr.Error != gorm.ErrRecordNotFound {
@@ -1959,6 +1960,7 @@ func (nft NftDb) SetFeeRate() error {
 }
 
 func (nft NftDb) ComputerAverageSnft() error {
+	fmt.Println("ComputerAverageSnft start ...")
 	var exchange Exchangeinfos
 	db := nft.db.Last(&Exchangeinfos{}).First(&exchange)
 	if db.Error != nil {
@@ -1966,7 +1968,7 @@ func (nft NftDb) ComputerAverageSnft() error {
 		return db.Error
 	}
 	var trans []Trans
-	db = nft.db.Model(&Trans{}).Where("1=1").Find(&trans)
+	db = nft.db.Model(&Trans{}).Where("1=1").Limit(10000).Order("id desc").Find(&trans)
 	if db.Error != nil {
 		log.Println("ComputerAverageSnft find Trans err=", db.Error)
 		return db.Error
@@ -1974,14 +1976,17 @@ func (nft NftDb) ComputerAverageSnft() error {
 	var l0num, l1num, l2num, l3num int
 	var l0sum, l1sum, l2sum, l3sum uint64
 	for _, value := range trans {
+		if value.Price > 650000000 || value.Price < 30000000 {
+			continue
+		}
 		switch strings.Index(value.Nftaddr, "m") {
-		case 40:
+		case 39:
 			l3sum += value.Price
 			l3num++
-		case 41:
+		case 40:
 			l2sum += value.Price
 			l2num++
-		case 42:
+		case 41:
 			l1sum += value.Price
 			l1num++
 		default:
@@ -2003,8 +2008,9 @@ func (nft NftDb) ComputerAverageSnft() error {
 	}
 	if l0num != 0 {
 		L0AveragePrice = l0sum / uint64(l0num)
-		exchange.Averagel0 = l0sum / uint64(l0num)
+		exchange.Averagel0 = L0AveragePrice
 	}
+	fmt.Println("ComputerAverageSnft end ... l3=", L3AveragePrice, ",l2=", L2AveragePrice, ",l1=", L1AveragePrice, ",l0=", L0AveragePrice)
 	db = nft.db.Last(&Exchangeinfos{}).Updates(&exchange)
 	if db.Error != nil {
 		log.Println("ComputerAverageSnft update exchange err=", db.Error)

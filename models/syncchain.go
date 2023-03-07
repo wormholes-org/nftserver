@@ -61,7 +61,8 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 			nftTx.TransType == contracts.WormHolesBuyFromSellTransfer ||
 			nftTx.TransType == contracts.WormHolesExAuthToExBuyTransfer ||
 			nftTx.TransType == contracts.WormHolesExSellNoAuthTransfer ||
-			nftTx.TransType == contracts.WormHolesExSellBatchAuthTransfer {
+			nftTx.TransType == contracts.WormHolesExSellBatchAuthTransfer ||
+			nftTx.TransType == contracts.WormHolesExForceBuyingAuthTransfer {
 			err = nd.BuyResultWithWAmount(&nftTx)
 			if err != nil {
 				fmt.Println("SyncBlockTxs() BuyResultWithWAmount() err=", err)

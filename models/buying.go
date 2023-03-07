@@ -271,6 +271,7 @@ func (nft NftDb) BuyingNft(userAddr,
 				continue
 			}
 			//time.Sleep(time.Second)
+			go nft.ComputerAverageSnft()
 			log.Println("BuyingNft() trans ok ")
 			return nil
 		}
@@ -285,7 +286,6 @@ func (nft NftDb) BuyingNft(userAddr,
 			return errors.New(ErrDataBase.Error() + dberr.Error.Error())
 		}
 		GetRedisCatch().SetDirtyFlag(TradingDirtyName)
-		go nft.ComputerAverageSnft()
 		return ErrWaitingClose
 	} else {
 		var bidRec Bidding
@@ -370,6 +370,7 @@ func (nft NftDb) BuyingNft(userAddr,
 				continue
 			}
 			//time.Sleep(time.Second)
+			go nft.ComputerAverageSnft()
 			log.Println("BuyingNft() trans ok ")
 			return nil
 		}
@@ -384,7 +385,6 @@ func (nft NftDb) BuyingNft(userAddr,
 		}
 		GetRedisCatch().SetDirtyFlag(TradingDirtyName)
 		GetRedisCatch().SetDirtyFlag(RecommendSnft)
-		go nft.ComputerAverageSnft()
 
 		return ErrWaitingClose
 	}

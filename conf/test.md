@@ -15,3 +15,10 @@ Authorize = {"type":"exchange_auth","version":1,"exchanger_owner":"0x0109CC44df1
 {"exchanger_owner":"0x8fbf399d77bc8c14399afb0f6d32dbe22189e169","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900","block_number":"0x2540be400","sig":"0x2af5ea6830e2dfa3f5b8d589d9dc335c2a9a08095c0d44abcf23e694249f7ced674bb9e5fadc20095fcf24883cde14ed1d901af9200ef76a84ebb564721fe5771c"}
 Authorize = {"type":"exchange_auth","version":1,"exchanger_owner":"0x8fbf399d77bc8c14399afb0f6d32dbe22189e169","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900","block_number":1000,"sig":"0xe715ceee2ffe1051b46ca9a3bba8301baa3627eb894c92484e58ad8939a4ef2546f84191506142a91a5f92a250bfdca2e007a0744bab86bed4ee7c34703507b01b"}
 
+//addr:0x97807FD98c40E0237aa1F13cF3e7CEDc5F37F23b
+
+{"block_number":"0x606cab","exchanger_owner":"0x97807FD98c40E0237aa1F13cF3e7CEDc5F37F23b","sig":"0x82318be65136f02c2f94746e92f91db3a8ce13ae443376e685ff1d563cefa21f5056ab0312f4c24fa98c84f194949be045a937e0364f4f6c5565daa643e19c9d1b","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900"}
+Authorize = {"type":"exchange_auth","exchange_name":"kang","version":1,"exchanger_owner":"0x97807FD98c40E0237aa1F13cF3e7CEDc5F37F23b","to":"0x7fBC8ad616177c6519228FCa4a7D9EC7d1804900","block_number":12068,"sig":"0x3a969067f403007b5970d7eca5764701898c2ac7d02ba7c8b303d7cf0989104f61225964a13745d06bb4b127c15080faa4e59b93bbfb4c8f6ebe8055a810e78b1b"}
+
+
+

@@ -223,7 +223,11 @@ func (nft NftDb) QueryNftByFilter(filter []StQueryField, sort []StSortField,
 		}
 	}
 	if len(orderBy) > 0 {
-		orderBy = orderBy + ", id desc"
+		if strings.Index(orderBy, "desc") > -1 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = orderBy + ", id asc"
+		}
 	} else {
 		orderBy = "createdate desc, id desc"
 	}
@@ -329,7 +333,11 @@ func (nft NftDb) QueryNftByFilterNew(filter []StQueryField, sort []StSortField, 
 		}
 	}
 	if len(orderBy) > 0 {
-		orderBy = orderBy + ", id desc"
+		if strings.Index(orderBy, "desc") > -1 {
+			orderBy = orderBy + ", id desc"
+		} else {
+			orderBy = orderBy + ", id asc"
+		}
 	} else {
 		orderBy = "createdate desc, id desc"
 	}
@@ -753,7 +761,11 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 			}
 		}
 		if len(orderBy) > 0 {
-			orderBy = orderBy + ", id desc"
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			orderBy = "createdate desc, id desc"
 		}
@@ -816,7 +828,11 @@ func (nft NftDb) NftFilterProc(filter []StQueryField, sort []StSortField, startI
 			}
 		}
 		if len(orderBy) > 0 {
-			orderBy = orderBy + ", id desc"
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			orderBy = "createdate desc, id desc"
 		}
@@ -935,7 +951,11 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 		}
 		if len(orderBy) > 0 {
 			//orderBy = orderBy + ", id desc"
-			orderBy = orderBy
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			//orderBy = "createdate desc, id desc"
 			orderBy = "createdate desc"
@@ -1151,7 +1171,11 @@ func (nft NftDb) SnftFilterProc(filter []StQueryField, sort []StSortField, start
 			}
 		}
 		if len(orderBy) > 0 {
-			orderBy = orderBy + ", id desc"
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			orderBy = "createdate desc, id desc"
 		}
@@ -1275,8 +1299,12 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 			}
 		}
 		if len(orderBy) > 0 {
-			//orderBy = orderBy + ", id desc"
-			orderBy = orderBy
+			orderBy = orderBy + ", id desc"
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			//orderBy = "createdate desc, id desc"
 			orderBy = "createdate desc"
@@ -1464,12 +1492,60 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 				log.Println("QueryNftByFilter() Raw(snftSql).Scan(&nftInfo) err=", err.Error)
 				return nil, uint64(0), ErrDataBase
 			}
-			err = nft.db.Raw(snftCountSql).Scan(&totalCount)
-			if err.Error != nil {
-				log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
-				return nil, uint64(0), ErrDataBase
+			if querySplit["sellprice"] == "" &&
+				querySplit["createdate"] == "" &&
+				querySplit["offernum"] == "" &&
+				querySplit["collectcreator"] == "" &&
+				querySplit["collections"] == "" {
+				sysInfo := SysInfos{}
+				dberr := nft.db.Model(&SysInfos{}).Last(&sysInfo)
+				if dberr.Error != nil {
+					if dberr.Error != gorm.ErrRecordNotFound {
+						log.Println("QueryNftByFilter() SysInfos err=", dberr)
+						return nil, uint64(0), ErrDataBase
+					}
+				}
+				fixprice := strings.Index(querySplit["selltype"], SellTypeFixPrice.String())
+				highestbid := strings.Index(querySplit["selltype"], SellTypeHighestBid.String())
+				if fixprice != -1 && highestbid != -1 {
+					if sysInfo.Fixpricecnt > 1000 || sysInfo.Highestbidcnt > 1000 {
+						totalCount = int64(sysInfo.Fixpricecnt + sysInfo.Highestbidcnt)
+					} else {
+						err = nft.db.Raw(snftCountSql).Scan(&totalCount)
+						if err.Error != nil {
+							log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+							return nil, uint64(0), ErrDataBase
+						}
+					}
+				} else if fixprice > -1 {
+					if sysInfo.Fixpricecnt > 1000 {
+						totalCount = int64(sysInfo.Fixpricecnt)
+					} else {
+						err = nft.db.Raw(snftCountSql).Scan(&totalCount)
+						if err.Error != nil {
+							log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+							return nil, uint64(0), ErrDataBase
+						}
+					}
+				} else if highestbid > -1 {
+					if sysInfo.Highestbidcnt > 1000 {
+						totalCount = int64(sysInfo.Highestbidcnt)
+					} else {
+						err = nft.db.Raw(snftCountSql).Scan(&totalCount)
+						if err.Error != nil {
+							log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+							return nil, uint64(0), ErrDataBase
+						}
+					}
+				}
+			} else {
+				err = nft.db.Raw(snftCountSql).Scan(&totalCount)
+				if err.Error != nil {
+					log.Println("QueryNftByFilter() Scan(&totalCount) err=", err)
+					return nil, uint64(0), ErrDataBase
+				}
 			}
-			fmt.Printf("QueryNftByFilter() normal spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
+			log.Printf("QueryNftByFilter() normal spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			//NftCatch.SetByHash(nftCatchHash, &NftFilter{nftInfo, uint64(totalCount)})
 			GetRedisCatch().CatchQueryData("QueryNftByFilterNftSnft", queryCatchSql, &NftFilter{nftInfo, uint64(totalCount)})
 			return nftInfo, uint64(totalCount), nil
@@ -1495,7 +1571,11 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 			}
 		}
 		if len(orderBy) > 0 {
-			orderBy = orderBy + ", id desc"
+			if strings.Index(orderBy, "desc") > -1 {
+				orderBy = orderBy + ", id desc"
+			} else {
+				orderBy = orderBy + ", id asc"
+			}
 		} else {
 			orderBy = "createdate desc, id desc"
 		}

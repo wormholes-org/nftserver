@@ -5,7 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"sort"
-	"sync"
 	"time"
 )
 
@@ -41,23 +40,23 @@ type RecommendBuyingSell struct {
 func (nft *NftDb) QueryRecommendSnfts(userAddr string) (RecommendBuyingSell, error) {
 
 	var recommend RecommendBuyingSell
-	var recomwg sync.WaitGroup
+	//var recomwg sync.WaitGroup
 	cerr := GetRedisCatch().GetCatchData("QueryRecommendSnfts", userAddr, &recommend)
 	if cerr == nil {
 		log.Printf("QueryRecommendSnfts()  default spend  time.now=%s\n", time.Now())
 		return recommend, nil
 	}
-	var err1 error
-	recomwg.Add(1)
-	go func(err1 error) {
-		defer recomwg.Done()
-		buyrecomm, err1 := nft.BuyingRecommend(userAddr)
-		if err1 != nil {
-			log.Println("QueryRecommendSnfts BuyingRecommend err=", err1)
-			//return RecommendBuyingSell{}, err
-		}
-		recommend.Buying = buyrecomm
-	}(err1)
+	//var err1 error
+	//recomwg.Add(1)
+	//go func(err1 error) {
+	//	defer recomwg.Done()
+	//	buyrecomm, err1 := nft.BuyingRecommend(userAddr)
+	//	if err1 != nil {
+	//		log.Println("QueryRecommendSnfts BuyingRecommend err=", err1)
+	//		//return RecommendBuyingSell{}, err
+	//	}
+	//	recommend.Buying = buyrecomm
+	//}(err1)
 	//recomwg.Add(1)
 	//go func(err2 error) {
 	//	defer recomwg.Done()
@@ -67,12 +66,13 @@ func (nft *NftDb) QueryRecommendSnfts(userAddr string) (RecommendBuyingSell, err
 	//	}
 	//	recommend.Sell = sellrecomm
 	//}(err2)
-	recomwg.Wait()
-
-	if err1 != nil {
-		log.Println("QueryRecommendSnfts BuyingRecommend err=", err1)
-		return RecommendBuyingSell{}, err1
+	//recomwg.Wait()
+	buyrecomm, err := nft.BuyingRecommend(userAddr)
+	if err != nil {
+		log.Println("QueryRecommendSnfts BuyingRecommend err=", err)
+		return RecommendBuyingSell{}, err
 	}
+	recommend.Buying = buyrecomm
 	//if err2 != nil {
 	//	log.Println("QueryRecommendSnfts BuyingRecommend err=", err2)
 	//	return RecommendBuyingSell{}, err2
@@ -195,10 +195,18 @@ func (nft *NftDb) BuyingRecommend(useraddr string) ([]RecommendResp, error) {
 			//}
 			weight[value.Addr] += value.Csnft * 2
 		}
+		var nftaddr []string
+		sql = `SELECT left(nftaddr,41) as addr FROM auctions where deleted_at is null 
+		and locate('m',nftaddr)=0 and selltype = ? and startprice > "120000000" and ownaddr != ? GROUP BY addr order by count(*) desc limit 0, 3`
+		db = nft.db.Raw(sql, SellTypeFixPrice.String(), useraddr).Scan(&nftaddr)
+		if db.Error != nil {
+			log.Println("SellRecommend shards recommended for sale err=", db.Error)
+			return nil, db.Error
+		}
 		var auctionaddr []RecommendSnftAddr
 		sql = `SELECT left(nftaddr,41) as addr ,count(*) as csnft FROM auctions where deleted_at is null 
-		and locate('m',nftaddr)=0 and selltype = ? and ownaddr != ? GROUP BY addr order by count(*) desc limit 0, 3`
-		db = nft.db.Raw(sql, SellTypeFixPrice.String(), useraddr).Scan(&auctionaddr)
+		and locate('m',nftaddr)=0 and selltype = ? and startprice < "120000000" and ownaddr != ? and left(nftaddr,41) not in ? GROUP BY addr order by count(*) desc limit 0, 3`
+		db = nft.db.Raw(sql, SellTypeFixPrice.String(), useraddr, nftaddr).Scan(&auctionaddr)
 		if db.Error != nil {
 			log.Println("SellRecommend shards recommended for sale err=", db.Error)
 			return nil, db.Error

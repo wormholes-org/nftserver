@@ -57,7 +57,7 @@ func (nft *NftExchangeControllerV2) QueryNftList() {
 	}
 	responseData, _ := json.Marshal(httpResponseData)
 	nft.Ctx.ResponseWriter.Write(responseData)
-	fmt.Println("QueryNftList:", httpResponseData)
+	//fmt.Println("QueryNftList:", httpResponseData)
 	//fmt.Println("QueryNftList()<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())
 	fmt.Println("QueryNftList() Spend time", time.Now().Sub(spendT), "time.now=", time.Now())
 	fmt.Println("QueryNftList() <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", time.Now())

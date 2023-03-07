@@ -35,6 +35,7 @@ func (nft *NftExchangeControllerV2) UserLogin() {
 	defer nft.Ctx.Request.Body.Close()
 	err = json.Unmarshal(bytes, &data)
 	if err == nil {
+		fmt.Println("login input data = ", data)
 		inputDataErr := nft.verifyInputData_UserLogin(data)
 		if inputDataErr != nil {
 			httpResponseData.Code = "500"
