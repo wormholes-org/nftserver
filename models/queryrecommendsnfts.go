@@ -418,10 +418,10 @@ func (nft *NftDb) FindSnftRecommend(addr []string, types string) ([]RecommendRes
 }
 
 func (nft *NftDb) SetRecommendSnftCatch() error {
-	var user []Users
+	var user []string
 	GetRedisCatch().SetDirtyFlag(RecommendSnft)
 
-	db := nft.db.Model(&Users{}).Where("deleted_at is null").Find(&user)
+	db := nft.db.Model(&Users{}).Select("useraddr").Where("deleted_at is null and updated_at >= NOW() - INTERVAL 1 DAY ").Find(&user)
 	if db.Error != nil {
 		log.Println("SetRecommendSnftCatch query user data err=", db.Error)
 		return db.Error
@@ -432,9 +432,9 @@ func (nft *NftDb) SetRecommendSnftCatch() error {
 		return err
 	}
 	for _, singe := range user {
-		_, err = nft.QueryRecommendSnfts(singe.Useraddr)
+		_, err = nft.QueryRecommendSnfts(singe)
 		if err != nil {
-			log.Println("SetRecommendSnftCatch set  user =", singe.Useraddr, "  catch err=", err)
+			log.Println("SetRecommendSnftCatch set  user =", singe, "  catch err=", err)
 			return err
 		}
 	}
@@ -442,7 +442,7 @@ func (nft *NftDb) SetRecommendSnftCatch() error {
 }
 
 func RecommendTimeProc(sqldsn string) {
-	ticker := time.NewTicker(time.Minute * 15)
+	ticker := time.NewTicker(time.Minute * 30)
 	nd, err := NewNftDb(sqldsn)
 	if err != nil {
 		log.Printf("RecommendTimeProc() connect database err = %s\n", err)

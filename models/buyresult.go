@@ -699,6 +699,7 @@ func SnftMerge(nftaddr, toAddr string, accountInfo *contracts.Account, tx *gorm.
 		}
 		return nil
 	}
+
 	return nil
 }
 
@@ -737,8 +738,8 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 	fmt.Println(time.Now().String()[:25], "BuyResultWithWAmount() Begin", " from=", from, " to=", to, " price=", nftTx.Price,
 		" contractAddr=", contractAddr, " tokenId=", tokenId, " txhash=", txhash, " nftaddr=", nftaddr)
 	trans := Trans{}
-	err := nft.db.Select("id").Where("nftaddr = ? AND txhash = ? AND (selltype = ? or selltype = ? or selltype = ?)",
-		nftaddr, txhash, SellTypeFixPrice.String(), SellTypeBidPrice.String(), SellTypeHighestBid.String()).First(&trans)
+	err := nft.db.Select("id").Where("nftaddr = ? AND txhash = ? AND (selltype = ? or selltype = ? or selltype = ? or selltype = ?)",
+		nftaddr, txhash, SellTypeFixPrice.String(), SellTypeBidPrice.String(), SellTypeHighestBid.String(), SellTypeForceBuy.String()).First(&trans)
 	if err.Error == nil {
 		fmt.Println("BuyResultWithWAmount() trans exist.")
 		return nil
@@ -748,38 +749,59 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		return err.Error
 	}
 	fmt.Println("BuyResultWithWAmount()-------------------")
+	var count int
 	if from != "" && to != "" /* && nftTx.Price != ""*/ {
 		fmt.Println("BuyResultWithWAmount() from != Null && to != Null")
 		var nftRec Nfts
-		err := nft.db.Where("nftaddr = ? AND ownaddr = ?",
-			nftaddr, from).First(&nftRec)
-		if err.Error != nil {
-			if err.Error == gorm.ErrRecordNotFound {
-				fmt.Println("BuyResultWithWAmount() nft not find ")
-				return nil
+		if nftTx.TransType != contracts.WormHolesExForceBuyingAuthTransfer {
+			err := nft.db.Where("nftaddr = ? AND ownaddr = ?", nftaddr, from).First(&nftRec)
+			if err.Error != nil {
+				if err.Error == gorm.ErrRecordNotFound {
+					log.Println("BuyResultWithWAmount() nft not find ")
+					return nil
+				}
+				fmt.Println("BuyResultWithWAmount() nft find err=", err.Error)
+				return ErrNftNotExist
 			}
-			fmt.Println("BuyResultWithWAmount() nft find err=", err.Error)
-			return ErrNftNotExist
+			count, _ := strconv.Atoi(nftTx.Value)
+			if count > nftRec.Count {
+				log.Println("BuyResultWithWAmount() nft.count < amount.")
+				return ErrNftAmount
+			}
+		} else {
+			err := nft.db.Where("nftaddr = ?", nftaddr).First(&nftRec)
+			if err.Error != nil {
+				if err.Error == gorm.ErrRecordNotFound {
+					log.Println("BuyResultWithWAmount() nft not find ")
+					return nil
+				}
+				fmt.Println("BuyResultWithWAmount() nft find err=", err.Error)
+				return ErrNftNotExist
+			}
+			count, _ := strconv.Atoi(nftTx.Value)
+			if count > nftRec.Count {
+				log.Println("BuyResultWithWAmount() nft.count < amount.")
+				return ErrNftAmount
+			}
 		}
+
 		aucFlag := false
 		//aucSellType := ""
 		var auctionRec Auction
-		count, _ := strconv.Atoi(nftTx.Value)
-		if count > nftRec.Count {
-			fmt.Println("BuyResultWithWAmount() nft.count < amount.")
-			return ErrNftAmount
-		}
-		err = nft.db.Where("tokenid = ? AND ownaddr =?",
-			nftRec.Tokenid, from).First(&auctionRec)
-		if err.Error != nil {
-			if err.Error != gorm.ErrRecordNotFound {
-				fmt.Println("BuyResultWithWAmount() auction not find err=", err.Error)
-				return err.Error
+		if nftTx.TransType != contracts.WormHolesExForceBuyingAuthTransfer {
+			err = nft.db.Where("tokenid = ? AND ownaddr =?",
+				nftRec.Tokenid, from).First(&auctionRec)
+			if err.Error != nil {
+				if err.Error != gorm.ErrRecordNotFound {
+					log.Println("BuyResultWithWAmount() auction not find err=", err.Error)
+					return err.Error
+				}
+			} else {
+				//aucSellType = auctionRec.Selltype
+				aucFlag = true
 			}
-		} else {
-			//aucSellType = auctionRec.Selltype
-			aucFlag = true
 		}
+
 		//sysNft := Sysnfts{}
 		//if nftaddr[:3] == "0x8" {
 		//	if nftRec.Mergetype != 0 {
@@ -802,7 +824,12 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		var accountInfo *contracts.Account
 		if nftaddr[:3] == "0x8" {
 			var gerr error
-			accountInfo, gerr = GetMergeLevel(OldNftaddr, nftTx.BlockNumber)
+			if nftTx.TransType == contracts.WormHolesExForceBuyingAuthTransfer {
+				accountInfo, gerr = GetMergeLevel(OldNftaddr+"0", nftTx.BlockNumber)
+			} else {
+				accountInfo, gerr = GetMergeLevel(OldNftaddr, nftTx.BlockNumber)
+			}
+
 			if gerr != nil {
 				log.Println("BuyResultWithWAmount() ger mergelevel error.")
 				return ErrBlockchain
@@ -812,6 +839,12 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 		err = nft.db.Last(&sysInfoRec)
 		if err.Error != nil {
 			log.Println("BuyResultWithWAmount() Last(&sysInfoRec) err=", err.Error)
+			return ErrDataBase
+		}
+		collectionRec := Collects{}
+		err := nft.db.Select("id").Where("Createaddr = ? and Name = ?", nftRec.Collectcreator, nftRec.Collections).First(&collectionRec)
+		if err.Error != nil {
+			log.Println("BuyResultWithWAmount() Collects err=", err.Error)
 			return ErrDataBase
 		}
 		return nft.db.Transaction(func(tx *gorm.DB) error {
@@ -824,6 +857,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			trans.Toaddr = to
 			trans.Tokenid = nftRec.Tokenid
 			trans.Nftaddr = nftaddr
+			trans.Collectionid = collectionRec.ID
 			if nftaddr[:3] == "0x8" {
 				trans.Nfttype = "snft"
 			} else {
@@ -838,7 +872,10 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			} else {
 				trans.Selltype = SellTypeFixPrice.String()
 			}
-
+			if nftTx.TransType == contracts.WormHolesExForceBuyingAuthTransfer {
+				trans.Selltype = SellTypeForceBuy.String()
+				trans.Nftid = nftRec.ID
+			}
 			if !nftTx.Status {
 				trans.Selltype = SellTypeError.String()
 			}
@@ -852,7 +889,7 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 			if contractAddr == ExchangeOwer {
 				err := tx.Model(&trans).Create(&trans)
 				if err.Error != nil {
-					fmt.Println("BuyResultWithWAmount() create trans record err=", err.Error)
+					log.Println("BuyResultWithWAmount() create trans record err=", err.Error)
 					return err.Error
 				}
 			}
@@ -900,11 +937,20 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 					nfttab["Transcnt"] = nftRec.Transcnt + 1
 				}
 			}
-			err = tx.Model(&Nfts{}).Where("id = ?", nftRec.ID).Updates(&nfttab)
-			if err.Error != nil {
-				fmt.Println("BuyResultWithWAmount() update record err=", err.Error)
-				return err.Error
+			if nftTx.TransType == contracts.WormHolesExForceBuyingAuthTransfer {
+				err = tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddr).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWithWAmount() update record err=", err.Error)
+					return err.Error
+				}
+			} else {
+				err = tx.Model(&Nfts{}).Where("id = ?", nftRec.ID).Updates(&nfttab)
+				if err.Error != nil {
+					fmt.Println("BuyResultWithWAmount() update record err=", err.Error)
+					return err.Error
+				}
 			}
+
 			//if nftaddr[:3] == "0x8" {
 			//	snt := Sysnfts{}
 			//	snt.Transcnt = sysNft.Transcnt + 1
@@ -995,6 +1041,9 @@ func (nft NftDb) BuyResultWithWAmount(nftTx *contracts.NftTx) error {
 				}
 			}
 			if nftaddr[:3] == "0x8" {
+				if nftTx.TransType == contracts.WormHolesExForceBuyingAuthTransfer {
+					OldNftaddr = OldNftaddr + "0"
+				}
 				nerr := SnftMerge(OldNftaddr, to, accountInfo, tx, nft.db)
 				if nerr != nil {
 					fmt.Println("BuyResultWithWAmount() SnftMerge err=", nerr)
@@ -2310,8 +2359,8 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				}
 			}
 			//NftCatch.SetFlushFlag()
-			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
-			GetRedisCatch().SetDirtyFlag(SnftExchange)
+			//GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			//GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeColletion:
 			fmt.Println("BuyResultExchange() exchange 40 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			/*	err := tx.Model(&Nfts{}).Where("Snftcollection = ?", nftaddr).Delete(&Nfts{})
@@ -2349,8 +2398,8 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				}
 			}
 			//NftCatch.SetFlushFlag()
-			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
-			GetRedisCatch().SetDirtyFlag(SnftExchange)
+			//GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			//GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeSnft:
 			fmt.Println("BuyResultExchange() exchange 41 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			/*	err = tx.Model(&Nfts{}).Where("Snft = ?", nftaddr).Delete(&Nfts{})
@@ -2396,8 +2445,8 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 				}
 			}
 			//NftCatch.SetFlushFlag()
-			GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
-			GetRedisCatch().SetDirtyFlag(SnftExchange)
+			//GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+			//GetRedisCatch().SetDirtyFlag(SnftExchange)
 		case SnftExchangeChip:
 			fmt.Println("BuyResultExchange() exchange 42 nftaddr=", nftaddr, " blocknumber=", exchangeTx.BlockNumber)
 			//err := tx.Model(&Nfts{}).Where("nftaddr = ?", nftaddress).Delete(&Nfts{})
@@ -2428,8 +2477,8 @@ func (nft NftDb) BuyResultExchange(exchangeTx *contracts.NftTx) error {
 					}
 				}
 				//NftCatch.SetFlushFlag()
-				GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
-				GetRedisCatch().SetDirtyFlag(SnftExchange)
+				//GetRedisCatch().SetDirtyFlag(NftCacheDirtyName)
+				//GetRedisCatch().SetDirtyFlag(SnftExchange)
 			}
 		}
 		if nftaddr[:3] == "0x8" {

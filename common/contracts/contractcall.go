@@ -15,6 +15,7 @@ import (
 	"github.com/nftexchange/nftserver/common/contracts/nft1155"
 	"github.com/nftexchange/nftserver/common/contracts/trade"
 	"github.com/nftexchange/nftserver/common/contracts/weth9"
+	"math"
 	"sync"
 
 	//"github.com/nftexchange/nftserver/ethhelper"
@@ -433,15 +434,16 @@ func (t *TransLock) GetNonce(c *ethclient.Client, blocknumber uint64, address co
 			return t.nonce, err
 		}
 		fmt.Println("GetNonce() get from chain  t.nonce=", t.nonce, " chain nonce=", nonce)
-		if nonce > t.nonce {
-			t.nonce = nonce
-		}
+		//if nonce > t.nonce {
+		//	t.nonce = nonce
+		//}
+		t.nonce = nonce
 		t.blocknumber = blocknumber + 1
 		t.initTime = time.Now().Add(5 * time.Second)
 	} else {
 		t.nonce = t.nonce + 1
 	}
-	fmt.Println("GetNonce() nonce=", t.nonce)
+	fmt.Println("GetNonce() t.nonce=", t.nonce, "t.blocknumber=", t.blocknumber, "blocknumber=", blocknumber)
 	return t.nonce, nil
 }
 
@@ -490,6 +492,59 @@ func GetForcedSaleAmount(nftaddr common.Address) (string, error) {
 		return "", err
 	}
 	return result.String(), err
+}
+
+func IsOfficialNFT(nftAddress common.Address) bool {
+	maskByte := byte(128)
+	nftByte := nftAddress[0]
+	result := maskByte & nftByte
+	if result == 128 {
+		return true
+	}
+	return false
+}
+
+var ExchangePeriod = uint64(6160) // 365 * 720 * 24 * 4 / 4096
+func GetExchangAmount(nftaddress common.Address, initamount *big.Int) *big.Int {
+	nftInt := new(big.Int).SetBytes(nftaddress.Bytes())
+	baseInt, _ := big.NewInt(0).SetString("8000000000000000000000000000000000000000", 16)
+	nftInt.Sub(nftInt, baseInt)
+	//nftInt.Add(nftInt, big.NewInt(1))
+	nftInt.Div(nftInt, big.NewInt(4096))
+	times := nftInt.Uint64() / ExchangePeriod
+	rewardratio := math.Pow(0.88, float64(times))
+	result := big.NewInt(0)
+	new(big.Float).Mul(big.NewFloat(rewardratio), new(big.Float).SetInt(initamount)).Int(result)
+
+	return result
+}
+
+func CalculateExchangeAmount(level uint8, mergenumber uint32) *big.Int {
+	//nftNumber := math.BigPow(16, int64(level))
+	nftNumber := big.NewInt(int64(mergenumber))
+	switch {
+	case level == 0:
+		radix, _ := big.NewInt(0).SetString("30000000000000000", 10)
+		return big.NewInt(0).Mul(nftNumber, radix)
+	case level == 1:
+		radix, _ := big.NewInt(0).SetString("143000000000000000", 10)
+		return big.NewInt(0).Mul(nftNumber, radix)
+	case level == 2:
+		radix, _ := big.NewInt(0).SetString("271000000000000000", 10)
+		return big.NewInt(0).Mul(nftNumber, radix)
+	default:
+		radix, _ := big.NewInt(0).SetString("650000000000000000", 10)
+		return big.NewInt(0).Mul(nftNumber, radix)
+	}
+}
+
+func GetForcedSaleAmountByAddress(nftAddress common.Address) (*big.Int, error) {
+	if IsOfficialNFT(nftAddress) {
+		return nil, errors.New("not official nft")
+	}
+	initAmount := CalculateExchangeAmount(1, 1)
+	amount := GetExchangAmount(nftAddress, initAmount)
+	return amount, nil
 }
 
 func GetLatestAccountInfo(nftaddr common.Address) (*Account, error) {
@@ -3819,30 +3874,30 @@ func BatchAuthExchangeTrans(sell Seller1, buyer Buyer, sellauthsign, buyauthsign
 	return strings.ToLower(signedTx.Hash().String()), nil
 }
 
-func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv string) (string, error) {
+func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv string) (string, uint64, error) {
 	client, err := ethclient.Dial(EthNode)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	defer client.Close()
 	privateKey, err := crypto.HexToECDSA(fromprv)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", nil
+		log.Println("ForceBuyingAuthExchangeTrans() err=", "publice key error.")
+		return "", 0, errors.New("ForceBuyingAuthExchangeTrans() publice key error.")
 	}
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 	gasLimit := uint64(GasLimitTx1819)
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	var trans ExchangerForceBuyingAuthTrans
 	trans.Worm.Version = WormHolesVerseion
@@ -3850,28 +3905,28 @@ func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv st
 	err = json.Unmarshal([]byte(authSign), &trans.Worm.Exchangerauth)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	if buyauthsign == "" {
 		log.Println("ForceBuyingAuthExchangeTrans() buyauthsign err=", "buyauthsign is null")
-		return "", errors.New("buyauthsign is null")
+		return "", 0, errors.New("buyauthsign is null")
 	}
 	err = json.Unmarshal([]byte(buyauthsign), &trans.Worm.Buyauth)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() Minted Buyer Unmarshal() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	blocknum, err := client.BlockNumber(context.Background())
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	var toAddress *common.Address
 	msg := trans.Worm.Buyauth.Exchanger + trans.Worm.Buyauth.Blocknumber
 	toAddress, err = recoverAddress(msg, trans.Worm.Buyauth.Sig)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() recoverAddress() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	trans.Worm.Buyer = buyer
 	trans.Worm.Buyer.Blocknumber = hexutil.EncodeUint64(blocknum + 100000)
@@ -3879,7 +3934,7 @@ func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv st
 	sig, err := WormholesSign(msg, privateKey)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() WormholesSign() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	trans.Worm.Buyer.Sig = sig
 
@@ -3891,29 +3946,29 @@ func ForceBuyingAuthExchangeTrans(buyer Buyer, buyauthsign, authSign, fromprv st
 	nonce, err := transLock.GetNonce(client, blocknum, fromAddress)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() GetNonce err=", err)
-		return "", err
+		return "", 0, err
 	}
 	tx := types.NewTransaction(nonce, *toAddress, nil, gasLimit, gasPrice, data)
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	fmt.Println("ForceBuyingAuthExchangeTrans() chainID=", chainID)
 	fmt.Println("ForceBuyingAuthExchangeTrans() nonce=", nonce)
 	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
+	log.Println("ForceBuyingAuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
 		log.Println("ForceBuyingAuthExchangeTrans() err=", err)
-		return "", err
+		return "", 0, err
 	}
 	log.Println("ForceBuyingAuthExchangeTrans() OK")
-	log.Println("ForceBuyingAuthExchangeTrans() blocknumber=", blocknum, "  txhash=", signedTx.Hash().String())
-	return strings.ToLower(signedTx.Hash().String()), nil
+	return strings.ToLower(signedTx.Hash().String()), blocknum, nil
 }
 
 type ExchangerSnftTrans struct {

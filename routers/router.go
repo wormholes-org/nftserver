@@ -226,6 +226,7 @@ func registRouterV2() {
 	beego.Router("/v2/queryRecommendSnfts", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryRecommendSnfts")
 	//Get recommend snft chips QueryRecommendSnftChip
 	beego.Router("/v2/queryRecommendSnftChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QueryRecommendSnftChip")
+	beego.Router("/v2/querySnftOtherChip", &nftexchangev2.NftExchangeControllerV2{}, "post:QuerySnftOtherChip")
 	//get sysparams data
 	beego.Router("/v2/querySysParams", &nftexchangev2.NftExchangeControllerV2{}, "get:GetSysParams")
 	beego.Router("/v2/testRecover", &nftexchangev2.NftExchangeControllerV2{}, "post:Recover")

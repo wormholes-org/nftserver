@@ -238,7 +238,6 @@ func TestUnMarshalBuyer1(t *testing.T) {
 }
 
 func TestUnMarshalBuyer(t *testing.T) {
-
 	p, _ := hexutil.DecodeUint64("0x174876e800")
 	fmt.Println(p)
 	buyerSig := "{\"price\":\"0xf4240\",\"nft_address\":\"0x8000000000000000000000000000000000000001\",\"exchanger\":\"0xa1e67a33e090afe696d7317e05c506d7687bb2e5\",\"block_number\":\"0xc14b\",\"seller\":\"0x49b89e4fe5404ccecb7c6095032fe2ec94c4e1e7\",\"sig\":\"0xfe67a06aec03262da41b5bc3ee9cb6ed2afc0032b6ce148bb69afa306c955ecc247e1b423677de72f3e402e52d1ebdc9e2ed1f64097aedee169b37c2c238906e1c\"}"
@@ -253,6 +252,23 @@ func TestUnMarshalBuyer(t *testing.T) {
 		t.Fatal("GetBlockTxs() recoverAddress() err=", err)
 	}
 	fmt.Println("toaddr=", toaddr.String())
+}
+
+func TestForceBuy(t *testing.T) {
+	EthNode = "http://192.168.4.240:8561"
+	buyer := Buyer{}
+	buyer.Nftaddress = "0x80000000000000000000000000000000000002f"
+	buyer.Exchanger = "0x0109CC44df1C9ae44Bac132eD96f146Da9A26B88"
+	buyer.Seller = "0x68B14e0F18C3EE322d3e613fF63B87E56D86Df60"
+	//buyerAuth := `{"exchanger":"0x0109cc44df1c9ae44bac132ed96f146da9a26b88","block_number":"0x7cc2","sig":"0x8cf32ee8ce40862ecaf4c658d7643dce73e3cba23d0998b611ebcdc587734b3463721d3e794cdada475fad4d14f2e343f22e94c33de563a7a4f5554138b279dd1c"}`
+	buyerAuth := `{"exchanger":"0x0109cc44df1c9ae44bac132ed96f146da9a26b88","block_number":"0x603f8d","sig":"0x762923206bfa359f493b6332f8e8aab183d3f4378201f419038c5904d8fda396079736580d14c465b6c07f6b305a1c98c8da8b481a63a3ec67634d553eb5c98e1c"}`
+	exchangeAuth := `{"exchanger_owner":"0x0109CC44df1C9ae44Bac132eD96f146Da9A26B88","to":"0x7fbc8ad616177c6519228fca4a7d9ec7d1804900","block_number":"0x2540be400","sig":"0x6f7508e28d3479326926c62ab3963f0efbfb6b24c9899af9e607a8a5465a4ac3590fa6d0c418ccc2fcc2d3e4d9bb687a1d9e5b201414fd60e1636cacc9aeef811c"}`
+	fromprv := "501bbf00179b7e626d8983b7d7c9e1b040c8a5d9a0f5da649bf38e10b2dbfb8d"
+	txHash, blockn, err := ForceBuyingAuthExchangeTrans(buyer, buyerAuth, exchangeAuth, fromprv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println(txHash, blockn)
 }
 
 func TestDecodeHex(t *testing.T) {

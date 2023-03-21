@@ -99,12 +99,10 @@ func (nft *NftExchangeControllerV2) verifyInputData_BatchForceBuyingNft(data map
 		}
 	}
 	//TODO token
-	//getToken, _ := tokenMap.GetToken(data["user_addr"])
-	//log.Printf("gentoken is : %v,and token is : %v", getToken, token)
-	//
-	//if getToken != token {
-	//	return ERRTOKEN
-	//}
-
+	getToken, _ := tokenMap.GetToken(data["user_addr"])
+	log.Printf("gentoken is : %v,and token is : %v", getToken, token)
+	if getToken != token {
+		return ERRTOKEN
+	}
 	return nil
 }

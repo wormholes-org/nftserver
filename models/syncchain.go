@@ -114,6 +114,8 @@ func SyncTxs(nd *NftDb, txn []contracts.NftTx) error {
 			GetRedisCatch().SetDirtyFlag(SnftExchange)
 		}
 	}
+	go HomePageRenew()
+
 	return nil
 }
 

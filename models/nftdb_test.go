@@ -29,7 +29,10 @@ import (
 )
 
 const sqlsvrLcT = "admin:user123456@tcp(192.168.1.237:3306)/"
+
 const dbNameT = "snftdb8012"
+
+//const dbNameT = "c0x97807fd98c40e0237aa1f13cf3e7cedc5f37f23b"
 
 //const sqlsvrLcT = "admin:user123456@tcp(192.168.1.235:3306)/"
 //const dbNameT = "c0x5051580802283c7b053d234d124b199045ead750"
@@ -355,10 +358,6 @@ func TestFavorited(t *testing.T) {
 	}
 }
 
-func TestUserFavorited(t *testing.T) {
-
-}
-
 func TestSell(t *testing.T) {
 	nd := new(NftDb)
 	err := nd.ConnectDB(sqldsnT)
@@ -392,8 +391,13 @@ func TestSell(t *testing.T) {
 	if err != nil {
 		fmt.Printf("Sell() err = %s\n", err)
 	}
-	err = nd.MakeOffer("0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169", "0x101060AEFE0d70fB40eda7F4a605c1315Be4A72F",
-		"0569376186306", "1", "1", 1100, "tradeSig", 0, "0569376186306", "sig", "")
+	err = nd.MakeOffer("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7591423895905", "1", "1", 1100, "tradeSig", 0, "0569376186306", "sig", "")
+	if err != nil {
+		fmt.Printf("MakeOffer() err = %s\n", err)
+	}
+	err = nd.MakeOffer("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7591423895905", "1", "1", 1100, "tradeSig", 0, "0569376186306", "sig", "")
 	if err != nil {
 		fmt.Printf("MakeOffer() err = %s\n", err)
 	}
@@ -452,27 +456,26 @@ func TestSell(t *testing.T) {
 }
 
 func TestMakeOffer(t *testing.T) {
-	nd, err := NewNftDb(sqldsnT)
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
 	if err != nil {
 		fmt.Printf("connect database err = %s\n", err)
 	}
-	ExchangerAuth = "0x01842a2cf56400a245a56955dc407c2c4137321e"
-	contracts.EthNode = "http://api.wormholestest.com:8561"
-	//err = nd.Sell("0x8fBf399D77BC8C14399AFB0F6d32DBe22189e169",
-	//	"",
-	//	"0x101060AEFE0d70fB40eda7F4a605c1315Be4A72F",
-	//	"0569376186306", "HighestBid", "paychan",
-	//	1, 1001, 2000, "royalty", "美元", "false", "sigdate", "tradedate")
-	//if err != nil {
-	//	fmt.Printf("Sell() err = %s\n", err)
-	//}
-	err = nd.MakeOffer("0x0109cc44df1c9ae44bac132ed96f146da9a26b88", "0x01842a2cf56400a245a56955dc407c2c4137321e",
-		"7401585102779", "1", "1", 11000000000, "tradeSig", 0, "0569376186306", "sig", "")
+	ExchangerAuth = "0x6fcbf98129d354a0f3403c6e418bd7c991cc7c8f"
+
+	err = nd.MakeOffer("0x6bb0599bc9c5406d405a8a797f8849db463462d0", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7591423895905", "1", "1", 2000, "", 0, "0569376186306", "sig", "test")
 	if err != nil {
 		fmt.Printf("MakeOffer() err = %s\n", err)
 	}
-	nd.Close()
+	err = nd.MakeOffer("0x6bb0599bc9c5406d405a8a797f8849db463462d0", "0x0109cc44df1c9ae44bac132ed96f146da9a26b88",
+		"7591423895905", "1", "1", 1100, "", 0, "0569376186306", "sig", "test")
+	if err != nil {
+		fmt.Printf("MakeOffer() err = %s\n", err)
+	}
+
 }
+
 func signHash(data []byte) []byte {
 	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
 	return crypto.Keccak256([]byte(msg))
@@ -2215,9 +2218,9 @@ func TestGetIsVliaddr(t *testing.T) {
 	fmt.Println(strings.ToLower("0x571CbB911fE99118B230585BA0cC7c5054324F85"))
 	//tm := time.Unix(1661146660, 0)
 	//tm := time.Unix(1663825060, 0).AddDate(0, 1, 0)
-	tm := time.Unix(1675761793, 0)
+	tm := time.Unix(1678515075, 0)
 	fmt.Println(tm)
-	tm = time.Unix(1662016955, 0)
+	tm = time.Unix(1678515075+3600, 0)
 	fmt.Println(tm)
 	f := tm.String()
 	end := tm.Unix()
@@ -2231,8 +2234,8 @@ func TestGetIsVliaddr(t *testing.T) {
 	tn := time.Now().Unix()
 	fmt.Println(tn)
 	fmt.Println(time.Now().AddDate(0, 1, 0).Unix())
-
 }
+
 func TestQueryUserBidList(t *testing.T) {
 	nd, err := NewNftDb(sqldsnT)
 	if err != nil {
@@ -3293,7 +3296,7 @@ func TestSignLogin(t *testing.T) {
 	fmt.Println(ss)
 	var message []byte = []byte(`{"approve_addr": "0x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517","result": "6854","time_stamp": "1677046303","user_addr": "0x986e25636132377b28c9e102B232590E798d1a9C"}`)
 	//message = []byte("{\"approve_addr\":\"0x7E1B568AD455653EfF2dF68Bc1e8eA45738aE517\",\"result\":\"9941\",\"time_stamp\":\"1677056991\",\"user_addr\":\"0x986e25636132377b28c9e102B232590E798d1a9C\"}")
-	message = []byte("0x0109CC44df1C9ae44Bac132eD96f146Da9A26B880x7fbc8ad616177c6519228fca4a7d9ec7d18049000x2540be400")
+	message = []byte("0x0109cc44df1c9ae44bac132ed96f146da9a26b880x7fbc8ad616177c6519228fca4a7d9ec7d18049000x2540be400")
 	key, err := crypto.HexToECDSA("310279a2223e15274d4c85fc45a8d7661cac5a2bb970bcf7a23b55f5329ed9d6")
 	if err != nil {
 		fmt.Println(err)
@@ -3302,6 +3305,7 @@ func TestSignLogin(t *testing.T) {
 	//fmt.Println("public key have 0x   \n", hexutil.Encode(crypto.FromECDSAPub(&key.PublicKey)))
 	//fmt.Println("addr   \n", crypto.PubkeyToAddress(key.PublicKey).String())
 	////不含0x的私钥
+
 	//fmt.Println("private key no 0x \n", hex.EncodeToString(crypto.FromECDSA(key)))
 	fmt.Println(crypto.PubkeyToAddress(key.PublicKey).String())
 	sig, err := crypto.Sign(signHash(message), key)
@@ -3326,4 +3330,30 @@ func TestSignLogin(t *testing.T) {
 	}
 	fmt.Println(toaddr)
 
+}
+
+func TestAes(t *testing.T) {
+
+	data, err := AESEncryption("0xbbbbbb")
+	fmt.Println(data)
+	fmt.Println(err)
+	data, err = AESDecryption(data)
+	fmt.Println(data)
+	fmt.Println(err)
+}
+
+func TestQuerySnfOtherChip(t *testing.T) {
+	nd := new(NftDb)
+	err := nd.ConnectDB(sqldsnT)
+	if err != nil {
+		fmt.Printf("connect database err = %s\n", err)
+	}
+	defer nd.Close()
+	snftChip, count, err := nd.QuerySnftOtherChip("0x5051580802283C7b053d234D124b199045EAd750",
+		"0x97807fd98c40e0237aa1f13cf3e7cedc5f37f23b", "9102705250204")
+	if err != nil {
+		t.Fatalf("err = %v\n", err)
+	}
+
+	t.Logf("nft = %v %v\n", snftChip, count)
 }

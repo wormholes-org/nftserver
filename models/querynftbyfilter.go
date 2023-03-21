@@ -156,6 +156,43 @@ func (this NftFlushType) String() string {
 	}
 }
 
+type QuerySyncMapList struct {
+	Mux    sync.Mutex
+	Querys map[string]*sync.Mutex
+}
+
+func (u *QuerySyncMapList) StringToHash(data string) string {
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte(data))
+	hash := hasher.Sum(nil)
+	return hexutil.Encode(hash)
+}
+
+func (u *QuerySyncMapList) LockQuery(queryStr string) {
+	u.Mux.Lock()
+	defer u.Mux.Unlock()
+	if len(u.Querys) == 0 {
+		u.Querys = make(map[string]*sync.Mutex)
+	}
+	hash := u.StringToHash(queryStr)
+	query, ok := u.Querys[hash]
+	if !ok {
+		u.Querys[hash] = new(sync.Mutex)
+		query, _ = u.Querys[hash]
+	}
+	query.Lock()
+}
+
+func (u *QuerySyncMapList) UnLockQuery(queryStr string) {
+	hash := u.StringToHash(queryStr)
+	query, ok := u.Querys[hash]
+	if ok {
+		query.Unlock()
+	}
+}
+
+var QuerySync QuerySyncMapList
+
 func (nft NftDb) QueryNftByFilter(filter []StQueryField, sort []StSortField,
 	startIndex string, count string) ([]NftInfo, uint64, error) {
 	var queryWhere string
@@ -1274,6 +1311,20 @@ func QuerySnftWhereSplit(query string) map[string]string {
 	return spitStr
 }
 
+func GetCatchDataMux(queryname string, querysql string, queryData interface{}) error {
+	err := GetRedisCatch().GetCatchData(queryname, querysql, &queryData)
+	if err == nil {
+		return nil
+	}
+	QuerySync.LockQuery(queryname + querysql)
+	err = GetRedisCatch().GetCatchData(queryname, querysql, &queryData)
+	if err == nil {
+		QuerySync.UnLockQuery(queryname + querysql)
+		return nil
+	}
+	return err
+}
+
 func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, startIndex string, count string) ([]NftInfo, uint64, error) {
 	var queryWhere string
 	var orderBy string
@@ -1299,23 +1350,25 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 			}
 		}
 		if len(orderBy) > 0 {
-			orderBy = orderBy + ", id desc"
-			if strings.Index(orderBy, "desc") > -1 {
-				orderBy = orderBy + ", id desc"
-			} else {
-				orderBy = orderBy + ", id asc"
-			}
+			//orderBy = orderBy + ", id desc"
+			//if strings.Index(orderBy, "desc") > -1 {
+			//	orderBy = orderBy + ", id desc"
+			//} else {
+			//	orderBy = orderBy + ", id asc"
+			//}
 		} else {
 			//orderBy = "createdate desc, id desc"
 			orderBy = "createdate desc"
 		}
 		queryCatchSql := queryWhere + orderBy + startIndex + count + "snft"
 		nftCatch := NftFilter{}
-		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		//cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		cerr := GetCatchDataMux("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
 			log.Printf("QueryNftByFilter() snft filter spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}
+		defer QuerySync.UnLockQuery("QueryNftByFilterNftSnft" + queryCatchSql)
 		querySplit := QuerySnftWhereSplit(queryWhere)
 		if querySplit["selltype"] == "" && querySplit["offernum"] == "" && querySplit["sellprice"] == "" {
 			spendStart := time.Now()
@@ -1333,6 +1386,7 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 					snftSql = snftSql + " and " + querySplit["createdate"]
 					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 				}
+				orderBy = "createdate desc "
 			}
 			if querySplit["categories"] != "" {
 				if whereFlag == false {
@@ -1431,6 +1485,7 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 					snftSql = snftSql + " and " + querySplit["createdate"]
 					snftCountSql = snftCountSql + " and " + querySplit["createdate"]
 				}
+				orderBy = "createdate desc "
 			}
 			if querySplit["offernum"] != "" {
 				if whereFlag == false {
@@ -1571,21 +1626,24 @@ func (nft NftDb) SnftFilterProcNew(filter []StQueryField, sort []StSortField, st
 			}
 		}
 		if len(orderBy) > 0 {
-			if strings.Index(orderBy, "desc") > -1 {
-				orderBy = orderBy + ", id desc"
-			} else {
-				orderBy = orderBy + ", id asc"
-			}
+			//if strings.Index(orderBy, "desc") > -1 {
+			//	orderBy = orderBy + ", id desc"
+			//} else {
+			//	orderBy = orderBy + ", id asc"
+			//}
 		} else {
-			orderBy = "createdate desc, id desc"
+			//orderBy = "createdate desc, id desc"
+			orderBy = "createdate desc"
 		}
 		queryCatchSql := orderBy + startIndex + count + "snft"
 		nftCatch := NftFilter{}
-		cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		//cerr := GetRedisCatch().GetCatchData("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
+		cerr := GetCatchDataMux("QueryNftByFilterNftSnft", queryCatchSql, &nftCatch)
 		if cerr == nil {
 			log.Printf("QueryNftByFilter() nftInfo spend time=%s time.now=%s\n", time.Now().Sub(spendT), time.Now())
 			return nftCatch.NftInfos, nftCatch.Total, nil
 		}
+		defer QuerySync.UnLockQuery("QueryNftByFilterNftSnft" + queryCatchSql)
 		var snftCount int64
 		err := nft.db.Model(&SysInfos{}).Select("snfttotal").Last(&snftCount)
 		if err.Error != nil {

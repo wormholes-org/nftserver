@@ -49,7 +49,7 @@ func (nft NftDb) QueryMarketTradingHistory(nfttype string, filter []StQueryField
 	spendT := time.Now()
 	nfttype = strings.ToLower(nfttype)
 	sql := "SELECT trans.*, trans.price as sellprice FROM trans LEFT JOIN nfts ON trans.contract = nfts.contract AND trans.tokenid = nfts.tokenid"
-	countSql := "SELECT count(*) FROM trans LEFT JOIN nfts ON trans.contract = nfts.contract AND trans.tokenid = nfts.tokenid"
+	countSql := "SELECT count(*) FROM trans "
 	var mergetypeflag string
 	if len(filter) > 0 {
 		for k, v := range filter {
@@ -59,7 +59,15 @@ func (nft NftDb) QueryMarketTradingHistory(nfttype string, filter []StQueryField
 					filter[k].Field = "trans.price"
 				}
 			} else if strings.Contains(NftFields, strings.ToLower(v.Field)) {
-				filter[k].Field = "nfts." + filter[k].Field
+				//filter[k].Field = "nfts." + filter[k].Field
+				//filter[k].Field = "trans.transtime"
+				if strings.ToLower(v.Field) == "collections" || strings.ToLower(v.Field) == "collectcreator" {
+					filter[k].Field = "nfts." + filter[k].Field
+					countSql = "SELECT count(*) FROM trans LEFT JOIN nfts ON trans.contract = nfts.contract AND trans.tokenid = nfts.tokenid"
+				} else {
+					filter[k].Field = "trans.transtime"
+				}
+
 			}
 			if filter[k].Field == "mergetype" {
 				mergetypeflag = filter[k].Value
@@ -115,7 +123,7 @@ func (nft NftDb) QueryMarketTradingHistory(nfttype string, filter []StQueryField
 		orderBy = "trans.id desc"
 	}
 	sql = sql + " order by " + orderBy
-	countSql = countSql + " order by " + orderBy
+	//countSql = countSql + " order by " + orderBy
 	fmt.Println("QueryMarketTradingHistory() sql=", sql)
 	fmt.Println("QueryMarketTradingHistory() countSql=", countSql)
 	if len(start_index) > 0 {

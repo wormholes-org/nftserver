@@ -1563,9 +1563,6 @@ func HomePageRenew() error {
 		log.Printf("HomePageRenew() QuerySysParams() err = %s\n", err)
 		return err
 	}
-	if params.AutoFlag == "false" {
-		return nil
-	}
 	var hp, homepage HomePage
 	err = json.Unmarshal([]byte(params.Homepage), &hp)
 	if err != nil {
@@ -1573,66 +1570,29 @@ func HomePageRenew() error {
 		return err
 	}
 	homepage.Announcement = hp.Announcement
-	trans := make([]HotTrans, 0, 20)
-	limit, _ := strconv.Atoi(params.Nftcount)
-	sql := "SELECT  contract, tokenid, count(tokenid) as tc from trans group by contract, tokenid order by tc desc limit "
-	sql = sql + params.Nftcount
-	dberr := nd.db.Raw(sql).Scan(&trans)
-	if dberr.Error != nil {
-		if dberr.Error != gorm.ErrRecordNotFound {
-			nd.Close()
-			log.Printf("HomePageRenew() Find(&trans) err = %s\n", dberr.Error)
-			return err
-		}
-	} else {
-		if len(trans) > 0 {
-			for _, tran := range trans {
-				var homenft HomePageNft
-				homenft.Contract = tran.Contract
-				homenft.Tokenid = tran.Tokenid
-				homepage.Nfts = append(homepage.Nfts, homenft)
-			}
-		} else {
-			homepage.Nfts = []HomePageNft{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
-		}
-	}
-	collects := make([]Collects, 0, 20)
-	limit, _ = strconv.Atoi(params.Nftcount)
-	dberr = nd.db.Where("name <> ?", DefaultCollection).Order("transcnt desc").Limit(limit).Find(&collects)
-	if dberr.Error != nil {
-		if dberr.Error != gorm.ErrRecordNotFound {
-			nd.Close()
-			log.Printf("HomePageRenew() Find(&collects) err = %s\n", dberr.Error)
-			return err
-		}
-	} else {
-		if len(collects) > 0 {
-			for _, collect := range collects {
-				var hcollect HomePageCollections
-				hcollect.Creator = collect.Createaddr
-				hcollect.Name = collect.Name
-				homepage.Collections = append(homepage.Collections, hcollect)
-			}
-		} else {
-			homepage.Collections = []HomePageCollections{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
-		}
-	}
+
 	var recCount int64
 	var maxCount int64
 	countSql := `select max(id) from nfts`
-	dberr = nd.db.Raw(countSql).Scan(&maxCount)
+	dberr := nd.db.Raw(countSql).Scan(&maxCount)
 	if TransSnft {
 		dberr = nd.db.Model(&SysInfos{}).Select("snfttotal").First(&recCount)
 	} else {
 		dberr = nd.db.Model(&SysInfos{}).Select("nfttotal").First(&recCount)
 	}
+	//dberr = nd.db.Model(Nfts{}).Count(&recCount)
 	if dberr.Error != nil {
-		log.Printf("HomePageRenew() Count(&recCount) err = %s\n", dberr.Error)
+		//if dberr.Error != gorm.ErrRecordNotFound {
+		//	nd.Close()
+		//	log.Printf("ScanLoop() Count(&recCount) err = %s\n", dberr.Error)
+		//	continue
+		//}
+		log.Printf("ScanLoop() Count(&recCount) err = %s\n", dberr.Error)
 		recCount = 0
 	}
 	if recCount != 0 {
 		rand.Seed(time.Now().UnixNano())
-		limit, _ = strconv.Atoi(params.Nftloopcount)
+		limit, _ := strconv.Atoi(params.Nftloopcount)
 		scaned := make(map[int64]bool)
 		log.Println("HomePageRenew() recCount= ", recCount)
 		homepage.NftLoop = []HomePageNft{}
@@ -1651,7 +1611,7 @@ func HomePageRenew() error {
 			}
 			scaned[index] = true
 			var nftRec Nfts
-			dberr := nd.db.Where("id = ?", index).First(&nftRec)
+			dberr := nd.db.Where("id = ? and mergetype = mergelevel and exchange = 0", index).First(&nftRec)
 			if dberr.Error != nil {
 				//nd.Close()
 				log.Println("HomePageRenew() index=", index, "First(&nftRec) err = ", dberr.Error)
@@ -1662,12 +1622,62 @@ func HomePageRenew() error {
 			hpnft.Contract = nftRec.Contract
 			hpnft.Tokenid = nftRec.Tokenid
 			homepage.NftLoop = append(homepage.NftLoop, hpnft)
-			if i == int(recCount) {
-				break
-			}
 		}
 	} else {
 		homepage.NftLoop = []HomePageNft{{"", ""}, {"", ""}, {"", ""}}
+	}
+
+	trans := make([]HotTrans, 0, 20)
+	//limit, _ := strconv.Atoi(params.Nftcount)
+	//dberr := nd.db.Group("tokenid as tc").Order("tc desc").Limit(limit).Find(&trans)
+	//sql := "SELECT  contract, tokenid, count(tokenid) as tc from trans group by contract, tokenid order by tc desc limit "
+	sql := "SELECT  tr.contract, tr.tokenid, count(tr.tokenid) as tc from trans as tr " +
+		"left join nfts as nf on nf.tokenid=tr.tokenid where nf.exchange = 0 and mergetype = mergelevel " +
+		"group by tr.contract, tr.tokenid order by tc desc limit "
+	sql = sql + params.Nftcount
+	dberr = nd.db.Raw(sql).Scan(&trans)
+	if dberr.Error != nil {
+		if dberr.Error != gorm.ErrRecordNotFound {
+			nd.Close()
+			log.Printf("HomePageRenew() Find(&trans) err = %s\n", dberr.Error)
+			return dberr.Error
+
+		}
+	} else {
+		if len(trans) > 0 {
+			for _, tran := range trans {
+				var homenft HomePageNft
+				homenft.Contract = tran.Contract
+				homenft.Tokenid = tran.Tokenid
+				homepage.Nfts = append(homepage.Nfts, homenft)
+			}
+		} else {
+			//homepage.Nfts = []HomePageNft{{"", ""}}
+			homepage.Nfts = []HomePageNft{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
+		}
+	}
+
+	collects := make([]Collects, 0, 20)
+	limit, _ := strconv.Atoi(params.Collectcount)
+	dberr = nd.db.Where("name <> ?", DefaultCollection).Order("transcnt desc").Limit(limit).Find(&collects)
+	if dberr.Error != nil {
+		if dberr.Error != gorm.ErrRecordNotFound {
+			nd.Close()
+			log.Printf("HomePageRenew() Find(&collects) err = %s\n", dberr.Error)
+			return dberr.Error
+
+		}
+	} else {
+		if len(collects) > 0 {
+			for _, collect := range collects {
+				var hcollect HomePageCollections
+				hcollect.Creator = collect.Createaddr
+				hcollect.Name = collect.Name
+				homepage.Collections = append(homepage.Collections, hcollect)
+			}
+		} else {
+			homepage.Collections = []HomePageCollections{{"", ""}, {"", ""}, {"", ""}, {"", ""}}
+		}
 	}
 	homestr, err := json.Marshal(&homepage)
 	if err != nil {
@@ -1679,6 +1689,9 @@ func HomePageRenew() error {
 		Homepage: string(homestr),
 	}
 	nd.SetSysParams(newParam)
+	//HomePageCatchs.HomePageFlashLock()
+	//HomePageCatchs.HomePageFlashFlag = true
+	//HomePageCatchs.HomePageFlashUnLock()
 	nd.Close()
 	log.Println("HomePageRenew() <-scan.C: end")
 	return nil

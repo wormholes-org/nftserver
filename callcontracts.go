@@ -720,8 +720,8 @@ func CallContractsNew(nft *models.NftDb) {
 	//}
 	//id := aucRec.ID
 	var aucRecs []models.Auction
-	err := nft.GetDB().Model(&models.Auction{}).Where("Enddate <= ? and Selltype = ? and Sell_State = ?",
-		time.Now().Unix(), models.SellTypeHighestBid.String(), models.SellStateStart.String()).Limit(100).Find(&aucRecs)
+	err := nft.GetDB().Model(&models.Auction{}).Where("Enddate <= ? and Selltype = ?",
+		time.Now().Unix(), models.SellTypeHighestBid.String()).Limit(100).Find(&aucRecs)
 	if err.Error != nil {
 		log.Println("TimeProc() First err=", err)
 		return
@@ -778,7 +778,8 @@ func CallContractsNew(nft *models.NftDb) {
 				}
 				//fmt.Println("TimeProc() bidRecs.Price=", bidRecs.Price, "controllers.Lowprice=",
 				//	models.Lowprice,"auctionRec.Startprice=", auctionRec.Startprice, "valid=", valid)
-				if bidRec.Price >= models.Lowprice && bidRec.Price >= auctionRec.Startprice {
+				//if bidRec.Price >= models.Lowprice && bidRec.Price >= auctionRec.Startprice {
+				if bidRec.Price >= auctionRec.Startprice {
 					var nftrecord models.Nfts
 					err := nft.GetDB().Where("contract = ? AND tokenid = ? AND ownaddr = ?",
 						auctionRec.Contract, auctionRec.Tokenid, auctionRec.Ownaddr).First(&nftrecord)
@@ -957,6 +958,34 @@ func CallContractsNew(nft *models.NftDb) {
 						return nil
 					})
 				}*/
+				clearMergeAuction(nft, &auctionRec)
+			}
+			if auctionRec.Selltype == models.SellTypeHighestBid.String() &&
+				auctionRec.SellState == models.SellStateWait.String() &&
+				time.Now().Unix() >= auctionRec.Enddate+3600 {
+				nft.GetDB().Transaction(func(tx *gorm.DB) error {
+					nfttab := map[string]interface{}{
+						"Offernum":    0,
+						"Maxbidprice": 0,
+						"Selltype":    models.SellTypeNotSale.String(),
+					}
+					err = tx.Model(&models.Nfts{}).Where("id = ?", auctionRec.Nftid).Updates(&nfttab)
+					if err.Error != nil {
+						log.Println("TimeProc() update record err=", err.Error)
+						return err.Error
+					}
+					err = tx.Model(&models.Bidding{}).Where("Auctionid = ?", auctionRec.ID).Delete(&models.Bidding{})
+					if err.Error != nil {
+						log.Println("TimeProc() delete bid record err=", err.Error)
+						return err.Error
+					}
+					err = tx.Model(&models.Auction{}).Where("id = ?", auctionRec.ID).Delete(&models.Auction{})
+					if err.Error != nil {
+						log.Println("TimeProc() delete auction record err=", err.Error)
+						return err.Error
+					}
+					return nil
+				})
 				clearMergeAuction(nft, &auctionRec)
 			}
 		}
