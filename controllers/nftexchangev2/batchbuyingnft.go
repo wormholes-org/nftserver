@@ -12,17 +12,6 @@ import (
 	"time"
 )
 
-// @Title BatchBuyingNft
-// @Description To buy nft works, the transaction is initiated by the exchange: post
-// @Param Token header string true "token"
-// @Param user_addr body string  true "user addr"
-// @Param sig body string true "data sig"
-// @Param offer_list body string true "OfferList"
-// @Param sell_list body string true "SellList"
-// @Success 200
-// @Failure 500
-// @router /v2/batchBuyingNft [post]
-// @Example  user_addr=""
 func (nft *NftExchangeControllerV2) BatchBuyingNft() {
 	fmt.Println("BatchBuyingNft()>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", time.Now())
 	var httpResponseData controllers.HttpResponseData
